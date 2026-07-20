@@ -680,6 +680,16 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - SPC(Recording46, family **0x24**=603979777): addChild **4881** / setChartType **10757**(Histogram=0/Pie=1) / **setCategoryCount 10758** / setPosition **10754** / setDistance **10755** / setSize **10756** / setIntensity **10753** /
   setCategoryText **10759** / setCategoryValue **10760** / setCategoryColor **10761** (셋 다 카테고리 인덱스를 인자로 받음 — Python 의 setCategory1~10 을 SPC 는 인덱스 파라미터로 통합).
 
+## Ephemeris — `Ephemeris(Ephemeris.EphemerisName.Ephemeris001)` ✅✅ 천체 출몰 계산 완성 (2026-07-20 사용자 확인, ephemeris_tonight.py + Recording50)
+- ✅ **'데이터/계산' 클래스 (렌더 아님)** — 천체의 rise/set/transit **율리우스일을 계산해 속성으로 반환**. 그 값을 읽어 InsertText 로 시각 표출.
+  실측: 태양 → **일출 05:29 / 일몰 19:39 / 남중 12:34 (청주 7/20, KST)** = 실제와 정확히 일치.
+- **enum(완본엔 Invalid만 보였으나 런타임 dir() 로 실측)**: `EventType` = **CompatibilityRise / Rise / Set / Transit** · `OffsetType` = **CompatibilityHour / Height / Hour**. EphemerisName 슬롯 = Ephemeris001~006 + 007_Tonight/008_Dynamic/009_Sunrise(프리셋).
+- **레시피 (확정)**: `eph = Ephemeris(EphemerisName.Ephemeris001)` → `setUseSimulationTime(True)` → `setStartDate(dm.julianDate)`(현재 JD) →
+  `setTargetBody(int id)`(**태양 id = `IndividualStar(Sun).id` = 1200**) → (선택)`setEventType(EventType.Rise)` → `setDayLimit(2)` → **sleep(0.3~0.4) 계산 대기** →
+  읽기 `eph.riseDate` / `eph.setDate` / `eph.transitDate` / `eph.isValid`. ⚠️ **rise/set/transit 3개가 한 번에 다 계산됨**(eventType 안 걸어도 세 속성 다 나옴).
+- **JD → KST 변환 (실측 정확)**: `jd + 9/24 + 0.5` → 표준 JD→그레고리안 알고리즘(Z=int, F=소수부…)으로 Y/M/D h:m. (UTC 시뮬 → +9h = KST.)
+- SPC(Recording50, family **0x2A**=704643072): setUseSimulationTime **12040** / setTargetBody **12035** / setStartDate **12036** / setDayLimit **12039** (setEventType/setOffset 계열은 12034~12039 근방). 자막 InsertText setText **3844**.
+
 ## DrawableInsert — `DrawableInsert(DrawableInsert.DrawableInsertName.DrawableInsert2D001)` ✅✅ 돔에 자유 그리기 완성 (2026-07-20 사용자 스샷 확인, drawable_probe.py)
 - ✅ **붓으로 돔/화면에 자유 드로잉** — 원/선이 또렷이 렌더됨. 슬롯 DrawableInsert2D001~003.
 - ⚠️⚠️ **삽질 3연발로 확정한 함정 (v1~v3)**:
