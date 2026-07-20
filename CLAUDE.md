@@ -680,6 +680,17 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - SPC(Recording46, family **0x24**=603979777): addChild **4881** / setChartType **10757**(Histogram=0/Pie=1) / **setCategoryCount 10758** / setPosition **10754** / setDistance **10755** / setSize **10756** / setIntensity **10753** /
   setCategoryText **10759** / setCategoryValue **10760** / setCategoryColor **10761** (셋 다 카테고리 인덱스를 인자로 받음 — Python 의 setCategory1~10 을 SPC 는 인덱스 파라미터로 통합).
 
+## DrawableInsert — `DrawableInsert(DrawableInsert.DrawableInsertName.DrawableInsert2D001)` ✅✅ 돔에 자유 그리기 완성 (2026-07-20 사용자 스샷 확인, drawable_probe.py)
+- ✅ **붓으로 돔/화면에 자유 드로잉** — 원/선이 또렷이 렌더됨. 슬롯 DrawableInsert2D001~003.
+- ⚠️⚠️ **삽질 3연발로 확정한 함정 (v1~v3)**:
+  1. **`BrushType.Pen` 을 명시적으로** — `dir(DrawableInsert.BrushType)` = **['Eraser', 'Pen']** (Invalid 아님!). v1 이 `bts[0]`='Eraser'(지우개) 골라 아무것도 안 그려짐. → **`setBrushType(DrawableInsert.BrushType.Pen)`**.
+  2. **부착 = `cam.addChild(d.id, Camera.CameraPort.FixedForeground)`** (InsertText/Clock/Chart2D 패턴). v2 의 `setParent(cam.id)` 는 화면에 안 그려짐.
+  3. **좌표 = az/h 돔좌표** (InsertText 와 동일, Vec(az, h, roll)). FixedForeground 로 붙였을 때 이 좌표가 맞음.
+- ⚠️⚠️ **곡면(돔) 왜곡 (2026-07-20 사용자 지적)**: 그림은 평면이 아니라 **3D 곡면 돔 위에 얹힘** → 평면 공식으로 계산한 '원'(az/h 반지름 일정)은 **돔 어안 투영 + 경선 수렴(고도↑일수록 az 압축)** 때문에 **계란형으로 찌그러짐**. 버그 아님(선은 정상 렌더).
+  · 시각적 '정원'을 원하려면: **뷰축(Target 방향) 근처에 작게** 그리거나(왜곡 최소), 또는 h 에 따라 az 반지름을 `/cos(h)` 로 보정, 아니면 az 진폭을 h 진폭보다 키움. (별자리 덧그리기 같은 자유형 주석엔 왜곡 무관.)
+- **그리기 절차**: `setBrushType(Pen)` → `setBrushColor(Vec3)`(⚠️ 실측 화면엔 하양으로 나옴 — Pen 색 고정 추정) → `setBrushSize(float)` → `setIntensity(1)` → `beginDraw()` → `setBrushPosition(Vec(az,h,0))` 를 촘촘히 연속 호출(각 점이 획) → `endDraw()`. 지우기 = `clearAll(Anim)`. `undo`/`redo`/`save`/`load` 도 있음.
+- 활용 아이디어: 별자리 위에 형상 덧그리기, 화살표/동그라미 주석, 관객 앞 실시간 스케치. (SPC 미기록 — 스샷 확인.)
+
 ## NGC — `NGC(NGC.NGCName.NGC2237)` 🛑 이 빌드서 '쇼 개체로 사용 불가' 확정 (2026-07-20 실측)
 - NGCName enum = 실제 카탈로그(NGC253 조각가은하/**NGC2237 장미**/NGC869_884 이중성단/NGC2392 에스키모/NGC4038 안테나 …), NGCPort = **Ecliptic / LineOfSightLocal**. API=setIntensity/setScale/setLabelIntensity/setSize/portId/addChild.
 - ⚠️⚠️ **접근 3경로 전부 실패 (ngc_deepsky.py v1~v3)**:
