@@ -63,11 +63,13 @@ if d is None:
 if d is not None:
     # 화면 오버레이로 부착(카메라)
     feat(d, "setParent", cam.id, label="(부모=카메라)")
-    # 붓 타입: 유효값 없으면 기본. enum 에 Invalid 외 뭐라도 있으면 시도.
+    # ★ v2 버그픽스: BrushType = ['Eraser','Pen'] 인데 v1 이 bts[0]='Eraser'(지우개!) 를 골라 아무것도 안 그려짐.
+    #   → 'Pen'(그리기) 을 명시적으로 선택.
     bts = [m for m in dir(DrawableInsert.BrushType) if not m.startswith("__") and "Invalid" not in m and m[0].isupper()]
     print("   [BrushType 유효값] %s" % (bts or "없음(기본 붓만)"))
-    if bts:
-        feat(d, "setBrushType", getattr(DrawableInsert.BrushType, bts[0]), label="(붓=%s)" % bts[0])
+    pen = "Pen" if hasattr(DrawableInsert.BrushType, "Pen") else (bts[-1] if bts else None)
+    if pen:
+        feat(d, "setBrushType", getattr(DrawableInsert.BrushType, pen), label="(★ 붓=%s)" % pen)
     feat(d, "setBrushColor", Vec(1.0, 0.85, 0.3), label="(노랑)")
     feat(d, "setBrushSize", 2.0, label="(굵기 2.0)")
     feat(d, "setIntensity", 1.0, Anim(0.0))
@@ -106,7 +108,6 @@ if d is not None:
     feat(d, "setIntensity", 0.0, Anim(1.0))
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료. ★프로브 리포트: ①★화면에 노란 원/대각선이 그려졌나(뭐라도 선이 보이면 성공) "
-      "②로그 '[BrushType 유효값]' 이 '없음'인가 — 없는데도 그려지면 기본 붓 OK / 안 그려지면 붓타입 필요=이 빌드 미지원 "
-      "③원이 이상한 위치/모양이면 = 좌표계가 az/h 아님(정규화 등) → 알려주면 좌표 바꿈 "
-      "④전혀 안 그려지면 DrawableInsert 접고 Ephemeris(천체 출몰)로 넘어감")
+print("종료(v2 Pen). ★프로브 리포트: ①★이번엔 Pen 으로 바꿨으니 노란 원/대각선이 그려지나(v1 은 Eraser=지우개라 안 그려졌음) "
+      "②원이 이상한 위치/모양이면 = 좌표계가 az/h 아님(화면 정규화 등) → 알려주면 좌표 바꿈 "
+      "③그래도 전혀 안 그려지면 DrawableInsert 접고 Ephemeris(천체 출몰)로 넘어감")
