@@ -1,0 +1,32 @@
+name: Sync to Hugging Face Space
+
+# GitHub main → HF Space(leedohyang/sky-explorer-Ai) 미러링.
+# main 에 push 될 때마다 실행되고, Actions 탭에서 수동 실행도 가능하다.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0        # HF 는 전체 히스토리를 요구한다 (얕은 클론이면 push 거부)
+          lfs: true
+
+      - name: Push to Hugging Face Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          if [ -z "$HF_TOKEN" ]; then
+            echo "::error::HF_TOKEN 시크릿이 없습니다. Settings → Secrets and variables → Actions 에서 추가하세요."
+            exit 1
+          fi
+          git remote add space https://huggingface.co/spaces/leedohyang/sky-explorer-Ai
+          # 토큰을 remote URL 이나 명령 인자에 넣지 않는다 — 로그/프로세스 목록에 남을 수 있다.
+          # credential helper 로 stdin 에만 흘려보낸다.
+          git config --local credential.helper \
+            '!f() { echo username=leedohyang; echo password=$HF_TOKEN; }; f'
+          git push space HEAD:main --force
