@@ -61,8 +61,12 @@ if d is None:
     except Exception as e: print("   생성 실패: %s" % e)
 
 if d is not None:
-    # 화면 오버레이로 부착(카메라)
-    feat(d, "setParent", cam.id, label="(부모=카메라)")
+    # ★ v3: 화면 HUD 부착 = addChild(FixedForeground) (InsertText/Clock/Chart2D 와 동일 패턴).
+    #   v1/v2 는 setParent(cam.id) 로 붙였는데 그건 화면 오버레이가 아니라 안 그려졌을 수 있음.
+    try:
+        cam.addChild(d.id, Camera.CameraPort.FixedForeground); print("   ✓ addChild(FixedForeground)")
+    except Exception as e:
+        print("   ✗ addChild 실패: %s → setParent 폴백" % e); feat(d, "setParent", cam.id)
     # ★ v2 버그픽스: BrushType = ['Eraser','Pen'] 인데 v1 이 bts[0]='Eraser'(지우개!) 를 골라 아무것도 안 그려짐.
     #   → 'Pen'(그리기) 을 명시적으로 선택.
     bts = [m for m in dir(DrawableInsert.BrushType) if not m.startswith("__") and "Invalid" not in m and m[0].isupper()]
@@ -108,6 +112,6 @@ if d is not None:
     feat(d, "setIntensity", 0.0, Anim(1.0))
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료(v2 Pen). ★프로브 리포트: ①★이번엔 Pen 으로 바꿨으니 노란 원/대각선이 그려지나(v1 은 Eraser=지우개라 안 그려졌음) "
-      "②원이 이상한 위치/모양이면 = 좌표계가 az/h 아님(화면 정규화 등) → 알려주면 좌표 바꿈 "
-      "③그래도 전혀 안 그려지면 DrawableInsert 접고 Ephemeris(천체 출몰)로 넘어감")
+print("종료(v3 addChild). ★프로브 리포트: ①★이번엔 addChild(FixedForeground)로 붙였으니 노란 원/대각선이 그려지나 "
+      "(v1=Eraser, v2=setParent 로 안 됐음 → v3 는 Pen + 화면HUD 부착) "
+      "②원이 이상한 위치/모양이면 좌표계 조정 ③그래도 안 그려지면 DrawableInsert 접고 Ephemeris 로 넘어감")
