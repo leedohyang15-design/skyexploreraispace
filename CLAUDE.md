@@ -836,6 +836,13 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
 - `setTexture(path)`, `setPosition(Vec(az,h,roll), Anim)`, `setSize(size, Anim)`
 - `setIntensity(intensity, Anim)`, `setType(Type, Orientation)`
 - 특수: `Insert2D.Insert2DName.Insert2D076_LightPollution`(광공해 오버레이)
+- ✅✅ **로컬 이미지 표시 완성 (2026-07-20 사용자 스샷 확인, insert2d_image.py)**: `cam.addChild(ins.id, FixedForeground)` +
+  `setTexture(경로)` + `setPosition(Vec(0,45,0))`+`setSize(0.6)`+`setIntensity(1)` → 돔에 이미지 렌더(과녁 테스트 이미지 확인).
+  ⚠️ 이 뷰에선 FixedForeground 오버레이가 **좌우 반전(미러)**돼 보임(자막 InsertText 도 같이 반전 = 뷰/설정 의존, Insert2D 탓 아님).
+- ✅✅✅ **[중요] 로컬 에셋 폴더 = `Configuration.configuration().localUserFolder` (2026-07-20 확정)**: 이미지/비디오 등 로컬 파일을 넣는 곳.
+  실측 예: `'D:/SkyExplorer-Data/user'`. **setTexture/setFilename/VideoPlayer.load 경로는 이 폴더 상대(파일명만) 또는 절대경로 둘 다 OK, 슬래시 `/`·`\\` 둘 다 됨**(3형식 다 로드 확인).
+  → 파일 못 찾으면 스크립트에서 `Configuration.configuration().localUserFolder` 를 print 해 정확한 폴더를 확인하고 거기 넣을 것. (igUserFolder(0) 은 빈 문자열이었음 → localUserFolder 사용.)
+- ⚠️ **Patch 클래스 ≠ 이미지 표시** (2026-07-20): `Patch(setFilename/setKeyColor/setOpacity…)` 는 **position 세터가 없는 '프로젝션 워핑/블렌딩 패치'** → 창 Sky View 에선 안 뜸. **로컬 이미지 표시는 Insert2D 로 할 것**(Patch 아님).
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
