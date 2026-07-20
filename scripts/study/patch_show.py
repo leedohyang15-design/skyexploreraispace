@@ -15,7 +15,24 @@ from Initialization import *
 cam = Camera(Camera.CameraName.MainCamera)
 uni = Universe(Universe.UniverseName.MainUniverse)
 
-IMG_PATH = "patch_test.png"        # ★ Studio 유저폴더에 넣은 파일명 (하위폴더면 "폴더/patch_test.png")
+IMG_NAME = "patch_test.png"        # 유저폴더에 넣은 파일명
+IMG_REL  = IMG_NAME                 # 상대경로 후보
+IMG_ABS  = None                     # 절대경로 후보(유저폴더 + 파일명)
+
+# ★★ 유저폴더 위치를 '직접' 알아낸다 (Configuration.localUserFolder) → 로그에 찍힘 = 어디 넣을지 확정
+try:
+    cfg = Configuration.configuration()
+    folder = cfg.localUserFolder
+    print("★★ [유저폴더] localUserFolder = %r" % folder)
+    try: print("   [참고] igUserFolder(0) = %r" % cfg.igUserFolder(0))
+    except Exception as e: print("   igUserFolder(0) 실패: %s" % e)
+    if folder:
+        s = str(folder)
+        sep = "" if s.endswith(("\\", "/")) else ("/" if "/" in s and "\\" not in s else "\\")
+        IMG_ABS = s + sep + IMG_NAME
+        print("★★ [절대경로 후보] = %r" % IMG_ABS)
+except Exception as e:
+    print("Configuration 실패: %s (상대경로만 시도)" % e)
 
 
 def feat(obj, fn, *args, label=""):
@@ -67,13 +84,15 @@ if p is not None:
     # 혹시 화면부착이 필요하면 시도(대개 불필요 — 실패해도 무시)
     try: cam.addChild(p.id, Camera.CameraPort.FixedForeground); print("   ✓ addChild(FixedForeground)")
     except Exception as e: print("   (addChild 없음/실패 — 정상일 수 있음: %s)" % str(e)[:40])
-    feat(p, "setFilename", IMG_PATH, label="(파일=%s)" % IMG_PATH)
-    feat(p, "setOpacity", 0.0, Anim(0.0))
-    sleep(0.4)
-    # ① 이미지 페이드인
-    narr("① 이미지 등장 (opacity 0 → 1)", 3.0)
-    feat(p, "setOpacity", 1.0, Anim(2.5)); sleep(3.0)
-    narr("클로드가 만든 과녁 이미지가 보이나?", 4.0)
+    feat(p, "setOpacity", 1.0, Anim(0.0))
+    # ★ 절대경로 → 상대경로 순서로 각각 시도(어느 게 뜨는지 한 번에 판별)
+    cand = [("절대경로", IMG_ABS)] if IMG_ABS else []
+    cand += [("상대경로", IMG_REL)]
+    for name, path in cand:
+        narr("경로 시도: %s" % name, 2.0)
+        feat(p, "setFilename", path, label="(%s = %s)" % (name, path))
+        sleep(3.5)
+        narr("[%s] 과녁 이미지 떴나?  %s" % (name, path), 5.0)
 
     # ② 색 보정 (hsv / vibrance / gamma)
     narr("② 색 보정 — 색상/채도/감마", 3.0)
@@ -95,6 +114,8 @@ else:
 
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료. ★리포트: ①★과녁 이미지(patch_test.png)가 화면에 떴나 — 안 뜨면 로그 'setFilename' 성공했나 + 파일이 유저폴더에 있나 "
-      "②색보정(hsv/vibrance/gamma) 때 색이 변했나 ③크로마키로 남색 배경이 빠지고 링만 남았나 "
-      "④안 뜨면 = 파일 경로 문제(유저폴더 위치 확인) or Patch 는 화면부착/포지션 필요 → 로그 보고 조정")
+print("종료(v2 유저폴더 자동탐색). ★리포트: "
+      "①★★로그 맨 위 '[유저폴더] localUserFolder = ...' 경로를 알려줘 — 거기가 파일 넣을 곳 "
+      "②'절대경로' 시도 때 vs '상대경로' 시도 때 중 어느 쪽에서 과녁 이미지가 떴나 "
+      "③둘 다 안 떴으면 = patch_test.png 를 그 localUserFolder 경로에 넣고 다시 실행(지금 다른 폴더에 있을 것) "
+      "④떴으면 색보정/크로마키도 됐나")
