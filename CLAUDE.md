@@ -847,7 +847,15 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
 - 🛑 **VideoPlayer(로컬 영상) = 레거시/미작동 확정 (2026-07-20, videoplayer_show.py)**: `VideoPlayer()` 싱글톤 + `load(파일, Anim, Eye.Both)`+`play`+`setOpacity(1=영상)`.
   ⚠️ **load 해도 `videoFile` 이 계속 빈값 + state 가 `LegacyInvalidState` 에서 안 바뀜 + duration=0** — 파일 등록 자체가 안 됨.
   H.264 default → **Constrained Baseline+yuv420p+L3.1** 로 재인코딩해도 동일(코덱 문제 아님, 경로는 Insert2D 로 검증됨 = 정상). VideoState 에 'Legacy'가 붙은 게 신호.
-  → **파이썬 VideoPlayer 직접 파일 재생은 이 빌드서 안 됨.** 영상이 꼭 필요하면 `SoftwareManager.softExe/softStart`(외부 플레이어 IG 실행) 경유거나 Studio UI 미디어 임포트. (로컬 이미지는 Insert2D 로 확정.)
+  ✅✅ **근본 원인 확정 (2026-07-22 v3 포맷판별 + 완본 정독, 사용자 로그)**: **코덱/경로 완전 배제** — 같은 영상을 4개 컨테이너
+  (**WMV8 / MPEG-1 / MS-MPEG4(avi) / H.264 mp4**)로 만들어 상대경로(완본: "load 는 유저폴더 상대경로 필수")로 하나씩 load 해도
+  **4개 전부 `videoFile='' + state=LegacyInvalidState + duration=0` 로 완전 동일**(생성 직후 첫 읽기부터 Legacy). = 파일을 아예 안 받음.
+  → **진짜 이유 = `Source_ViPlayer` 는 `SoftwareManager.Source` enum 멤버** (완본 line 29341). 즉 VideoPlayer.load 가 노리는 'viPlayer'는
+  **별도 소프트웨어 소스/호스트**(IG/오퍼레이터 레벨)라, 이 소스가 활성화돼 있지 않으면 Python `VideoPlayer` 객체가 아무 것도 디코드 못 함
+  (정상이면 unLoad 후 `UnloadedState` 여야 하는데 처음부터 `LegacyInvalidState`). **스크립트 창(Studio window)에선 ViPlayer 소스가 꺼져 있음.**
+  → **[최종] 파이썬 VideoPlayer 로 '파일 떨궈 돔 재생'은 이 빌드/창에서 불가 = 시스템 설정(SoftwareManager ViPlayer 호스트) 소관.** 코덱 바꿔봐야 소용없음(재시도 금지).
+  ✅ **영상 대체 = Insert2D 텍스처 시퀀스(프레임 flip)** — Insert2D 는 렌더 확정이라 setTexture 를 빠르게 갈아끼우면 '움직이는 콘텐츠' 흉내 가능(권장 우회).
+  또는 `SoftwareManager.softExe/softStart` 로 외부 플레이어 IG 실행 or Studio UI 미디어 임포트. (로컬 이미지 표시는 Insert2D 로 확정.)
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
