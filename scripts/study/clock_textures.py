@@ -74,16 +74,16 @@ feat(clk, "setDisplaySecondsHand", True)
 feat(clk, "setIntensity", 1.0, Anim(0.0))
 sleep(3.0)
 
-# ── ① 문자판 텍스처 교체 ────────────────────────────────────
+# ── ① 문자판 텍스처 교체 (⚠️ 인자 1개 = 경로만, Anim 없음) ──
 narr("① 문자판 교체 — setBackgroundTexture", 2.5)
-feat(clk, "setBackgroundTexture", P("clock_face.png"), Anim(1.0), label="(남색+금테 별판)")
+feat(clk, "setBackgroundTexture", P("clock_face.png"), label="(남색+금테 별판)")
 sleep(2.0); narr("★ 문자판이 '남색+금테 별' 판으로 바뀌었나?", 5.0)
 
-# ── ② 바늘 텍스처 교체 ──────────────────────────────────────
+# ── ② 바늘 텍스처 교체 (경로만) ─────────────────────────────
 narr("② 바늘 교체 — 시/분/초침 텍스처", 2.5)
-feat(clk, "setHoursHandTexture", P("clock_hand.png"), Anim(1.0), label="(시침)")
-feat(clk, "setMinutesHandTexture", P("clock_hand.png"), Anim(1.0), label="(분침)")
-feat(clk, "setSecondsHandTexture", P("clock_hand.png"), Anim(1.0), label="(초침)")
+feat(clk, "setHoursHandTexture", P("clock_hand.png"), label="(시침)")
+feat(clk, "setMinutesHandTexture", P("clock_hand.png"), label="(분침)")
+feat(clk, "setSecondsHandTexture", P("clock_hand.png"), label="(초침)")
 sleep(2.0); narr("★ 바늘이 '주황 다이아' 모양으로 바뀌었나?", 5.0)
 
 # ── 시간가속으로 바늘 회전 확인 ─────────────────────────────
