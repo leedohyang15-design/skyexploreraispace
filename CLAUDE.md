@@ -839,6 +839,7 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
 - ✅✅ **로컬 이미지 표시 완성 (2026-07-20 사용자 스샷 확인, insert2d_image.py)**: `cam.addChild(ins.id, FixedForeground)` +
   `setTexture(경로)` + `setPosition(Vec(0,45,0))`+`setSize(0.6)`+`setIntensity(1)` → 돔에 이미지 렌더(과녁 테스트 이미지 확인).
   ⚠️ 이 뷰에선 FixedForeground 오버레이가 **좌우 반전(미러)**돼 보임(자막 InsertText 도 같이 반전 = 뷰/설정 의존, Insert2D 탓 아님).
+  SPC(Recording62, family **0x01**=16777217): addChild **4881** / setPosition **1794** / setDistance **1795** / setSize **1798** / setIntensity **1802** / **setTexture 1796**.
 - ✅✅✅ **[중요] 로컬 에셋 폴더 = `Configuration.configuration().localUserFolder` (2026-07-20 확정)**: 이미지/비디오 등 로컬 파일을 넣는 곳.
   실측 예: `'D:/SkyExplorer-Data/user'`. **setTexture/setFilename/VideoPlayer.load 경로는 이 폴더 상대(파일명만) 또는 절대경로 둘 다 OK, 슬래시 `/`·`\\` 둘 다 됨**(3형식 다 로드 확인).
   → 파일 못 찾으면 스크립트에서 `Configuration.configuration().localUserFolder` 를 print 해 정확한 폴더를 확인하고 거기 넣을 것. (igUserFolder(0) 은 빈 문자열이었음 → localUserFolder 사용.)
