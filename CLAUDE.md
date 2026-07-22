@@ -374,7 +374,14 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   → **원복은 반드시 이 값으로**(내 데모가 ×1 로 되돌려 원본보다 별이 작아짐 = 실수). `lut.spriteScale`/`diameterScale` 등으로 읽어 복귀. ⚠️ `points` 는 파이썬 읽기 불가("No to_python converter").
 - ⚠️ 효과 감각: spriteScale/diameterScale 을 6→크게 올리면 별이 뚜렷이 커짐(사용자 확인). sizeLimit 완화로 밝은 별 더 크게.
 - SPC(Recording52, family **0x18**=402653185=Lut001): createPSF **5135**(5인자) / setSpriteScale **5128** / setDiameterScale **5133** / setSpriteSizeLimit **5130** / setSmoothSizeLimit **5131**. (setColorPalette/setSpriteTexture 미검증.)
-- ※ 자매 클래스 `ParameterizationLut` 도 미개척(비슷한 LUT 계열 추정).
+- ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
+  개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
+  메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·
+  `setInternalValue(0~1, Anim)`(수동 슬라이더 입력) · `setEnabled(True)` · `setSourceSunHeight()`(태양고도 자동구동) · `restore()`.
+  프리셋 슬롯(051~062): AllConstellationLines/Slider*/StarrySkyAutoExposure/WeatherEffectRain·Snow 등.
+  ✅ **enabled 는 setEnabled(True) 후 ~1초 프레임 대기하면 True 로 붙음**(즉시 읽으면 False — 프레임 필요). ⚠️ pilotedAttributeList/attributeList 는 파이썬 읽기 불가(No to_python converter).
+  🛑 **그러나 실제 구동이 화면에 안 먹힘**: Stars(osgId=1e8) Intensity 를 타겟 걸고 internalValue 1→0(키 0→0/1→1)로 내려도 **별밭이 안 어두워짐**(밀키웨이 끄고 5초 홀드해도 무변화). 프리셋 슬라이더(별자리 선)도 무변화.
+  → **[판정] ParameterizationLut 은 설정·enable 은 되나 스크립트 창에서 렌더 파이프라인에 piloting 이 반영 안 됨 = 쇼엔진/오퍼레이터 소관(미디어류와 동일 부류). 쇼용 부적합.** (Lut 은 자동적용이라 됐지만 ParameterizationLut 은 별개.)
 
 ## Mark — 좌표 그리드/눈금 (2026-07-07 v1 프로브 실측)
 - 생성: `Mark(Mark.MarkName.Mark001)` — **MarkName = Mark001~050 + Mark051~053_WelcomeGrid** (69멤버).
