@@ -881,6 +881,16 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   **마스터볼륨(MainAudioPlayer.setOutputVolume(1.0))까지 올리고 풀8초 재생해도 완전 무음**(사용자 확인). → 오디오 출력 소스가 스크립트 창(Studio window)엔 비활성.
   → **[최종] 파이썬으로 소리 재생 불가 = VideoPlayer 와 같은 시스템/오퍼레이터(오디오 호스트) 소관. 재시도 금지.** 쇼의 사운드는 Studio UI/오퍼레이터가 입힐 것.
   ⚠️ **교훈: 미디어(영상·오디오)·하드웨어(Light=DMX 코브조명·DMX512) 계열은 '별도 호스트' 부류라 스크립트 창에서 렌더/출력 안 됨.** 남은 미개척은 렌더 오브젝트(Lut/Place3D 등)에서 찾을 것.
+- ⚠️ **Place3D(3D 경로/궤적 선) = load 는 조용히 성공하나 렌더 안 됨 (2026-07-22, place3d_path.py, 사용자 "하나도 안 떴는데")**:
+  TSV 위치키를 이어 3D 궤적선을 그리는 클래스. 메서드: `load(TSV)` · `setShowPath(bool)` · `setIntensity` · `setLineColor(Vec3)` · `setLineThickness(px)` ·
+  `setLineDrawingMode(DrawingMode.Lines/Trail/Default/Deprecated_Dashes/Deprecated_Points)` · `setPlayMode(Simulation/Live/Play/ConstantSpeed)` · `setEvolution(0~1)`. 슬롯 Place3D001~050.
+  ⚠️⚠️ **TSV 컬럼 포맷 미문서 + load 가 4개 후보 포맷(t/x/y/z · x/y/z · t/az/h/r · t/lon/lat/alt) 전부 '에러 없이' 받음**(검증 안 함) → 에러로 포맷 못 좁힘.
+  showPath=True/intensity=1/evolution=1 로 세팅돼도 **화면에 곡선 안 뜸**. dir() 에 setParent/addChild 없음 = 프레임 부착 API 없음 → 좌표 프레임/스케일이 안 맞으면 화면 밖.
+  → **[판정] 맹탕(포맷·프레임 미상)으로는 못 띄움. 실제 경로 TSV 는 소프트웨어가 export 하는 특정 포맷/프레임 추정 = 스크립트 창 단독 렌더 난망.** 궤적선이 필요하면 검증된 Line/OrbitalPlace/Comet 궤도선 사용.
+- ✅✅ **[정리] '미개척 클래스' 스윕 결론 (2026-07-22)**: 완본 전 클래스 중 안 해본 것들 판별 완료. **렌더/동작 확인 = Lut(별 스프라이트)** 뿐. **나머지는 전부 호스트/오퍼레이터/하드웨어 소관**:
+  🛑 VideoPlayer(ViPlayer 호스트) · 🛑 Audio 4형제(오디오 호스트) · 🛑 ParameterizationLut(enable 은 되나 piloting 무반영) · 🛑 Place3D(load 되나 렌더 안 됨) · 🛑 SkySurvey(HiPS 미렌더) · 🛑 NGC(액션 死) · 🛑 Patch(워핑, 위치 없음) ·
+  하드웨어/시스템(비검증, 창 무관): Light(DMX 코브) · DMX512 · SoftwareManager · ShowEngineManager · FreeDomeManager · RemoteShow · SlideShowHandler(XML 필요) · Comment(로그 전용) · Body(추상 베이스) · Mat/Mat4x4/Vec3(수학).
+  → **스크립트로 '돔에 뭔가 그리는' 미개척 클래스는 사실상 소진.** 앞으로 새 임팩트는 '검증된 렌더 클래스의 새 조합/현상' 쪽에서 찾을 것(미디어·파라미터화·경로선은 재시도 금지).
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
