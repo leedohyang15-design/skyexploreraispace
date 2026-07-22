@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-parameterization_lut.py — ParameterizationLut v3 (2026-07-22, enabled=False 공략)
-★ v2 결과: setEnabled(True) 호출은 성공하나 **enabled 읽으면 계속 False** → 파라미터화가 실제로 안 켜짐(무변화).
-  프리셋(055)도, 커스텀(Stars Intensity)도 동일. = 활성화가 안 붙는 게 근본 문제.
-★ v3 공략: ①`addTargetAttribute(handler, attr, True)` **automatic=True 오버로드**(자동관리 플래그) ·
-  ②값(internalValue) 먼저 세팅 → 키 → **setEnabled 를 맨 마지막 + 프레임 대기(sleep)** → enabled 재확인 ·
-  ③각 단계 enabled 를 여러 번 읽어 언제 켜지는지 추적. 타겟 = 별밭(항상 보임).
-★ enabled 가 끝내 False 면 = 파라미터화도 쇼엔진/오퍼레이터 소관(스크립트 창 미지원)으로 확정.
+parameterization_lut.py — ParameterizationLut v4 (2026-07-22, 확실한 판정)
+★ v3 확인: setEnabled(True) 후 **1초 프레임 대기하면 enabled=True 로 붙음**(활성화는 됨). automatic 3인자 오버로드는 실패(2인자만).
+  하지만 별밭 밝기 변화가 애매("잘 모르겠는데") → 이번엔 극단·정지로 확실히 판정.
+★ v4: 밀키웨이 OFF(별만) + 입력 0 으로 내려 **5초 홀드**(별이 전부 사라져야 함) → 1 로 올려 5초 홀드(전부 복귀).
+  enabled=True 확정 후 구동. 별이 확 사라지면 = 파라미터화 성공(속성 자동화 확정), 그대로면 = piloting 무효(가시효과 없음).
 """
 
 from skyExplorer import *
@@ -21,7 +19,7 @@ def feat(obj, fn, *args, label=""):
     try:
         getattr(obj, fn)(*args); print("   ✓ %s %s" % (fn, label)); return True
     except Exception as e:
-        print("   ✗ %s 실패: %s" % (fn, str(e)[:100])); return False
+        print("   ✗ %s 실패: %s" % (fn, str(e)[:90])); return False
 
 
 def rd(obj, prop):
@@ -31,8 +29,7 @@ def rd(obj, prop):
         return "err:%s" % str(e)[:40]
 
 
-# ── 무대: 검은 하늘 + 별밭 ──────────────────────────────────
-print("무대: ParameterizationLut v3 — enabled 공략")
+print("무대: ParameterizationLut v4 — 확실판정(별만, 홀드)")
 uni.setGlobalIntensity(0.0, Anim(0.0))
 try:
     SceneGraph().reset(1); sleep(1.5)
@@ -43,8 +40,8 @@ earth = Planet(Planet.PlanetName.Earth); earth.setIntensity(1.0, Anim(0.0))
 feat(earth, "setAtmosphereIntensity", 0.0, Anim(0.0))
 feat(earth, "setTerrainIntensity", 0.0, Anim(0.0))
 stars = Stars(Stars.StarsName.StarrySky); stars.setIntensity(1.0, Anim(0.0))
-Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.4, Anim(0.0))
-cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(40.0, Anim(0.0))
+Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.0, Anim(0.0))   # ★ 밀키웨이 OFF = 별만
+cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(45.0, Anim(0.0))
 
 txt = InsertText(InsertText.InsertTextName(1))
 cam.addChild(txt.id, Camera.CameraPort.FixedForeground)
@@ -58,50 +55,45 @@ def narr(text, dur=3.0):
 
 AN = ParameterizationLut.AttributeName
 KT = ParameterizationLut.KeyType
-handler = rd(stars, "osgId")
-print("   Stars handler(osgId)=%s" % handler)
+handler = int(rd(stars, "osgId"))
+print("   Stars handler=%s" % handler)
 
 plut = ParameterizationLut(ParameterizationLut.ParameterizationLutName.ParameterizationLut001)
-
-
-def chk(tag):
-    print("   [enabled after %s] = %s" % (tag, rd(plut, "enabled")))
-
-
-# ── 구성: 값 먼저 → 키 → automatic 타겟 → enable 마지막 ──────
-narr("파라미터화 구성 (automatic + enable 마지막)", 2.5)
 feat(plut, "clearTargetAttributes"); feat(plut, "clearKey")
-feat(plut, "setInternalValue", 1.0, Anim(0.0), label="(값 먼저 1.0)")
-feat(plut, "addKey", 0.0, Vec4(0, 0, 0, 0), KT.Double, label="(key@0=0)")
-feat(plut, "addKey", 1.0, Vec4(1, 0, 0, 0), KT.Double, label="(key@1=1)")
-# automatic=True 3인자 오버로드 (자동관리)
-if not feat(plut, "addTargetAttribute", int(handler), AN.Intensity, True, label="(automatic=True)"):
-    feat(plut, "addTargetAttribute", int(handler), AN.Intensity, label="(2인자 폴백)")
-chk("target")
-feat(plut, "setEnabled", True, label="(맨 마지막)")
-chk("setEnabled 직후")
-sleep(1.0); chk("+1.0s 프레임대기")
-# 혹시 몇 번 더 눌러야 켜지나
-for i in range(3):
-    feat(plut, "setEnabled", True); sleep(0.4)
-chk("setEnabled x3 후")
+feat(plut, "setInternalValue", 1.0, Anim(0.0))
+feat(plut, "addKey", 0.0, Vec4(0, 0, 0, 0), KT.Double, label="(input0 → 밝기0)")
+feat(plut, "addKey", 1.0, Vec4(1, 0, 0, 0), KT.Double, label="(input1 → 밝기1)")
+feat(plut, "addTargetAttribute", handler, AN.Intensity, label="(별밭 Intensity)")
+feat(plut, "setEnabled", True)
+sleep(1.2)   # ★ 프레임 대기 = enabled 붙는 시간
+print("   [enabled] = %s" % rd(plut, "enabled"))
 
-# ── 구동: internalValue 1→0→1 (별밭 밝기 따라오나) ──────────
-narr("입력 1 → 0 : 별밭 어두워지나?", 1.0)
-feat(plut, "setInternalValue", 0.0, Anim(3.0)); sleep(3.2); chk("internal=0")
-narr("입력 0 → 1 : 별밭 밝아지나?", 1.0)
-feat(plut, "setInternalValue", 1.0, Anim(3.0)); sleep(3.2)
-narr("별밭 밝기가 입력 따라 변했나?", 3.5)
+narr("지금부터 별밭 밝기를 LUT가 조종", 3.0)
+
+# 입력 0 → 5초 홀드 (별이 다 사라져야 함)
+narr("입력 = 0  →  별이 전부 사라져야 함", 1.0)
+feat(plut, "setInternalValue", 0.0, Anim(2.5)); sleep(2.6)
+narr("★ 지금 별이 없나? (5초 정지)", 5.0)
+
+# 입력 1 → 5초 홀드 (별 전부 복귀)
+narr("입력 = 1  →  별이 전부 돌아와야 함", 1.0)
+feat(plut, "setInternalValue", 1.0, Anim(2.5)); sleep(2.6)
+narr("★ 지금 별이 가득한가? (5초 정지)", 5.0)
+
+# 한 번 더 왕복 (확인)
+narr("다시 입력 0 → 소등", 1.0)
+feat(plut, "setInternalValue", 0.0, Anim(2.0)); sleep(3.0)
+narr("입력 1 → 점등", 1.0)
+feat(plut, "setInternalValue", 1.0, Anim(2.0)); sleep(3.0)
 
 # 정리
 feat(plut, "restore"); feat(plut, "setEnabled", False)
 stars.setIntensity(1.0, Anim(1.0))
 
-narr("ParameterizationLut — 속성 자동화", 2.5)
+narr("ParameterizationLut — 속성 자동화 엔진", 2.5)
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료(v3). ★리포트: "
-      "①★로그의 '[enabled after ...] = ' 값들 — 어느 시점에서든 True 로 바뀌었나, 끝까지 False 인가 "
-      "②★별밭이 입력 1→0→1 따라 어두워졌다 밝아졌나 (됐다/전혀) "
-      "③'addTargetAttribute (automatic=True)' 가 성공했나(✓) 아니면 폴백으로 갔나 "
-      "④enabled 끝까지 False + 무변화면 = 파라미터화는 쇼엔진/오퍼레이터 소관으로 확정하고 접음")
+print("종료(v4). ★리포트(딱 하나): "
+      "'입력=0 (5초 정지)' 구간에서 **별이 전부 사라졌다가**, '입력=1 (5초 정지)' 에서 **다시 가득 찼나**? "
+      "→ ①확실히 그랬다(=성공) / ②전혀 안 변하고 별 그대로(=piloting 무효) / ③미묘하게 조금만. "
+      "(로그 '[enabled] = True' 는 이미 확인됨.)")
