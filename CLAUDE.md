@@ -272,6 +272,10 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   `setRockyCliffIntensity` · `setTreeIntensity` · `setMagnetosphereIntensity` · `setEquatorialSyncMagneticPolesIntensity`. (일식류 setAntumbra/Penumbra/UmbraArea·Line, ShadowCone 계열도 있음.)
 - ✅✅ **`setMagnetosphereIntensity` + `setPolarCircleIntensity` = FadeTo 지구(외부) 프레임서 렌더 확정 (2026-07-22 사용자 확인, earth_extras_globe.py)**:
   ① `setMagnetosphereIntensity(1, Anim)` = 지구 둘레 자기권(장) 보임(사용자 "잘 보임"). ② `setPolarCircleIntensity(1, Anim)` = 남/북 극권 원(선) 보임. FadeTo Earth + 그림자 OFF 상태에서.
+- ✅ **`setEclipticBandIntensity`(황도대 띠) + `setAtmosphereHaloIntensity`(태양 halo) 렌더 확정 (2026-07-22 사용자 "잘 됐고", c_misc_sweep.py)**:
+  · `setEclipticBandIntensity(1, Anim)` = 지상 밤하늘에 황도대 띠(하늘 가로지르는 밝은 띠) 렌더(setEclipticGridIntensity 황도선과 병행 좋음).
+  · `setAtmosphereHaloIntensity(1, Anim)` = **대낮(대기 ON + 태양 고도 높음)** 태양 주변 무리(halo) 링 렌더. 밤엔 무의미 — 낮 씬 전용.
+- 🛑 **`Action.Type.LookAt` = PlanetType 데이터서 미지원 (2026-07-22, c_misc_sweep.py)**: `Action.Type.LookAt` enum 은 있으나 `data(PlanetType,"Mars").action(LookAt)` 가 **None**(액션 死) = 조준 불가. (천체 조준은 setOrientationH/setTargetHeight 또는 ConnectTo 로.)
 - 🛑 **`setCloudRaininess` / `setRockyCliffIntensity` / `setTreeIntensity` = 스크립트 창서 안 보임 (2026-07-22, earth_surface_345.py)**:
   FadeTo Earth 에서 DEM 지형 + R 을 지구반지름 ~1.1배까지 바짝 줌인해도 셋 다 화면 무변(사용자 "안 되는 듯"). → **표면 디테일(강수줄기·암벽질감·식생)은 Terrain View(오퍼레이터 비행 뷰) 전용 추정 — 궤도 줌으론 안 나옴.** 재시도 금지.
 - ✅✅✅ **오로라(북극광) 완성 확정 (2026-07-16 사용자 확인, aurora.py + Recording41)**: `Planet(Earth).setAuroraIntensity(강도, Anim)` =
@@ -367,7 +371,8 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
     ×2 로는 은근함 — **0↔4.5 크게 스윕 + 흑백/컬러 A/B** 해야 체감(사용자 "×2.2 는 애매").
   · `setModelset(Stars.Modelset)` = 렌더링 모델셋. **enum = GaiaDR2 / Hipparcos** (2종, Anim 없는 enum).
   · 원본값은 `stars.exposure/contrast/pointSaturation` 로 읽어 복귀(하드코딩 금지 — 기본이 1.0 아님, 노출 5.68!).
-- 기타 미연습: setModelset 세부 차이(GaiaDR2 vs Hipparcos 별 목록 차이) 등.
+- ✅ **`setModelset(Stars.Modelset)` = GaiaDR2 ↔ Hipparcos 별 카탈로그 교체 확정 (2026-07-22 사용자 "잘 됐고", c_misc_sweep.py)**:
+  Modelset enum = **GaiaDR2**(기본) / **Hipparcos** 2종. 전환 시 별밭(별 수/배치) 달라짐(사용자 확인). Anim 없는 enum 세터. 읽기 `stars.modelset`.
 
 ## Lut — 별 스프라이트/점확산함수(PSF) 렌더 LUT ✅✅ 완성 (2026-07-22 사용자 "잘된다", lut_stars.py + Recording52)
 - ✅✅ **별(점광원)을 스프라이트로 그리는 방식의 전역 LUT — 별 크기/글로우가 실제로 확 변함(자동 적용)**. 슬롯 `Lut(Lut.LutName.Lut001)` (Lut001~005).
