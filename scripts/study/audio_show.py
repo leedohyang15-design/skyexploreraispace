@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-audio_show.py — 오디오 재생 (2026-07-22, 완본 미개척 Audio 계열)
-★ 미개척 클래스 4형제: AudioLite(가장 단순) / AudioLayer(50레이어+상태읽기) / Audio(모노/스테레오 채널) / AudioPlayer(마스터볼륨).
-★ VideoPlayer 는 ViPlayer 별도 호스트라 죽었지만, 오디오는 별도 렌더소스가 필요 없어 될 가능성 높음.
-  게다가 AudioLayer 는 audioState/audioDuration/audioPosition 읽기가 있어 '파일이 실제로 로드됐는지' 검증 가능(video 처럼).
-★ 경로: 완본 = "audio 폴더 상대경로 or 절대경로" → 절대경로(localUserFolder+파일명) 사용(그 폴더는 Insert2D 로 검증됨).
-  파일: 클로드가 만든 audio_test.wav(+mp3/ogg) — 8초 도미솔 아르페지오+화음. D:/SkyExplorer-Data/user 에 넣음.
-★ 흐름: 밤하늘 자막 → AudioLayer 로 load+play (상태 폴링) → 안되면 AudioLite → 안되면 Audio. 소리 나는지 귀로 확인.
+audio_show.py — 오디오 재생 v2 (2026-07-22, 판별 강화)
+★ v1 결과: AudioLayer = InvalidAudioState + duration 0 (video 처럼 별도 호스트 필요 = 죽음).
+  AudioLite 는 상태 읽기가 없어 '귀로만' 확인인데 v1 은 3초만 재생+명확한 큐 없어 사용자가 "잘 모르겠다".
+★ v2 개선: ①**마스터 볼륨** AudioPlayer(MainAudioPlayer).setOutputVolume(1.0) 먼저 (0이면 무조건 무음).
+  ②AudioLite wav 를 **풀 8초** 재생 + 화면 카운트다운("🔊 지금 소리! 8..7..") 으로 언제 들을지 명확.
+  ③2번 반복 재생(확실히 들을 기회). wav 만(가장 호환).
+★ 파일: audio_test.wav (D:/SkyExplorer-Data/user).
 """
 
 from skyExplorer import *
@@ -16,17 +16,13 @@ from Initialization import *
 cam = Camera(Camera.CameraName.MainCamera)
 uni = Universe(Universe.UniverseName.MainUniverse)
 
-FILES = ["audio_test.wav", "audio_test.mp3", "audio_test.ogg"]
 base = None
 try:
     base = str(Configuration.configuration().localUserFolder).rstrip("/\\")
-    print("★ 파일 넣을 폴더 = %r" % base)
+    print("★ 폴더 = %r" % base)
 except Exception as e:
     print("Configuration 실패: %s" % e)
-
-
-def abspath(fn):
-    return (base + "/" + fn) if base else fn
+WAV = (base + "/audio_test.wav") if base else "audio_test.wav"
 
 
 def feat(obj, fn, *args, label=""):
@@ -36,15 +32,8 @@ def feat(obj, fn, *args, label=""):
         print("   ✗ %s 실패: %s" % (fn, str(e)[:80])); return False
 
 
-def rd(obj, prop):
-    try:
-        return getattr(obj, prop)
-    except Exception as e:
-        return "err:%s" % str(e)[:30]
-
-
-# ── 무대: 밤하늘 ────────────────────────────────────────────
-print("무대: Audio — 오디오 재생")
+# ── 무대 ────────────────────────────────────────────────────
+print("무대: Audio v2 — AudioLite 풀재생 + 마스터볼륨")
 uni.setGlobalIntensity(0.0, Anim(0.0))
 try:
     SceneGraph().reset(1); sleep(1.5)
@@ -60,109 +49,52 @@ cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(35.0, Anim(0.0))
 
 txt = InsertText(InsertText.InsertTextName(1))
 cam.addChild(txt.id, Camera.CameraPort.FixedForeground)
-txt.setPosition(Vec(0, 20, 0)); txt.setSize(0.052); txt.setColor(Vec(1.0, 1.0, 0.55)); txt.setDistance(1.0, Anim(0.0))
+txt.setPosition(Vec(0, 22, 0)); txt.setSize(0.06); txt.setColor(Vec(1.0, 1.0, 0.55)); txt.setDistance(1.0, Anim(0.0))
 uni.setGlobalIntensity(1.0, Anim.cubic(2.0)); sleep(2.1)
 
 
-def narr(text, dur=3.0):
-    txt.setText(text); txt.setIntensity(1.0, Anim(1.0)); sleep(dur)
+def show(text):
+    txt.setText(text); txt.setIntensity(1.0, Anim(0.5))
 
 
-narr("밤하늘에 소리를 입힌다 — Audio", 3.0)
+# ── ① 마스터 볼륨 최대 (핵심 — 0이면 무조건 무음) ──────────
+show("① 마스터 볼륨 최대")
+sleep(1.5)
+try:
+    ap = AudioPlayer(AudioPlayer.AudioPlayerName.MainAudioPlayer)
+    print("   AudioPlayer(MainAudioPlayer) 생성")
+    feat(ap, "setOutputVolume", 1.0, Anim(0.0), label="(마스터 100%)")
+except Exception as e:
+    print("   AudioPlayer 실패: %s" % str(e)[:80])
 
-played = None   # (클래스명, 파일명)
+# ── ② AudioLite 로 풀 8초 재생 x2 ───────────────────────────
+try:
+    lite = AudioLite(); print("   AudioLite 생성")
+except Exception as e:
+    lite = None; print("   AudioLite 생성 실패: %s" % str(e)[:80])
 
-
-# ── 1) AudioLayer (상태 읽기로 검증 가능) ───────────────────
-def try_audiolayer():
-    try:
-        al = AudioLayer(AudioLayer.AudioLayerName.Layer001); print("   AudioLayer Layer001 생성")
-    except Exception as e:
-        print("   AudioLayer 생성 실패: %s" % str(e)[:80]); return None
-    feat(al, "setOutputVolume", 0.9, Anim(0.0))
-    for fn in FILES:
-        p = abspath(fn)
-        print("   ── AudioLayer.load(-1, %r) ──" % p)
-        feat(al, "load", -1, p, label="(채널 -1=자동)")
-        sleep(0.4)
-        feat(al, "play", False, label="(loop=False)")
-        t = 0.0
-        while t < 3.0:
-            st = rd(al, "audioState"); dur = rd(al, "audioDuration"); pos = rd(al, "audioPosition")
-            print("   [+%.1fs] state=%s duration(ms)=%s position(ms)=%s" % (t, st, dur, pos))
-            try:
-                if (isinstance(dur, (int, float)) and dur > 0) or ("Play" in str(st)):
-                    return (al, fn)
-            except Exception:
-                pass
-            sleep(0.5); t += 0.5
-        feat(al, "stop"); feat(al, "unload")
-    return None
-
-
-narr("① AudioLayer (상태 읽기로 검증)", 2.0)
-r = try_audiolayer()
-if r:
-    played = ("AudioLayer", r[1]); al_obj = r[0]
-    print("   ★★★ AudioLayer 재생 등록됨 = %s" % r[1])
-
-
-# ── 2) AudioLite (가장 단순) ────────────────────────────────
-if not played:
-    narr("② AudioLite (단순 재생)", 2.0)
-    try:
-        lite = AudioLite(); print("   AudioLite 생성")
-        for fn in FILES:
-            p = abspath(fn)
-            print("   ── AudioLite.load(%r) ──" % p)
-            feat(lite, "load", p)
-            sleep(0.4)
-            feat(lite, "setVolume", 0.9)
-            feat(lite, "play", Anim(0.0))
-            sleep(3.0)   # AudioLite 는 상태 읽기 없음 → 귀로 확인
-            print("   AudioLite %s 재생 시도(귀로 확인)" % fn)
-            played = ("AudioLite", fn)
-            break        # 소리 확인용으로 첫 파일만
-    except Exception as e:
-        print("   AudioLite 실패: %s" % str(e)[:80])
-
-
-# ── 3) Audio (모노 채널) ────────────────────────────────────
-if not played:
-    narr("③ Audio (모노 채널 0)", 2.0)
-    try:
-        aud = Audio(); print("   Audio 생성")
-        for fn in FILES:
-            p = abspath(fn)
-            print("   ── Audio.load(0, %r) ──" % p)
-            feat(aud, "load", 0, p)
-            sleep(0.4)
-            feat(aud, "setVolume", 0.9, Anim(0.0))
-            feat(aud, "play", Anim(0.0))
-            sleep(3.0)
-            played = ("Audio", fn)
-            break
-    except Exception as e:
-        print("   Audio 실패: %s" % str(e)[:80])
-
-
-# ── 결과 ────────────────────────────────────────────────────
-if played:
-    narr("재생 중 — %s / %s (소리 들리나?)" % played, 6.0)
-    # 마무리: 페이드아웃 후 정지
-    try:
-        if played[0] == "AudioLayer":
-            al_obj.setOutputVolume(0.0, Anim(2.0)); sleep(2.2); al_obj.stop(); al_obj.unload()
-    except Exception as e:
-        print("   정지 실패: %s" % str(e)[:60])
-    narr("소리를 입힌 밤하늘 — Audio", 3.0)
+if lite is not None:
+    for round_i in (1, 2):
+        show("② 오디오 로드 (%d회차)" % round_i); sleep(1.0)
+        print("   ── AudioLite.load(%r) [%d회] ──" % (WAV, round_i))
+        feat(lite, "load", WAV)
+        sleep(0.5)
+        feat(lite, "setVolume", 1.0, label="(파일 볼륨 100%)")
+        feat(lite, "play", Anim(0.0), label="(재생 시작)")
+        # 풀 8초 카운트다운 — 언제 들을지 명확
+        for n in range(8, 0, -1):
+            show("🔊 지금 소리 나야 함  —  %d" % n)
+            sleep(1.0)
+        feat(lite, "stop")
+        show("(정지)"); sleep(1.5)
+    show("소리가 났나요? — AudioLite")
+    sleep(3.0)
 else:
-    narr("오디오 3형제 모두 로드 실패 — 로그 확인", 4.0)
+    show("AudioLite 생성 실패 — 로그 확인"); sleep(3.0)
 
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료(오디오 판별). ★리포트: "
-      "①★★3개 파일(audio_test.wav/.mp3/.ogg)을 D:\\SkyExplorer-Data\\user 에 넣었나(먼저) "
-      "②★스피커/헤드폰에서 '도미솔 아르페지오+화음(8초)' 소리가 났나 — 어느 단계(AudioLayer/AudioLite/Audio)에서 "
-      "③로그 'AudioLayer [+Ns] state=.. duration(ms)=..' 에서 duration 이 0 이 아닌 값(8000 근처)이 떴나 "
-      "④전부 무음+duration 0 이면 = 오디오도 별도 호스트 필요(스크립트 창 미지원)로 판정")
+print("종료(v2). ★리포트(딱 하나만 답해주면 됨): "
+      "화면 '🔊 지금 소리 나야 함 8..7..' 카운트다운 도는 동안 스피커/헤드폰에서 "
+      "'도미솔 아르페지오+화음' 소리가 ①또렷이 났다 / ②아주 작게라도 뭔가 났다 / ③완전 무음 "
+      "— 이 셋 중 뭐였는지만 알려줘. (③이면 오디오도 별도 호스트라 스크립트 창 미지원으로 확정하고 접음)")
