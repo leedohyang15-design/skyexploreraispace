@@ -44,13 +44,18 @@ uni.setGlobalIntensity(0.0, Anim(0.0))
 earth = Planet(Planet.PlanetName.Earth); earth.setIntensity(1.0, Anim(0.0))
 feat(earth, "setAtmosphereIntensity", 0.0, Anim(0.0))
 feat(earth, "setTerrainIntensity", 0.0, Anim(0.0))
-Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+stars = Stars(Stars.StarsName.StarrySky)
+stars.setIntensity(1.0, Anim(0.0))
 Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.35, Anim(0.0))
-cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(20.0, Anim(0.0))
+# ⚠️ 하늘 위(천정쪽)를 봐야 별자리가 화면에 많이 들어옴 (지평선 방향이면 아무것도 없음)
+cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(70.0, Anim(0.0))
 
-# 여러 별자리 선 ON (슬라이더로 구동할 대상)
+# 별자리 선 잔뜩 ON (어느 게 떠 있든 화면에 몇 개는 걸리게 = 슬라이더 구동 대상)
+BIG = ("Ori", "UMa", "UMi", "Cas", "Cep", "Cyg", "Lyr", "Aql", "Leo", "Tau", "Gem",
+       "Boo", "Vir", "Sco", "Sgr", "And", "Peg", "Per", "Aur", "CMa", "CMi", "Cnc",
+       "Her", "Dra", "Crv", "Ari", "Psc", "Aqr")
 cons = []
-for nm in ("Ori", "UMa", "Cas", "Cyg", "Leo", "Tau", "Gem"):
+for nm in BIG:
     if hasattr(Constellation.ConstellationName, nm):
         c = Constellation(getattr(Constellation.ConstellationName, nm))
         c.setLinesIntensity(1.0, Anim(0.0))
@@ -104,35 +109,36 @@ else:
     narr("프리셋 슬라이더 없음 — 커스텀만", 2.0)
 
 
-# ── ② 커스텀: 오리온 Intensity 를 키로 구동 ─────────────────
-narr("② 커스텀 — 오리온 밝기를 LUT로 구동", 2.5)
+# ── ② 커스텀: '별밭 전체(Stars)' Intensity 를 키로 구동 (무조건 화면에 보임) ──
+narr("② 커스텀 — 별밭 전체 밝기를 LUT로 구동", 2.5)
 try:
     plut = ParameterizationLut(ParameterizationLut.ParameterizationLutName.ParameterizationLut001)
-    # 대상 핸들: osgId 우선, 실패 시 id
+    # 대상 = 별밭(StarrySky). 방향 상관없이 화면 가득이라 밝기 변화가 확실히 보임.
     handler = None
     for h in ("osgId", "id"):
-        hv = rd(ori, h)
+        hv = rd(stars, h)
         if isinstance(hv, int):
-            handler = hv; print("   오리온 handler(%s)=%s" % (h, hv)); break
+            handler = hv; print("   Stars handler(%s)=%s" % (h, hv)); break
     AN = ParameterizationLut.AttributeName
     KT = ParameterizationLut.KeyType
     if handler is not None:
         feat(plut, "clearTargetAttributes")
         feat(plut, "clearKey")
-        feat(plut, "addTargetAttribute", handler, AN.Intensity, label="(오리온 Intensity 구동)")
-        # LUT 곡선: 입력 0 → 밝기 0, 입력 1 → 밝기 1
+        feat(plut, "addTargetAttribute", handler, AN.Intensity, label="(별밭 Intensity 구동)")
+        # LUT 곡선: 입력 0 → 밝기 0(별 사라짐), 입력 1 → 밝기 1(별 가득)
         feat(plut, "addKey", 0.0, Vec4(0, 0, 0, 0), KT.Double, label="(key@0=0)")
         feat(plut, "addKey", 1.0, Vec4(1, 0, 0, 0), KT.Double, label="(key@1=1)")
         feat(plut, "setEnabled", True)
         print("   piloted=%s attrs=%s" % (rd(plut, "pilotedAttributeList"), rd(plut, "attributeList")))
-        narr("입력 0 → 오리온 어두워짐", 1.0)
+        narr("입력 0 → 별밭 어두워짐(사라짐)", 1.0)
         feat(plut, "setInternalValue", 0.0, Anim(3.0)); sleep(3.2)
-        narr("입력 1 → 오리온 밝아짐", 1.0)
+        narr("입력 1 → 별밭 다시 가득", 1.0)
         feat(plut, "setInternalValue", 1.0, Anim(3.0)); sleep(3.2)
-        narr("② 오리온만 LUT로 밝기 변했나?", 3.5)
+        narr("② 별밭 전체가 LUT로 밝기 변했나?", 3.5)
         feat(plut, "restore"); feat(plut, "setEnabled", False)
+        stars.setIntensity(1.0, Anim(1.0))   # 확실히 복귀
     else:
-        narr("오리온 handler 획득 실패", 2.5)
+        narr("Stars handler 획득 실패", 2.5)
 except Exception as e:
     print("   커스텀 실패: %s" % str(e)[:100]); narr("커스텀 LUT 실패 — 로그 확인", 3.0)
 
@@ -141,6 +147,6 @@ txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
 print("종료(PLut 판별). ★리포트: "
       "①★프리셋 슬라이더 구간(①)에서 별자리 선들이 internalValue 0→1→0.5 따라 '사라졌다 나타났다 반투명' 됐나 (됐다/미미/전혀) "
-      "②★커스텀 구간(②)에서 '오리온만' 어두워졌다 밝아졌나 (됐다/전혀) "
+      "②★커스텀 구간(②)에서 '별밭 전체'가 어두워졌다 밝아졌나 (됐다/전혀) "
       "③로그 '[PLut dir()]' '[AttributeName]' '[KeyType]' 목록 + 'piloted=..' 값 붙여줘 "
       "④둘 다 전혀면 = 파라미터화도 시스템/오퍼레이터 소관으로 판정")
