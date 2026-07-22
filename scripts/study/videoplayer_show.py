@@ -71,26 +71,40 @@ for mk in (lambda: VideoPlayer(), lambda: VideoPlayer(0)):
     try: vp = mk(); print("   VideoPlayer 생성"); break
     except Exception as e: print("   생성 시도 실패: %s" % e)
 
+def poll(tag, secs=6.0, step=0.5):
+    """load/play 가 비동기일 수 있어 state/duration 을 여러 번 폴링."""
+    t = 0.0; ok = False
+    while t < secs:
+        st = rd(vp, "state"); dur = rd(vp, "duration"); vf = rd(vp, "videoFile"); pos = rd(vp, "position")
+        print("   [%s +%.1fs] state=%s duration=%s position=%s videoFile=%s" % (tag, t, st, dur, pos, vf))
+        try:
+            if (isinstance(dur, (int, float)) and dur > 0) or ("Play" in str(st)):
+                ok = True
+        except Exception: pass
+        sleep(step); t += step
+    return ok
+
+
 if vp is not None:
     eye = getattr(VideoPlayer.Eye, "Both", None)
     print("   Eye=%s" % eye)
-    feat(vp, "setOpacity", 0.0, Anim(0.0))
     feat(vp, "setVolume", 0.5, Anim(0.0))
-    # 경로 후보로 로드 시도 (state 로 성공 판별)
-    loaded = False
+    feat(vp, "setOpacity", 1.0, Anim(0.0), label="(전체화면=영상 보이게 미리)")
+    got = False
     for name, path in paths:
-        print("   [%s] load %s" % (name, path))
-        feat(vp, "load", path, Anim(0.5), eye, label="(%s)" % name)
-        sleep(1.5)
-        st = rd(vp, "state"); dur = rd(vp, "duration"); vf = rd(vp, "videoFile")
-        print("      state=%s duration=%s videoFile=%s" % (st, dur, vf))
-        loaded = True  # 어느 게 성공인지는 화면/state 로 판별
-    # 재생 + 전체화면
-    narr("재생 — 영상이 화면을 채운다 (6초)", 2.5)
-    feat(vp, "play", Anim(0.5))
-    feat(vp, "setOpacity", 1.0, Anim(1.5), label="(전체화면 영상)")
-    sleep(6.5)   # 6초 영상 재생 관람
-    print("   재생 중 state=%s position=%s" % (rd(vp, "state"), rd(vp, "position")))
+        print("   ── load(%s) = %s ──" % (name, path))
+        feat(vp, "load", path, Anim(0.5), eye)
+        sleep(0.5)
+        feat(vp, "play", Anim(0.5))           # ★ play 가 실제 디코드를 트리거할 수 있어 load 직후 play
+        if poll("%s load+play" % name, secs=4.0):
+            got = True; print("   ★ 로드 성공(%s)" % name); break
+        feat(vp, "stop", Anim(0.0)); feat(vp, "unLoad", Anim(0.0)); sleep(0.3)
+    if got:
+        narr("영상 재생 중 — 6초", 2.0)
+        sleep(6.0)
+    else:
+        narr("영상 로드 실패 (duration=0) — 코덱/파일 확인", 4.0)
+    print("   최종 state=%s position=%s" % (rd(vp, "state"), rd(vp, "position")))
     # 하늘 복귀
     feat(vp, "setOpacity", 0.0, Anim(2.0)); sleep(2.2)
     narr("하늘로 복귀", 2.0)
@@ -102,7 +116,6 @@ else:
 narr("VideoPlayer — 돔에 재생하는 로컬 영상", 4.0)
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료. ★리포트: ①★★video_test.mp4 를 'D:\\SkyExplorer-Data\\user\\' 에 넣었나(먼저 확인) "
-      "②재생 때 전체화면에 회전 초침+펄스 링+카운터 영상이 나왔나(움직이나) "
-      "③로그 'state=' / 'duration=' 값 — StopState/PlayState & duration=6 이면 로드 성공 "
-      "④안 나오면 = 파일 없음/코덱 문제 → state/duration 값 알려줘")
+print("종료(v2 호환코덱+폴링). ★리포트: ①★★새 video_test.mp4(baseline 코덱)로 교체했나 — 기존 파일 덮어쓰기 "
+      "②이번엔 로그 'duration=' 이 6 근처로 뜨나(0 이면 아직 로드 실패) "
+      "③화면에 회전 초침 영상 나왔나 ④duration 계속 0 이면 = 이 엔진이 mp4/h264 자체를 안 받는 것 → wmv/mpeg 로 바꿔봄")
