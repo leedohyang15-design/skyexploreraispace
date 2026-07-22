@@ -844,6 +844,10 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   실측 예: `'D:/SkyExplorer-Data/user'`. **setTexture/setFilename/VideoPlayer.load 경로는 이 폴더 상대(파일명만) 또는 절대경로 둘 다 OK, 슬래시 `/`·`\\` 둘 다 됨**(3형식 다 로드 확인).
   → 파일 못 찾으면 스크립트에서 `Configuration.configuration().localUserFolder` 를 print 해 정확한 폴더를 확인하고 거기 넣을 것. (igUserFolder(0) 은 빈 문자열이었음 → localUserFolder 사용.)
 - ⚠️ **Patch 클래스 ≠ 이미지 표시** (2026-07-20): `Patch(setFilename/setKeyColor/setOpacity…)` 는 **position 세터가 없는 '프로젝션 워핑/블렌딩 패치'** → 창 Sky View 에선 안 뜸. **로컬 이미지 표시는 Insert2D 로 할 것**(Patch 아님).
+- 🛑 **VideoPlayer(로컬 영상) = 레거시/미작동 확정 (2026-07-20, videoplayer_show.py)**: `VideoPlayer()` 싱글톤 + `load(파일, Anim, Eye.Both)`+`play`+`setOpacity(1=영상)`.
+  ⚠️ **load 해도 `videoFile` 이 계속 빈값 + state 가 `LegacyInvalidState` 에서 안 바뀜 + duration=0** — 파일 등록 자체가 안 됨.
+  H.264 default → **Constrained Baseline+yuv420p+L3.1** 로 재인코딩해도 동일(코덱 문제 아님, 경로는 Insert2D 로 검증됨 = 정상). VideoState 에 'Legacy'가 붙은 게 신호.
+  → **파이썬 VideoPlayer 직접 파일 재생은 이 빌드서 안 됨.** 영상이 꼭 필요하면 `SoftwareManager.softExe/softStart`(외부 플레이어 IG 실행) 경유거나 Studio UI 미디어 임포트. (로컬 이미지는 Insert2D 로 확정.)
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
