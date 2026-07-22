@@ -373,7 +373,12 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - ⚠️⚠️ **기본값 실측(하드코딩 원복 금지 — 1.0 아님!)**: `spriteScale=6.0` · `diameterScale=1.38` · `gamma=2.2`(읽기전용) · `spriteSizeLimit=2.346` · `smoothSizeLimit=0.621` · `transitionBandWidth=0.4968`.
   → **원복은 반드시 이 값으로**(내 데모가 ×1 로 되돌려 원본보다 별이 작아짐 = 실수). `lut.spriteScale`/`diameterScale` 등으로 읽어 복귀. ⚠️ `points` 는 파이썬 읽기 불가("No to_python converter").
 - ⚠️ 효과 감각: spriteScale/diameterScale 을 6→크게 올리면 별이 뚜렷이 커짐(사용자 확인). sizeLimit 완화로 밝은 별 더 크게.
-- SPC(Recording52, family **0x18**=402653185=Lut001): createPSF **5135**(5인자) / setSpriteScale **5128** / setDiameterScale **5133** / setSpriteSizeLimit **5130** / setSmoothSizeLimit **5131**. (setColorPalette/setSpriteTexture 미검증.)
+- SPC(Recording52, family **0x18**=402653185=Lut001): createPSF **5135**(5인자) / setSpriteScale **5128** / setDiameterScale **5133** / setSpriteSizeLimit **5130** / setSmoothSizeLimit **5131**.
+- ✅✅ **`setSpriteTexture(path, Anim)` = 별 글로우 '모양' 교체 성공 (2026-07-22 사용자 스샷 확인, lut_texture_palette.py)**:
+  유저폴더(D:/SkyExplorer-Data/user)에 PNG(RGBA, 투명배경) 넣고 절대경로로 걸면 **전천 별이 그 스프라이트 모양으로 렌더**(회절 스파이크 별 PNG → 별이 십자 스파이크로 변함 확인). spriteScale 크게(~14)면 모양이 크게 보임. 원본 스프라이트는 `lut.spriteTexture` 로 읽어 복귀.
+- 🛑 **`setColorPalette(파일, magMin, magMax)` = 이 방식(가로 그라데이션 PNG)으론 무효 (2026-07-22 사용자 "색깔은 안 바뀌고 그대로")**:
+  등급→색 매핑 팔레트인데, 청백→적색 가로 그라데이션 PNG(256×16)를 mag -1.5~6.5 로 걸어도 **별 색 변화 없음**(어두운 별이 대부분이라 붉게 깔려야 하는데 그대로 흰/노랑). 스프라이트와 달리 팔레트는 안 먹힘 —
+  포맷(전용 .lut/특정 크기/세로 스트립?) 또는 별색 소스(카탈로그 B-V) 우선이라 추정. → **별 색은 `Stars.setPointSaturation`(채도)로만 조절, Lut 팔레트는 보류.** (다시 팔 거면 팔레트 파일 포맷부터.)
 - ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
   개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
   메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·
