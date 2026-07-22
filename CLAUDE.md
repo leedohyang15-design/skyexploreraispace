@@ -270,6 +270,10 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   **`setAuroraIntensity`(오로라!)** · `setRainbowIntensity`(무지개) · `setMagnetosphereIntensity`(자기권) · `setWaterSpecularIntensity`(바다 윤슬) ·
   `setAtmosphereHaloIntensity` · `setEclipticBandIntensity`(황도대 띠) · `setPolarCircleIntensity` · `setEquatorialSyncTropicsIntensity`/`setEquatorialSyncPolarCirclesIntensity`(회귀선/극권) ·
   `setRockyCliffIntensity` · `setTreeIntensity` · `setMagnetosphereIntensity` · `setEquatorialSyncMagneticPolesIntensity`. (일식류 setAntumbra/Penumbra/UmbraArea·Line, ShadowCone 계열도 있음.)
+- ✅✅ **`setMagnetosphereIntensity` + `setPolarCircleIntensity` = FadeTo 지구(외부) 프레임서 렌더 확정 (2026-07-22 사용자 확인, earth_extras_globe.py)**:
+  ① `setMagnetosphereIntensity(1, Anim)` = 지구 둘레 자기권(장) 보임(사용자 "잘 보임"). ② `setPolarCircleIntensity(1, Anim)` = 남/북 극권 원(선) 보임. FadeTo Earth + 그림자 OFF 상태에서.
+- 🛑 **`setCloudRaininess` / `setRockyCliffIntensity` / `setTreeIntensity` = 스크립트 창서 안 보임 (2026-07-22, earth_surface_345.py)**:
+  FadeTo Earth 에서 DEM 지형 + R 을 지구반지름 ~1.1배까지 바짝 줌인해도 셋 다 화면 무변(사용자 "안 되는 듯"). → **표면 디테일(강수줄기·암벽질감·식생)은 Terrain View(오퍼레이터 비행 뷰) 전용 추정 — 궤도 줌으론 안 나옴.** 재시도 금지.
 - ✅✅✅ **오로라(북극광) 완성 확정 (2026-07-16 사용자 확인, aurora.py + Recording41)**: `Planet(Earth).setAuroraIntensity(강도, Anim)` =
   북쪽 하늘에 **초록 오로라 커튼** 렌더(사용자 "색깔은 초록색"). 세기를 0.4↔1.0 출렁이면 커튼이 밝아졌다 옅어졌다 '춤춤'.
   ⚠️ **오로라 세터는 intensity 하나뿐**(dir 프로브 — 색/고도/속도 세터 없음). 색은 기본 초록 고정(고고도 빨강·질소 보라는 렌더에 따라).
