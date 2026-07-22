@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-lut_texture_palette.py — Lut 스프라이트 텍스처 + 등급별 색 팔레트 (2026-07-22, Lut 미검증 명령 2종)
-★ 오늘 검증한 Lut 의 남은 두 명령: setSpriteTexture(별 글로우 '모양' 이미지 교체) · setColorPalette(등급→'색' 매핑).
-  Lut 은 자동적용(바인딩 불필요)이라 값만 걸면 전천 별 렌더에 반영됨(실측 확정).
-★ 파일 2개(유저폴더 D:/SkyExplorer-Data/user 에):
-  · star_sprite.png = 회절 스파이크(십자) + 소프트 코어 별 모양 → 모든 별이 '스파이크 별'로 변함.
-  · star_palette.png = 가로 그라데이션(밝은별 청백 → 어두운별 적색) → 별이 등급별 색으로.
-★ 흐름: 기본 점 별 → 스프라이트 교체(스파이크) → 색 팔레트(등급색) → 원복(기본값 spriteScale=6.0/diameterScale=1.38).
+lut_texture_palette.py — Lut 스프라이트/팔레트 v2 (2026-07-22, 결정적 재검증)
+★ v1: 스프라이트가 기본 별과 비슷(십자+코어)해서 바뀌었는지 구분 안 됨 + 팔레트 무변(사용자 "안 바뀐 거 같애").
+★ v2 결정판: ①스프라이트 = **밝은 링(도넛)** = 기본 별과 완전 달라 → 별이 고리로 바뀌면 100% 적용 확인.
+  ②팔레트 = **극단 초록→빨강** + 가로/세로 두 파일 순차 시도(포맷/방향 문제 판별). 색 안 바뀌면 팔레트는 이 빌드서 무효.
+★ 파일 3개 유저폴더(D:/SkyExplorer-Data/user): star_ring.png / star_palette2.png(가로) / star_palette2v.png(세로).
 """
 
 from skyExplorer import *
@@ -22,8 +20,10 @@ try:
     print("★ 유저폴더 = %r" % base)
 except Exception as e:
     print("Configuration 실패: %s" % e)
-SPRITE = (base + "/star_sprite.png") if base else "star_sprite.png"
-PALETTE = (base + "/star_palette.png") if base else "star_palette.png"
+
+
+def P(name):
+    return (base + "/" + name) if base else name
 
 
 def feat(obj, fn, *args, label=""):
@@ -41,7 +41,7 @@ def rd(obj, prop):
 
 
 # ── 무대: 밝은 별밭 ─────────────────────────────────────────
-print("무대: Lut — 스프라이트 텍스처 + 색 팔레트")
+print("무대: Lut v2 — 링 스프라이트 + 극단 팔레트")
 uni.setGlobalIntensity(0.0, Anim(0.0))
 try:
     SceneGraph().reset(1); sleep(1.5)
@@ -52,8 +52,8 @@ earth = Planet(Planet.PlanetName.Earth); earth.setIntensity(1.0, Anim(0.0))
 feat(earth, "setAtmosphereIntensity", 0.0, Anim(0.0))
 feat(earth, "setTerrainIntensity", 0.0, Anim(0.0))
 stars = Stars(Stars.StarsName.StarrySky); stars.setIntensity(1.0, Anim(0.0))
-feat(stars, "setPointSaturation", 2.5, Anim(0.0), label="(색 채도 ↑ = 팔레트 잘 보이게)")
-Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.3, Anim(0.0))
+feat(stars, "setPointSaturation", 3.0, Anim(0.0), label="(채도↑)")
+Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.25, Anim(0.0))
 cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(45.0, Anim(0.0))
 
 txt = InsertText(InsertText.InsertTextName(1))
@@ -66,46 +66,45 @@ def narr(text, dur=3.0):
     txt.setText(text); txt.setIntensity(1.0, Anim(1.0)); sleep(dur)
 
 
-# ── Lut 준비 + 원본값 보관 ──────────────────────────────────
 lut = Lut(Lut.LutName.Lut001)
 orig_sprite = rd(lut, "spriteTexture")
 orig_ss = rd(lut, "spriteScale")
-orig_ds = rd(lut, "diameterScale")
-print("   원본: spriteTexture=%r spriteScale=%s diameterScale=%s" % (orig_sprite, orig_ss, orig_ds))
+print("   원본: spriteTexture=%r spriteScale=%s" % (orig_sprite, orig_ss))
 
-narr("기본 별 (점광원)", 4.0)
+# ── ① 링 스프라이트 = 기본 별과 완전 다른 모양 (결정적) ─────
+narr("① 별 모양 = 밝은 링(도넛)?", 2.5)
+# 밝은 별이 크게 보이도록 스케일↑ + 크기상한 완화
+feat(lut, "setSpriteScale", 18.0, Anim(0.0), label="(크게)")
+feat(lut, "setSpriteSizeLimit", 60.0, Anim(0.0))
+feat(lut, "setSmoothSizeLimit", 60.0, Anim(0.0))
+feat(lut, "setSpriteTexture", P("star_ring.png"), Anim(1.0), label="(star_ring.png)")
+print("   적용후 spriteTexture=%r" % rd(lut, "spriteTexture"))
+sleep(2.0)
+narr("★ 밝은 별들이 '동그란 고리(링)' 모양인가?", 6.0)
 
-# ── ① 스프라이트 텍스처 = 별 모양 교체 (스파이크 별) ────────
-narr("① 별 모양 교체 — 회절 스파이크", 2.5)
-feat(lut, "setSpriteTexture", SPRITE, Anim(1.0), label="(star_sprite.png)")
-feat(lut, "setSpriteScale", 14.0, Anim(2.0), label="(스파이크 크게)")
-feat(lut, "setSpriteSizeLimit", 40.0, Anim(1.0))
-sleep(2.5)
-narr("★ 모든 별이 십자 스파이크로 변했나?", 5.0)
+# ── ② 극단 팔레트 (가로) ────────────────────────────────────
+narr("② 색 = 밝은별 초록 / 어두운별 빨강? (가로파일)", 2.5)
+feat(lut, "setColorPalette", P("star_palette2.png"), -1.5, 6.5, label="(가로 초록→빨강)")
+sleep(2.0)
+narr("★ 별 색이 초록~빨강으로 갈렸나?", 5.0)
 
-# ── ② 색 팔레트 = 등급별 색 ─────────────────────────────────
-narr("② 등급별 색 — 밝은별 청백 / 어두운별 적색", 2.5)
-feat(lut, "setColorPalette", PALETTE, -1.5, 6.5, label="(mag -1.5~6.5)")
-sleep(2.5)
-narr("★ 별들이 밝기(등급)에 따라 색이 달라졌나?", 5.0)
+# ── ②b 세로 파일로 재시도 (방향 문제 판별) ─────────────────
+narr("②b 세로 파일로 재시도", 2.0)
+feat(lut, "setColorPalette", P("star_palette2v.png"), -1.5, 6.5, label="(세로)")
+sleep(2.0)
+narr("★ 이번엔 색이 갈렸나? (세로파일)", 5.0)
 
-# 스파이크 조금 줄여 색이 더 잘 보이게
-feat(lut, "setSpriteScale", 9.0, Anim(2.0)); sleep(2.2)
-narr("스파이크 + 등급색 = 화려한 밤하늘", 4.0)
-
-# ── 원복 (기본값으로 — 하드코딩 1.0 금지) ───────────────────
-narr("원래대로 복귀", 2.0)
+# ── 원복 ────────────────────────────────────────────────────
+narr("원래대로", 2.0)
 if isinstance(orig_sprite, str) and orig_sprite:
     feat(lut, "setSpriteTexture", orig_sprite, Anim(1.0), label="(원본 스프라이트)")
 feat(lut, "setSpriteScale", float(orig_ss) if isinstance(orig_ss, (int, float)) else 6.0, Anim(1.5))
-feat(lut, "setDiameterScale", float(orig_ds) if isinstance(orig_ds, (int, float)) else 1.38, Anim(1.5))
+feat(lut, "setDiameterScale", 1.38, Anim(1.5))
 sleep(1.8)
 
-narr("Lut — 별 모양·색 커스터마이즈", 3.0)
 txt.setIntensity(0.0, Anim(1.5))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
-print("종료(Lut 텍스처/팔레트). ★리포트: "
-      "①★스프라이트 교체(①)에서 모든 별이 '십자 스파이크(회절)' 모양으로 변했나 (변함/미미/무변) "
-      "②★색 팔레트(②)에서 별들이 등급(밝기)별로 색(청백~적색)이 달라졌나 (변함/무변) "
-      "③로그 '원본: spriteTexture=..' 값(기본 스프라이트 경로) 붙여줘 "
-      "④둘 다 무변이면 = setSpriteTexture/setColorPalette 는 파일경로/포맷 더 파야 함")
+print("종료(Lut v2). ★리포트: "
+      "①★★스프라이트 구간(①)에서 밝은 별들이 '동그란 링/고리' 모양으로 보였나 (링 보임=setSpriteTexture 확정 / 그냥 점=미적용) "
+      "②★팔레트 가로(②)·세로(②b) 중 별 색이 '초록~빨강'으로 갈린 게 있나 (있음=포맷 정답 / 둘 다 무변=팔레트 무효) "
+      "③로그 '원본 spriteTexture=' / '적용후 spriteTexture=' 값 붙여줘(경로 반영됐나 확인)")
