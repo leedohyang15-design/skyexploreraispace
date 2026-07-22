@@ -680,7 +680,8 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · 실측 좋은 값: `setPosition(Vec(0,40,0))`(중앙 하단) + `setSize(0.5)` + `setDistance(1.0)`. ClockName = Clock001~011.
 - **색 커스터마이즈(전부 Vec3, 동작 확정)**: `setBackgroundColor`(문자판)·`setForegroundColor`(눈금)·`setHoursHandColor`·`setMinutesHandColor`·`setSecondsHandColor` + `setDisplaySecondsHand(bool)` + `setTimezoneName("Asia/Seoul")`.
 - ✅ **시뮬레이션 시각 반영** — `DateManager.setDateTime(+24h, Anim)` 시간가속 시 바늘이 하루치 돎(초침 빨강으로 두면 회전 잘 보임). 배경 하늘도 같이 회전.
-- 텍스처 세터도 있음(미검증): setBackgroundTexture/setForegroundTexture/setHours·Minutes·SecondsHandTexture (user 폴더 상대경로) — 커스텀 문자판/바늘 이미지.
+- ✅✅ **바늘 텍스처 교체 확정 (2026-07-22 사용자 스샷, clock_textures.py)**: `setHoursHandTexture` / `setMinutesHandTexture` / `setSecondsHandTexture` **각 인자 1개(경로만, ⚠️ Anim 없음 — Anim 넘기면 시그니처 에러)**.
+  유저폴더 PNG(투명배경) 걸면 **바늘이 그 이미지 모양으로 바뀜**(주황 다이아 바 확인). ⚠️ `setBackgroundTexture`(뒤판)는 화면에 안 보임 — SystemClock001 모델 불투명 문자판이 덮음. **눈금/숫자 = `setForegroundTexture`(앞 레이어)** 로 교체(검증 중). 전부 (str) 단일인자.
 - SPC(Recording45, family **0x2B**=721420289): addChild **4881** / setModelset **12305** / setPosition **12290** / setSize **12301** / setDistance **12303** /
   setBackgroundColor **12296** / setForegroundColor **12297** / setHoursHandColor **12298** / setMinutesHandColor **12299** / setSecondsHandColor **12300** /
   setDisplaySecondsHand **12304** / setTimezoneName **12302** / setIntensity **12289**.

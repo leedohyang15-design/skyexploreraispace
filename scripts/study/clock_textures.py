@@ -74,10 +74,11 @@ feat(clk, "setDisplaySecondsHand", True)
 feat(clk, "setIntensity", 1.0, Anim(0.0))
 sleep(3.0)
 
-# ── ① 문자판 텍스처 교체 (⚠️ 인자 1개 = 경로만, Anim 없음) ──
-narr("① 문자판 교체 — setBackgroundTexture", 2.5)
-feat(clk, "setBackgroundTexture", P("clock_face.png"), label="(남색+금테 별판)")
-sleep(2.0); narr("★ 문자판이 '남색+금테 별' 판으로 바뀌었나?", 5.0)
+# ── ① 문자판 (background=뒤판 + foreground=앞 눈금/숫자 레이어) ──
+narr("① 문자판 — background + foreground 둘 다", 2.5)
+feat(clk, "setBackgroundTexture", P("clock_face.png"), label="(뒤판=남색별)")
+feat(clk, "setForegroundTexture", P("clock_fg.png"), label="(앞 눈금/숫자=금테)")
+sleep(2.0); narr("★ 눈금/숫자가 '금테+숫자'로 바뀌었나? (전경)", 5.0)
 
 # ── ② 바늘 텍스처 교체 (경로만) ─────────────────────────────
 narr("② 바늘 교체 — 시/분/초침 텍스처", 2.5)
