@@ -856,6 +856,13 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   → **[최종] 파이썬 VideoPlayer 로 '파일 떨궈 돔 재생'은 이 빌드/창에서 불가 = 시스템 설정(SoftwareManager ViPlayer 호스트) 소관.** 코덱 바꿔봐야 소용없음(재시도 금지).
   ✅ **영상 대체 = Insert2D 텍스처 시퀀스(프레임 flip)** — Insert2D 는 렌더 확정이라 setTexture 를 빠르게 갈아끼우면 '움직이는 콘텐츠' 흉내 가능(권장 우회).
   또는 `SoftwareManager.softExe/softStart` 로 외부 플레이어 IG 실행 or Studio UI 미디어 임포트. (로컬 이미지 표시는 Insert2D 로 확정.)
+- 🛑 **오디오(Audio/AudioLayer/AudioLite/AudioPlayer) = 스크립트 창 미지원 확정 (2026-07-22, audio_show.py, 사용자 "완전 무음")**:
+  VideoPlayer 와 동일한 '별도 호스트 필요' 부류. 4형제: `AudioLite()`(단순 load/play), `AudioLayer(Layer001~050)`(load(ch,파일)+play(loop)+상태읽기),
+  `Audio()`(모노/스테레오 채널 매핑), `AudioPlayer(MainAudioPlayer)`(마스터 볼륨). 경로는 "audio 폴더 상대 or 절대" — 절대경로(localUserFolder) 사용.
+  ⚠️ **AudioLayer 상태읽기로 검증 = 확정 실패**: wav/mp3/ogg 3개 전부 `audioState=InvalidAudioState + audioDuration=0`(로드 안 됨). AudioLite 는 상태읽기 없어 귀로만인데
+  **마스터볼륨(MainAudioPlayer.setOutputVolume(1.0))까지 올리고 풀8초 재생해도 완전 무음**(사용자 확인). → 오디오 출력 소스가 스크립트 창(Studio window)엔 비활성.
+  → **[최종] 파이썬으로 소리 재생 불가 = VideoPlayer 와 같은 시스템/오퍼레이터(오디오 호스트) 소관. 재시도 금지.** 쇼의 사운드는 Studio UI/오퍼레이터가 입힐 것.
+  ⚠️ **교훈: 미디어(영상·오디오)·하드웨어(Light=DMX 코브조명·DMX512) 계열은 '별도 호스트' 부류라 스크립트 창에서 렌더/출력 안 됨.** 남은 미개척은 렌더 오브젝트(Lut/Place3D 등)에서 찾을 것.
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
