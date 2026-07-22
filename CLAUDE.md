@@ -379,9 +379,9 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   ⚠️⚠️ **결정적 증거 = 링(도넛) PNG + spriteScale 18 → 별마다 거대 링이 겹쳐 하늘 전체가 하얗게 탐**(= 확실히 적용됨, 배율 과함).
   ⚠️ **함정: spriteScale 을 크게(>6) 주면 별이 서로 겹쳐 화면이 하얘짐** → 개별 모양 보려면 **작게(1.2~2.5) + setSpriteSizeLimit 낮게(~3)**.
   (v1 의 '십자 스파이크 PNG'가 안 바뀐 것처럼 보인 건 기본 별과 모양이 비슷 + 스파이크가 가늘어서였음. 링처럼 확 다른 모양이어야 판별됨.) 원본은 `lut.spriteTexture` 로 읽어 복귀.
-- 🛑 **`setColorPalette(파일, magMin, magMax)` = 이 방식(가로 그라데이션 PNG)으론 무효 (2026-07-22 사용자 "색깔은 안 바뀌고 그대로")**:
-  등급→색 매핑 팔레트인데, 청백→적색 가로 그라데이션 PNG(256×16)를 mag -1.5~6.5 로 걸어도 **별 색 변화 없음**(어두운 별이 대부분이라 붉게 깔려야 하는데 그대로 흰/노랑). 스프라이트와 달리 팔레트는 안 먹힘 —
-  포맷(전용 .lut/특정 크기/세로 스트립?) 또는 별색 소스(카탈로그 B-V) 우선이라 추정. → **별 색은 `Stars.setPointSaturation`(채도)로만 조절, Lut 팔레트는 보류.** (다시 팔 거면 팔레트 파일 포맷부터.)
+- 🛑🛑 **`setColorPalette(파일, magMin, magMax)` = 무효 확정 (2026-07-22 사용자 "색깔이 안 바뀌어", 스샷)**:
+  등급→색 매핑 팔레트인데 **극단 초록→빨강 PNG를 가로(256폭)·세로(256높이) 둘 다** mag -1.5~6.5 로 걸어도 **별 색 전혀 안 바뀜**(링 스프라이트가 전부 흰색 유지 = 팔레트 미적용 결정적 확인).
+  스프라이트 텍스처는 되는데 색 팔레트만 안 됨 → 별색 소스가 카탈로그(B-V)/엔진 우선이라 PNG 팔레트를 안 읽는 걸로 추정(전용 포맷일 수도). → **별 색 조절은 `Stars.setPointSaturation`(채도) 로만. Lut setColorPalette 는 재시도 금지.**
 - ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
   개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
   메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·
