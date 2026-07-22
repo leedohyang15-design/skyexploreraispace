@@ -365,6 +365,17 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · 원본값은 `stars.exposure/contrast/pointSaturation` 로 읽어 복귀(하드코딩 금지 — 기본이 1.0 아님, 노출 5.68!).
 - 기타 미연습: setModelset 세부 차이(GaiaDR2 vs Hipparcos 별 목록 차이) 등.
 
+## Lut — 별 스프라이트/점확산함수(PSF) 렌더 LUT ✅✅ 완성 (2026-07-22 사용자 "잘된다", lut_stars.py + Recording52)
+- ✅✅ **별(점광원)을 스프라이트로 그리는 방식의 전역 LUT — 별 크기/글로우가 실제로 확 변함(자동 적용)**. 슬롯 `Lut(Lut.LutName.Lut001)` (Lut001~005).
+  ⚠️⚠️ **바인딩 불필요 = 자동 적용** — Lut 객체에 값만 걸면 전천의 별 렌더에 바로 반영(별에 assign/target 메서드 없음, dir 확인). 실측: Lut001 하나만 걸어도 별이 커짐(전 슬롯 안 걸어도 됨).
+- **메서드(전부 실측 존재)**: `createPSF(sampleCount, magMin, magMax, sizeMax)`=등급→크기 점확산함수 생성 · `setSpriteScale(v, Anim)`=스프라이트 배율 · `setDiameterScale(v, Anim)`=지름 배율 ·
+  `setSpriteSizeLimit`/`setSmoothSizeLimit`/`setTransitionBandWidth`(각 v, Anim) · `setSpriteTexture(path, Anim)`=별 글로우 이미지 교체 · `setColorPalette(파일, magMin, magMax)`=등급별 색 · `addPoint/setPoint/setPoints/removePoint/clear/copyFrom`(LUT 곡선 편집).
+- ⚠️⚠️ **기본값 실측(하드코딩 원복 금지 — 1.0 아님!)**: `spriteScale=6.0` · `diameterScale=1.38` · `gamma=2.2`(읽기전용) · `spriteSizeLimit=2.346` · `smoothSizeLimit=0.621` · `transitionBandWidth=0.4968`.
+  → **원복은 반드시 이 값으로**(내 데모가 ×1 로 되돌려 원본보다 별이 작아짐 = 실수). `lut.spriteScale`/`diameterScale` 등으로 읽어 복귀. ⚠️ `points` 는 파이썬 읽기 불가("No to_python converter").
+- ⚠️ 효과 감각: spriteScale/diameterScale 을 6→크게 올리면 별이 뚜렷이 커짐(사용자 확인). sizeLimit 완화로 밝은 별 더 크게.
+- SPC(Recording52, family **0x18**=402653185=Lut001): createPSF **5135**(5인자) / setSpriteScale **5128** / setDiameterScale **5133** / setSpriteSizeLimit **5130** / setSmoothSizeLimit **5131**. (setColorPalette/setSpriteTexture 미검증.)
+- ※ 자매 클래스 `ParameterizationLut` 도 미개척(비슷한 LUT 계열 추정).
+
 ## Mark — 좌표 그리드/눈금 (2026-07-07 v1 프로브 실측)
 - 생성: `Mark(Mark.MarkName.Mark001)` — **MarkName = Mark001~050 + Mark051~053_WelcomeGrid** (69멤버).
 - ⚠️⚠️ **빈 슬롯 기본값 = 전부 0/Invalid** (posType/repType Invalid, radius/카운트 0) —
