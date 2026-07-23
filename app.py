@@ -711,24 +711,37 @@ CUSTOM_HTML = """
       </div>
     </div>
 
-    <div class="sky-view" id="skyView" style="display:none">
-      <div class="sky-box">
-        <div class="sky-head">
-          <h2>🔭 2026 천문 달력</h2>
-          <span class="sky-loc">📍 대한민국 충북 청주 (36.64°N, 127.49°E)</span>
-        </div>
+    <button class="sky-fab" id="skyFab" title="2026 천문 달력 열기">📅<span class="sky-fab-txt">천문 달력</span></button>
 
+    <div class="sky-backdrop" id="skyBackdrop"></div>
+    <aside class="sky-drawer" id="skyDrawer" aria-hidden="true">
+      <div class="sky-drawer-head">
+        <div class="sky-drawer-title">
+          <h2>🔭 2026 천문 달력</h2>
+          <span class="sky-loc">📍 충북 청주 (36.64°N, 127.49°E)</span>
+        </div>
+        <button class="sky-close" id="skyClose" title="닫기">✕</button>
+      </div>
+      <div class="sky-drawer-body">
         <div class="sky-today" id="skyToday"><div class="sky-loading">천문 데이터를 불러오는 중…</div></div>
 
-        <div class="sky-sec-title">📅 다가오는 천문 현상</div>
-        <div class="sky-grid" id="skyUpcoming"></div>
-
-        <div class="sky-sec-title">🗓 2026년 전체 일정
-          <div class="sky-filters" id="skyFilters"></div>
+        <div class="sky-cal">
+          <div class="sky-cal-nav">
+            <button class="sky-cal-arrow" id="skyPrev" title="이전 달">‹</button>
+            <span class="sky-cal-month" id="skyMonthLabel">2026</span>
+            <button class="sky-cal-arrow" id="skyNext" title="다음 달">›</button>
+          </div>
+          <div class="sky-cal-weekdays">
+            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+          </div>
+          <div class="sky-cal-grid" id="skyCalGrid"></div>
+          <div class="sky-cal-legend" id="skyLegend"></div>
         </div>
-        <div class="sky-list" id="skyAll"></div>
+
+        <div class="sky-sec-title" id="skyMonthTitle">🗓 이 달의 천문현상</div>
+        <div class="sky-list" id="skyMonthList"></div>
       </div>
-    </div>
+    </aside>
 
     <div class="bottom-bar" id="bottomBar" style="display:none">
       <div class="input-row">
@@ -999,6 +1012,103 @@ button.run:disabled { opacity:.5; cursor:wait; }
   .sky-row-go { display:none; }
 }
 
+/* ══ 천문 달력 드로어 (📅 버튼 → 우측 슬라이드) ══════════════ */
+.sky-fab { position:fixed; top:18px; right:22px; z-index:60;
+  display:flex; align-items:center; gap:8px;
+  background:linear-gradient(135deg, rgba(255,184,77,.16), rgba(94,230,196,.10));
+  border:1px solid rgba(255,184,77,.4); color:var(--accent);
+  border-radius:24px; padding:9px 16px 9px 14px; cursor:pointer;
+  font-family:var(--sans); font-weight:700; font-size:15px;
+  backdrop-filter:blur(12px); transition:transform .14s, box-shadow .18s, background .18s;
+  box-shadow:0 4px 20px rgba(0,0,0,.35); }
+.sky-fab:hover { transform:translateY(-2px);
+  background:linear-gradient(135deg, rgba(255,184,77,.28), rgba(94,230,196,.16));
+  box-shadow:0 6px 26px rgba(255,184,77,.22); }
+.sky-fab-txt { font-size:14px; letter-spacing:-.01em; }
+
+.sky-backdrop { position:fixed; inset:0; z-index:70; background:rgba(3,5,11,.55);
+  backdrop-filter:blur(2px); opacity:0; pointer-events:none; transition:opacity .28s; }
+.sky-backdrop.open { opacity:1; pointer-events:auto; }
+
+.sky-drawer { position:fixed; top:0; right:0; z-index:80;
+  width:min(440px, 92vw); height:100vh;
+  background:var(--sb); backdrop-filter:blur(24px);
+  border-left:1px solid var(--line); box-shadow:-16px 0 48px rgba(0,0,0,.5);
+  display:flex; flex-direction:column;
+  transform:translateX(100%); transition:transform .32s cubic-bezier(.4,0,.2,1); }
+.sky-drawer.open { transform:translateX(0); }
+
+.sky-drawer-head { display:flex; align-items:flex-start; gap:12px;
+  padding:20px 20px 15px; border-bottom:1px solid var(--line); flex-shrink:0; }
+.sky-drawer-title h2 { margin:0 0 7px; font-size:18px; font-weight:700; color:#eef1fa;
+  letter-spacing:-.01em; }
+.sky-close { margin-left:auto; flex-shrink:0; width:34px; height:34px; border-radius:9px;
+  background:rgba(255,255,255,.05); border:1px solid var(--line); color:var(--dim);
+  font-size:16px; cursor:pointer; transition:all .14s; }
+.sky-close:hover { background:rgba(255,255,255,.1); color:#eef1fa; }
+
+.sky-drawer-body { flex:1; overflow-y:auto; padding:18px 20px 44px; }
+.sky-drawer-body .sky-today { margin-bottom:20px; padding:16px 18px; }
+
+/* 월간 달력 그리드 */
+.sky-cal { margin-bottom:22px; }
+.sky-cal-nav { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:12px; }
+.sky-cal-arrow { width:32px; height:32px; border-radius:9px; background:rgba(255,255,255,.05);
+  border:1px solid var(--line); color:#dce3f2; font-size:18px; line-height:1; cursor:pointer;
+  transition:all .14s; }
+.sky-cal-arrow:hover { background:var(--as); border-color:rgba(255,184,77,.4); color:var(--accent); }
+.sky-cal-arrow:disabled { opacity:.3; cursor:default; }
+.sky-cal-month { font-size:15px; font-weight:700; color:#eef1fa; min-width:118px; text-align:center; }
+.sky-cal-weekdays { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:5px; }
+.sky-cal-weekdays span { text-align:center; font-size:11.5px; font-weight:600; color:var(--dim); padding:2px 0; }
+.sky-cal-weekdays span:first-child { color:#ff6b8a; }
+.sky-cal-weekdays span:last-child { color:#7ec8ff; }
+.sky-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.sky-day { position:relative; aspect-ratio:1/1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px;
+  border-radius:9px; border:1px solid transparent; font-size:13.5px; color:#c8d2e8;
+  transition:all .13s; }
+.sky-day.blank { visibility:hidden; }
+.sky-day.today { border-color:rgba(94,230,196,.5); color:#fff; }
+.sky-day.has-ev { cursor:pointer; background:rgba(255,255,255,.035); }
+.sky-day.has-ev:hover { background:rgba(255,184,77,.1); border-color:rgba(255,184,77,.35); }
+.sky-day.sel { background:var(--as); border-color:var(--accent); color:#fff; font-weight:700; }
+.sky-day-dots { display:flex; gap:2.5px; height:5px; align-items:center; }
+.sky-day-dot { width:5px; height:5px; border-radius:50%; }
+.sky-cal-legend { display:flex; flex-wrap:wrap; gap:8px 13px; margin-top:13px; padding-top:12px;
+  border-top:1px solid var(--ls); }
+.sky-leg { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--dim); }
+.sky-leg-dot { width:7px; height:7px; border-radius:50%; }
+
+/* 이 달의 현상 리스트 (드로어) */
+.sky-drawer-body .sky-sec-title { font-size:14.5px; font-weight:700; color:#dce3f2;
+  margin:4px 0 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.sky-clear-day { font-family:var(--mono); font-size:11px; color:var(--accent);
+  background:var(--as); border:1px solid rgba(255,184,77,.35); border-radius:14px;
+  padding:3px 10px; cursor:pointer; }
+.sky-drawer-body .sky-list { gap:9px; }
+.sky-ev { background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:12px;
+  padding:13px 15px; }
+.sky-ev-head { display:flex; align-items:center; gap:9px; flex-wrap:wrap; margin-bottom:7px; }
+.sky-ev-icon { font-size:19px; }
+.sky-ev-name { font-size:14.5px; font-weight:700; color:#eef1fa; }
+.sky-ev-date { font-family:var(--mono); font-size:12px; color:var(--accent); margin-bottom:7px; }
+.sky-ev-desc { font-size:13px; color:#b8c2d8; line-height:1.6; margin-bottom:7px; }
+.sky-ev-tip { font-size:12px; color:var(--nova); background:rgba(94,230,196,.07);
+  border-left:2px solid rgba(94,230,196,.4); border-radius:0 6px 6px 0; padding:7px 11px;
+  line-height:1.55; margin-bottom:12px; }
+.sky-ev-go { width:100%; background:var(--accent); color:#1a1206; border:none; border-radius:9px;
+  padding:9px 14px; font-family:var(--sans); font-weight:700; font-size:13.5px; cursor:pointer;
+  transition:transform .12s, opacity .15s; }
+.sky-ev-go:hover { opacity:.9; transform:translateY(-1px); }
+.sky-ev-go:active { transform:translateY(0); }
+.sky-empty { color:var(--dim); font-size:13px; text-align:center; padding:22px 0; }
+
+@media (max-width:520px) {
+  .sky-fab-txt { display:none; }
+  .sky-fab { padding:10px 12px; }
+}
+
 /* ══ 씬 플랜 패널 ══════════════════════════════════════════ */
 .plan-block { margin-bottom:28px; animation:rise .3s ease; }
 .user-bubble { font-size:14.5px; color:var(--nova); font-family:var(--sans);
@@ -1219,19 +1329,15 @@ CUSTOM_JS = r"""
     tab = t;
     $('tabChat').classList.toggle('active', t === 'chat');
     $('tabConv').classList.toggle('active', t === 'conv');
-    $('tabSky').classList.toggle('active', t === 'sky');
-    if (t === 'conv' || t === 'sky') {
+    if (t === 'conv') {
       $('welcomeScreen').classList.add('out');
       $('welcomeScreen').style.display = 'none'; // 페이드 잔상 없이 즉시 숨김
       $('chatScroll').classList.remove('in');
       $('chatScroll').style.display = 'none';
       $('bottomBar').style.display = 'none';
-      $('convView').style.display = (t === 'conv') ? '' : 'none';
-      $('skyView').style.display  = (t === 'sky')  ? '' : 'none';
-      if (t === 'sky') loadSkyEvents();
+      $('convView').style.display = '';
     } else {
       $('convView').style.display = 'none';
-      $('skyView').style.display = 'none';
       $('chatScroll').style.display = '';
       $('welcomeScreen').style.display = '';
       if (currentId) { $('chatScroll').classList.add('in'); $('bottomBar').style.display = ''; }
@@ -1239,15 +1345,21 @@ CUSTOM_JS = r"""
     }
   }
 
-  // ── 천문 달력 ──────────────────────────────────────────
+  // ── 천문 달력 (📅 우측 드로어) ─────────────────────────────
   let skyData = null;
-  let skyFilter = 'all';
+  let skyViewMonth = 7;      // 보고 있는 달(1~12). 로드 시 오늘 달로 재설정
+  let skySelDay = null;      // 선택된 날짜 'YYYY-MM-DD' (없으면 그 달 전체)
+  const _MON = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
   async function loadSkyEvents() {
-    if (skyData) return;                       // 세션 내 1회만 로드
+    if (skyData) { renderSky(); return; }      // 세션 내 1회만 로드
     try {
       const raw = await callApi('sky_events', ['']);
       skyData = JSON.parse(raw);
+      if (skyData.today) {
+        const mm = parseInt(skyData.today.split('-')[1], 10);
+        if (mm >= 1 && mm <= 12) skyViewMonth = mm;
+      }
       renderSky();
     } catch (e) {
       $('skyToday').innerHTML =
@@ -1255,16 +1367,38 @@ CUSTOM_JS = r"""
     }
   }
 
-  // 이벤트 → 스크립트 생성 탭으로 이동하며 프롬프트 자동 입력
-  function skyGo(prompt) {
-    switchTab('chat');
-    newChatView();
-    setTimeout(() => {
-      const box = $('promptInput');
-      if (box) { box.value = prompt; box.focus(); }
-    }, 60);
+  function openSkyDrawer() {
+    $('skyBackdrop').classList.add('open');
+    $('skyDrawer').classList.add('open');
+    $('skyDrawer').setAttribute('aria-hidden', 'false');
+    loadSkyEvents();
   }
-  window.__skyGo = skyGo;                      // inline onclick 에서 접근
+  function closeSkyDrawer() {
+    $('skyBackdrop').classList.remove('open');
+    $('skyDrawer').classList.remove('open');
+    $('skyDrawer').setAttribute('aria-hidden', 'true');
+  }
+
+  // 이벤트 → 곧장 스크립트 생성(플랜 패널 경유). 초기화면으로 튕기지 않음
+  function skyGo(prompt) {
+    closeSkyDrawer();
+    switchTab('chat');
+    run(prompt);
+  }
+  window.__skyGo = skyGo;                       // inline onclick 에서 접근
+
+  // 특정 날짜(ISO)에 걸리는 이벤트 (장기 시즌 제외 = 달력 점 표시용)
+  function eventsOnDay(iso) {
+    if (!skyData || !skyData.all) return [];
+    return skyData.all.filter(e => !e.isLong && e._sd <= iso && iso <= e._ed);
+  }
+  // 특정 달에 걸치는 이벤트 (장기 시즌 포함 = 리스트용) — 달을 넘겨도 다 보임
+  function eventsInMonth(month) {
+    if (!skyData || !skyData.all) return [];
+    const mm = String(month).padStart(2, '0');
+    const first = '2026-' + mm + '-01', last = '2026-' + mm + '-31';
+    return skyData.all.filter(e => e._sd <= last && e._ed >= first);
+  }
 
   function renderSky() {
     const d = skyData;
@@ -1290,46 +1424,94 @@ CUSTOM_JS = r"""
       '<button class="sky-btn" onclick="__skyGo(' + JSON.stringify(h.prompt).replace(/"/g,'&quot;') + ')">' +
         '✨ 이 현상으로 스크립트 만들기</button>';
 
-    // ② 다가오는 이벤트 카드
-    $('skyUpcoming').innerHTML = d.upcoming.map(e =>
-      '<div class="sky-card" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
-        '<div class="sky-card-top">' +
-          '<span class="sky-card-icon">' + e.icon + '</span>' +
-          '<span class="sky-card-date">' + esc(e.dateLabel) + '</span>' +
+    renderCalendar();
+    renderMonthList();
+  }
+
+  // ② 월간 달력 그리드
+  function renderCalendar() {
+    const d = skyData;
+    $('skyMonthLabel').textContent = '2026년 ' + _MON[skyViewMonth - 1];
+    $('skyPrev').disabled = (skyViewMonth <= 1);
+    $('skyNext').disabled = (skyViewMonth >= 12);
+    const mm = String(skyViewMonth).padStart(2, '0');
+    const daysInMonth = new Date(2026, skyViewMonth, 0).getDate();
+    const firstDow = new Date(2026, skyViewMonth - 1, 1).getDay();   // 0=일요일
+
+    let cells = '';
+    for (let i = 0; i < firstDow; i++) cells += '<div class="sky-day blank"></div>';
+    for (let day = 1; day <= daysInMonth; day++) {
+      const iso = '2026-' + mm + '-' + String(day).padStart(2, '0');
+      const evs = eventsOnDay(iso);
+      let cls = 'sky-day';
+      if (evs.length) cls += ' has-ev';
+      if (d.today === iso) cls += ' today';
+      if (skySelDay === iso) cls += ' sel';
+      let dots = '';
+      if (evs.length) {
+        const seen = {};
+        evs.forEach(e => { seen[e.type] = e.color; });
+        dots = Object.values(seen).slice(0, 3).map(c =>
+          '<span class="sky-day-dot" style="background:' + c + '"></span>').join('');
+      }
+      const attr = evs.length ? ' data-day="' + iso + '"' : '';
+      cells += '<div class="' + cls + '"' + attr + '><span>' + day + '</span>' +
+               '<div class="sky-day-dots">' + dots + '</div></div>';
+    }
+    $('skyCalGrid').innerHTML = cells;
+    $('skyCalGrid').querySelectorAll('.sky-day.has-ev').forEach(el => {
+      el.onclick = () => {
+        const iso = el.dataset.day;
+        skySelDay = (skySelDay === iso) ? null : iso;   // 같은 날 다시 클릭 = 해제
+        renderCalendar();
+        renderMonthList();
+      };
+    });
+
+    // 범례 — 이 달에 등장하는 유형만
+    const typesInMonth = {};
+    eventsInMonth(skyViewMonth).forEach(e => { if (!e.isLong) typesInMonth[e.type] = e; });
+    $('skyLegend').innerHTML = Object.values(typesInMonth).map(e =>
+      '<span class="sky-leg"><span class="sky-leg-dot" style="background:' + e.color + '"></span>' +
+      esc(e.typeLabel) + '</span>').join('');
+  }
+
+  // ③ 이 달(또는 선택한 날)의 천문현상 리스트
+  function renderMonthList() {
+    let list, title;
+    if (skySelDay) {
+      list = eventsInMonth(skyViewMonth).filter(e => e._sd <= skySelDay && skySelDay <= e._ed);
+      const dd = parseInt(skySelDay.split('-')[2], 10);
+      title = '🗓 ' + skyViewMonth + '월 ' + dd + '일' +
+        '<span class="sky-clear-day" id="skyClearDay">✕ 이 달 전체 보기</span>';
+    } else {
+      list = eventsInMonth(skyViewMonth);
+      title = '🗓 ' + skyViewMonth + '월의 천문현상 ' +
+        '<span style="color:var(--dim);font-weight:400">(' + list.length + ')</span>';
+    }
+    $('skyMonthTitle').innerHTML = title;
+    if (skySelDay) {
+      const b = $('skyClearDay');
+      if (b) b.onclick = () => { skySelDay = null; renderCalendar(); renderMonthList(); };
+    }
+    if (!list.length) {
+      $('skyMonthList').innerHTML =
+        '<div class="sky-empty">이 ' + (skySelDay ? '날' : '달') + '에는 등록된 천문현상이 없습니다.</div>';
+      return;
+    }
+    $('skyMonthList').innerHTML = list.map(e =>
+      '<div class="sky-ev">' +
+        '<div class="sky-ev-head">' +
+          '<span class="sky-ev-icon">' + e.icon + '</span>' +
+          '<span class="sky-ev-name">' + esc(e.name) + '</span>' +
           '<span class="sky-card-tag" style="background:' + e.color + '22;color:' + e.color + '">' +
             esc(e.typeLabel) + '</span>' +
         '</div>' +
-        '<div class="sky-card-name">' + esc(e.name) + '</div>' +
-        '<div class="sky-card-desc">' + esc(e.desc) + '</div>' +
-      '</div>').join('');
-
-    // ③ 유형 필터
-    const types = Object.entries(d.types);
-    $('skyFilters').innerHTML =
-      '<div class="sky-fchip' + (skyFilter==='all'?' on':'') + '" data-f="all">전체</div>' +
-      types.map(([k,v]) =>
-        '<div class="sky-fchip' + (skyFilter===k?' on':'') + '" data-f="' + k + '">' +
-          v.icon + ' ' + esc(v.label) + '</div>').join('');
-    $('skyFilters').querySelectorAll('.sky-fchip').forEach(c => {
-      c.onclick = () => { skyFilter = c.dataset.f; renderSky(); };
-    });
-
-    // ④ 전체 일정
-    const list = d.all.filter(e => skyFilter === 'all' || e.type === skyFilter);
-    $('skyAll').innerHTML = list.map(e =>
-      '<div class="sky-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
-        '<span class="sky-row-icon">' + e.icon + '</span>' +
-        '<div class="sky-row-body">' +
-          '<div class="sky-row-head">' +
-            '<span class="sky-row-name">' + esc(e.name) + '</span>' +
-            '<span class="sky-row-date">' + esc(e.dateLabel) + '</span>' +
-            '<span class="sky-card-tag" style="background:' + e.color + '22;color:' + e.color + '">' +
-              esc(e.typeLabel) + '</span>' +
-          '</div>' +
-          '<div class="sky-row-desc">' + esc(e.desc) + '</div>' +
-          '<div class="sky-row-tip">👀 ' + esc(e.tip) + '</div>' +
-        '</div>' +
-        '<div class="sky-row-go">스크립트 →</div>' +
+        '<div class="sky-ev-date">📅 ' + esc(e.dateLabel) + '</div>' +
+        '<div class="sky-ev-desc">' + esc(e.desc) + '</div>' +
+        '<div class="sky-ev-tip">👀 ' + esc(e.tip) + '</div>' +
+        '<button class="sky-ev-go" onclick="__skyGo(' +
+          JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">✨ 스크립트 만들기</button>' +
       '</div>').join('');
   }
 
@@ -1605,7 +1787,19 @@ CUSTOM_JS = r"""
     };
     $('tabChat').onclick = () => switchTab('chat');
     $('tabConv').onclick = () => switchTab('conv');
-    $('tabSky').onclick  = () => switchTab('sky');
+    $('tabSky').onclick  = () => openSkyDrawer();
+    $('skyFab').onclick  = () => openSkyDrawer();
+    $('skyClose').onclick = () => closeSkyDrawer();
+    $('skyBackdrop').onclick = () => closeSkyDrawer();
+    $('skyPrev').onclick = () => {
+      if (skyViewMonth > 1) { skyViewMonth--; skySelDay = null; renderCalendar(); renderMonthList(); }
+    };
+    $('skyNext').onclick = () => {
+      if (skyViewMonth < 12) { skyViewMonth++; skySelDay = null; renderCalendar(); renderMonthList(); }
+    };
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && $('skyDrawer').classList.contains('open')) closeSkyDrawer();
+    });
     $('convBtn').onclick = () => runConvert();
     $('convCopy').onclick = () => {
       navigator.clipboard.writeText($('convPre').textContent);
