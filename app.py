@@ -9,6 +9,7 @@ Space 설정: Settings → Variables and secrets → GROQ_API_KEY (필수)
 """
 import datetime as dt
 import json
+import math
 import os
 import re
 import urllib.request
@@ -318,15 +319,68 @@ def _season_kr(month: int) -> str:
     return "winter"
 
 
-# ── 실시간 행성/달: Visible Planets API (무료·키 불필요) ────────────
-#   청주(위·경도) 기준 '오늘 밤 지평선 위' 천체를 조회. 실패해도 조용히 폴백.
+# ── 관측지(도시) 목록 — 기본 청주. 사용자가 드로어에서 변경 가능 ──────
 _CJU_LAT, _CJU_LON = 36.64, 127.49
+OBSERVER_CITIES = {
+    "청주": (36.64, 127.49), "서울": (37.57, 126.98), "인천": (37.46, 126.71),
+    "대전": (36.35, 127.38), "대구": (35.87, 128.60), "광주": (35.16, 126.85),
+    "부산": (35.18, 129.08), "울산": (35.54, 129.31), "강릉": (37.75, 128.90),
+    "제주": (33.50, 126.53),
+}
+
+
+def _sun_times(d: dt.date, lat: float, lon: float) -> dict:
+    """일출·일몰·남중(태양 남중) 시각을 계산해 KST 'HH:MM' 로 반환(NOAA 근사).
+    극야/백야면 None. 청주 검증: 05:29/19:39/12:34 (실측 일치)."""
+    n = d.timetuple().tm_yday
+    lng_hour = lon / 15.0
+    zenith = 90.833
+
+    def _event(is_rise):
+        t = n + ((6 if is_rise else 18) - lng_hour) / 24.0
+        m = 0.9856 * t - 3.289
+        el = (m + 1.916 * math.sin(math.radians(m))
+              + 0.020 * math.sin(math.radians(2 * m)) + 282.634) % 360
+        ra = math.degrees(math.atan(0.91764 * math.tan(math.radians(el)))) % 360
+        ra += ((math.floor(el / 90) * 90) - (math.floor(ra / 90) * 90))
+        ra /= 15.0
+        sin_dec = 0.39782 * math.sin(math.radians(el))
+        cos_dec = math.cos(math.asin(sin_dec))
+        cos_h = ((math.cos(math.radians(zenith)) - sin_dec * math.sin(math.radians(lat)))
+                 / (cos_dec * math.cos(math.radians(lat))))
+        if cos_h > 1 or cos_h < -1:
+            return None                       # 극야/백야
+        h = (360 - math.degrees(math.acos(cos_h))) if is_rise else math.degrees(math.acos(cos_h))
+        h /= 15.0
+        ut = (h + ra - 0.06571 * t - 6.622 - lng_hour) % 24
+        return ut
+
+    def _fmt(ut):
+        if ut is None:
+            return None
+        kst = (ut + 9.0) % 24
+        hh = int(kst)
+        mm = int(round((kst - hh) * 60))
+        if mm == 60:
+            hh = (hh + 1) % 24
+            mm = 0
+        return "%02d:%02d" % (hh, mm)
+
+    rise, sett = _event(True), _event(False)
+    transit = None
+    if rise is not None and sett is not None:
+        transit = ((rise + sett + (24 if sett < rise else 0)) / 2.0) % 24
+    return {"rise": _fmt(rise), "set": _fmt(sett), "transit": _fmt(transit)}
+
+
+# ── 실시간 행성/달: Visible Planets API (무료·키 불필요) ────────────
+#   관측지(위·경도) 기준 '오늘 밤 지평선 위' 천체를 조회. 실패해도 조용히 폴백.
 _PLANET_KR = {
     "Mercury": ("수성", "🪐"), "Venus": ("금성", "🌟"), "Mars": ("화성", "🔴"),
     "Jupiter": ("목성", "🪐"), "Saturn": ("토성", "🪐"),
     "Uranus": ("천왕성", "🔵"), "Neptune": ("해왕성", "🔵"),
 }
-_VP_CACHE = {}          # {날짜ISO: [items]} — 서버 프로세스당 하루 1회만 외부 호출
+_VP_CACHE = {}          # {날짜ISO|lat|lon: [items]} — 하루/관측지당 1회만 외부 호출
 
 
 def _compass_kr(az: float) -> str:
@@ -334,16 +388,16 @@ def _compass_kr(az: float) -> str:
     return dirs[int((az % 360) / 45.0 + 0.5) % 8]
 
 
-def _visible_planets(today: dt.date) -> list:
-    """청주에서 '오늘 밤(21시 KST=12 UTC)' 지평선 위에 뜬 행성을 실시간 조회.
-    네트워크/형식 오류 시 조용히 빈 리스트 → 계절 별자리 표로 폴백."""
-    key = today.isoformat()
+def _visible_planets(today: dt.date, lat: float, lon: float) -> list:
+    """관측지에서 '오늘 밤(21시 KST=12 UTC)' 지평선 위에 뜬 행성을 실시간 조회.
+    네트워크/형식 오류 시 조용히 빈 리스트 → 계절 별자리 풀로 폴백."""
+    key = "%s|%.2f|%.2f" % (today.isoformat(), lat, lon)
     if key in _VP_CACHE:
         return _VP_CACHE[key]
     out = []
     try:
         url = ("https://api.visibleplanets.dev/v3?latitude=%s&longitude=%s&time=%sT12:00:00Z"
-               % (_CJU_LAT, _CJU_LON, key))
+               % (lat, lon, today.isoformat()))
         req = urllib.request.Request(url, headers={"User-Agent": "sky-explorer-ai"})
         with urllib.request.urlopen(req, timeout=5) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
@@ -366,10 +420,10 @@ def _visible_planets(today: dt.date) -> list:
     return out
 
 
-def _today_real(today: dt.date) -> list:
+def _today_real(today: dt.date, lat: float, lon: float) -> list:
     """오늘의 '실제' 항목 = 실시간 행성(최대 2개) + 보름/상현/하현달.
     프런트에서 여기에 계절 풀을 무작위로 섞어 매번 다르게 보여준다."""
-    out = list(_visible_planets(today))[:2]        # 실시간 행성 (밝은 것 위주, 최대 2)
+    out = list(_visible_planets(today, lat, lon))[:2]   # 실시간 행성 (최대 2)
     mp = _moon_phase_kr(today)
     moon_prompt = {
         "보름달": "오늘 밤 보름달을 크게 보여줘",
@@ -388,10 +442,22 @@ def _season_pool(today: dt.date) -> list:
              "prompt": p["prompt"]} for p in SEASONAL_SKY[_season_kr(today.month)]]
 
 
-def sky_events(month: str = "") -> str:
+def sky_events(arg: str = "") -> str:
     """천문 달력 데이터를 JSON 으로 반환.
-    month="" → 오늘 기준 하이라이트 + 다가오는 이벤트 + 전체 목록."""
+    arg 는 관측지 JSON({"city","lat","lon"}) 또는 빈 문자열(기본 청주)."""
     try:
+        city, lat, lon = "청주", _CJU_LAT, _CJU_LON
+        if arg:
+            try:
+                o = json.loads(arg)
+                if isinstance(o, dict):
+                    city = str(o.get("city", city))[:20]
+                    lat = float(o.get("lat", lat))
+                    lon = float(o.get("lon", lon))
+                    if not (-90 <= lat <= 90 and -180 <= lon <= 180):   # 방어
+                        city, lat, lon = "청주", _CJU_LAT, _CJU_LON
+            except Exception:
+                pass
         today = dt.date.today()
         # 2026 달력이므로 연도를 2026 으로 맞춰 비교(연도 무관 MM-DD 기준)
         def to_date(mmdd: str) -> dt.date:
@@ -438,7 +504,9 @@ def sky_events(month: str = "") -> str:
             "today": today.isoformat(),
             "todayLabel": "%d월 %d일" % (today.month, today.day),
             "moon": _moon_phase_kr(today),
-            "always": _today_real(today),        # 실시간 행성 + 달 (실제)
+            "loc": {"city": city, "lat": round(lat, 2), "lon": round(lon, 2)},
+            "sun": _sun_times(today, lat, lon),  # 오늘 일출/남중/일몰 (KST)
+            "always": _today_real(today, lat, lon),  # 실시간 행성 + 달 (실제)
             "seasonPool": _season_pool(today),   # 계절 천체 풀 (열 때마다 무작위)
             "highlight": highlight,
             "upcoming": upcoming[:6],
@@ -800,19 +868,13 @@ CUSTOM_HTML = """
 
 <div class="shell">
   <div class="sidebar">
-    <div class="brand">🌌 Sky Explorer <span class="g">AI</span>
-      <svg class="brand-logo" viewBox="0 0 340 44" xmlns="http://www.w3.org/2000/svg" aria-label="METASPACE">
-        <text x="0" y="34" font-family="'Arial Black','Helvetica Neue',Arial,sans-serif"
-              font-weight="900" font-size="34" letter-spacing="1.5" fill="#2b4aa8">METASPΛCE</text>
-      </svg>
-    </div>
+    <div class="brand">🌌 Sky Explorer <span class="g">AI</span></div>
     <div class="side-tab active" id="tabChat">💬 스크립트 생성</div>
     <button class="new-chat" id="newChatBtn">＋ 새 대화</button>
     <div class="side-sec">대화 기록
       <button class="clear-all" id="clearAllBtn" title="기록 전체 삭제">🗑 전체 삭제</button>
     </div>
     <div class="conv-list" id="convList"></div>
-    <div class="side-tab" id="tabSky">🔭 천문 달력 2026</div>
     <div class="side-tab" id="tabConv">🔁 SPC → Python 변환</div>
     <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Groq · Llama</div>
   </div>
@@ -825,6 +887,15 @@ CUSTOM_HTML = """
           <textarea id="promptInput" placeholder="어떤 우주 현상을 보고 싶나요? (예: 토성을 화면 중앙으로 확대해 줘)"></textarea>
           <button class="run" id="runBtn">스크립트 생성 ✨</button>
         </div>
+        <div class="gen-opts" id="genOpts">
+          <label class="opt-chk"><input type="checkbox" id="teachChk"> 🎓 수업용 해설 주석</label>
+          <span class="opt-presets">⏱ 길이
+            <button type="button" class="opt-len on" data-len="">기본</button>
+            <button type="button" class="opt-len" data-len="전체 길이를 30초 정도로 짧게 만들어줘. ">30초</button>
+            <button type="button" class="opt-len" data-len="수업용으로 3분 정도 길이로 만들어줘. ">3분</button>
+            <button type="button" class="opt-len" data-len="발표용으로 5분 정도 여유있게 만들어줘. ">5분</button>
+          </span>
+        </div>
         <div class="chips" id="chipRow">
           <div class="chip" data-p="토성으로 가서 크게 보여줘">🪐 토성으로 가서 크게 보여줘</div>
           <div class="chip" data-p="지구를 돔 한가운데 놓고 두 배 확대해줘">🌍 지구를 돔 한가운데서 두 배로 키워줘</div>
@@ -833,6 +904,7 @@ CUSTOM_HTML = """
           <div class="chip" data-p="은하수를 켜줘">🌌 은하수를 하늘에 켜줘</div>
           <div class="chip" data-p="화면에 '우주에 오신 것을 환영합니다' 라고 띄워줘">✨ 환영 인사를 화면에 띄워줘</div>
         </div>
+        <div class="onboard-hint">💡 생성된 스크립트를 <b>복사·다운로드(.py)</b> → Sky Explorer <b>Studio에 가져오면</b> 돔에서 실행됩니다.</div>
       </div>
     </div>
 
@@ -870,7 +942,10 @@ CUSTOM_HTML = """
       <div class="sky-drawer-head">
         <div class="sky-drawer-title">
           <h2>🔭 2026 천문 달력</h2>
-          <span class="sky-loc">📍 충북 청주 (36.64°N, 127.49°E)</span>
+          <div class="sky-loc-row">📍 관측지
+            <select class="sky-loc-select" id="skyLoc"></select>
+            <span class="sky-loc-coord" id="skyLocCoord"></span>
+          </div>
         </div>
         <button class="sky-close" id="skyClose" title="닫기">✕</button>
       </div>
@@ -902,6 +977,10 @@ CUSTOM_HTML = """
       </div>
     </div>
   </main>
+
+  <a class="meta-badge" href="#" title="METASPACE" onclick="return false;">
+    <span class="meta-by">powered by</span> METASPΛCE
+  </a>
 </div>
 """
 
@@ -954,6 +1033,44 @@ body { background: #04060c !important; }
 .brand .g { color:var(--accent); }
 .brand-logo { height:20px; width:auto; margin-left:2px; margin-top:4px; opacity:.95;
               flex-basis:100%; max-width:210px; }
+
+/* METASPACE 회사 배지 — 우하단 고정(유지, 은은하게) */
+.meta-badge { position:fixed; right:16px; bottom:12px; z-index:2;
+  font-family:'Arial Black','Helvetica Neue',Arial,sans-serif; font-weight:900;
+  font-size:13px; letter-spacing:1px; color:#4a63b8; text-decoration:none;
+  opacity:.7; pointer-events:none; user-select:none; }
+.meta-badge .meta-by { font-family:var(--sans); font-weight:600; font-size:9.5px;
+  letter-spacing:.04em; color:var(--dim); margin-right:5px; text-transform:uppercase; }
+
+/* 온보딩 한 줄 안내 */
+.onboard-hint { margin-top:16px; font-size:12.5px; color:var(--dim); line-height:1.6;
+  background:rgba(255,255,255,.03); border:1px solid var(--ls); border-radius:10px;
+  padding:10px 14px; text-align:center; }
+.onboard-hint b { color:#c8d2e8; font-weight:600; }
+
+/* 생성 코드 린트 도움말 */
+.lint-box { border-top:1px solid var(--line); padding:10px 14px; display:flex;
+  flex-direction:column; gap:6px; background:rgba(255,255,255,.015); }
+.lint-head { font-size:11.5px; font-weight:700; color:#cdd6ea; margin-bottom:2px; }
+.lint-item { font-size:11.5px; line-height:1.5; color:#b8c2d8; padding:5px 9px;
+  border-radius:7px; border-left:2px solid var(--line); }
+.lint-err  { background:rgba(255,107,138,.08);  border-left-color:#ff6b8a; color:#ffc2cf; }
+.lint-warn { background:rgba(255,184,77,.08);   border-left-color:var(--accent); color:#ffe0b0; }
+.lint-info { background:rgba(94,230,196,.06);   border-left-color:var(--nova); color:#b8ead9; }
+.lint-ok   { font-size:11.5px; color:#7fcfa8; }
+
+/* 생성 옵션 (해설 주석 · 길이 프리셋) */
+.gen-opts { display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  margin-top:12px; justify-content:center; }
+.opt-chk { display:flex; align-items:center; gap:6px; font-size:12.5px; color:#c8d2e8;
+  cursor:pointer; user-select:none; }
+.opt-chk input { accent-color:var(--accent); cursor:pointer; }
+.opt-presets { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--dim); }
+.opt-len { font-family:var(--sans); font-size:11.5px; color:var(--dim);
+  background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:14px;
+  padding:4px 11px; cursor:pointer; transition:all .14s; }
+.opt-len:hover { color:#dce3f2; border-color:rgba(255,255,255,.2); }
+.opt-len.on { background:var(--as); border-color:rgba(255,184,77,.45); color:var(--accent); font-weight:600; }
 
 /* ── 사이드바: 새 대화 + 대화 목록 ── */
 .new-chat { background:var(--as); border:1px solid var(--accent); color:var(--accent);
@@ -1088,6 +1205,19 @@ button.run:disabled { opacity:.5; cursor:wait; }
 .sky-loc { font-family:var(--mono); font-size:11.5px; color:var(--dim);
   background:rgba(255,255,255,.05); border:1px solid var(--line);
   border-radius:20px; padding:4px 11px; }
+
+/* 관측지 선택 */
+.sky-loc-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  font-size:11.5px; color:var(--dim); }
+.sky-loc-select { font-family:var(--sans); font-size:12px; font-weight:600; color:#eef1fa;
+  background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:8px;
+  padding:3px 8px; cursor:pointer; outline:none; }
+.sky-loc-select:hover { border-color:rgba(255,184,77,.4); }
+.sky-loc-coord { font-family:var(--mono); font-size:10.5px; color:var(--dim); }
+
+/* 오늘 태양(일출/남중/일몰) 라인 */
+.sky-sun { font-size:11.5px; color:#b8c2d8; margin:8px 0 2px; letter-spacing:-.01em; }
+.sky-sun b { color:var(--accent); font-weight:700; font-family:var(--mono); }
 
 /* 오늘의 하이라이트 */
 .sky-today { background:linear-gradient(135deg, rgba(255,184,77,.12), rgba(94,230,196,.07));
@@ -1438,6 +1568,46 @@ CUSTOM_JS = r"""
       setTimeout(() => { cb.querySelector('.copy-btn').textContent = '복사'; }, 1500);
     };
     cb.querySelector('.dl-btn').onclick = () => downloadPy(pre.textContent, block.dataset.q);
+    appendLint(cb, code);
+  }
+
+  // ── 생성 코드 린트 (실측 함정 기반, 클라이언트 정적 검사) ────────
+  function lintCode(code) {
+    const w = [];
+    if (/\b(DateManager|SceneGraph|DataManager|Configuration|Initialization)\b/.test(code)
+        && !/from\s+Initialization\s+import/.test(code))
+      w.push({t:'err', m:"매니저 클래스(DateManager 등)를 쓰면 'from Initialization import *' 가 필요해요."});
+    if (/\.intensity\s*\(/.test(code))
+      w.push({t:'err', m:"intensity 는 속성입니다 — '.intensity()' 가 아니라 '.intensity'(읽기) / setIntensity(...) 로."});
+    if (/setTarget\s*\(\s*Vec3/.test(code))
+      w.push({t:'warn', m:"카메라 타겟은 Vec2(방위, 고도)를 쓰세요 — Vec3 는 DEPRECATED."});
+    (code.match(/setPosition(?:LBR|XYZ|R|L)\s*\([^;\n]*\)/g) || []).forEach(c => {
+      if (/Anim/.test(c) && !/(,\s*-1\s*\)|portId|track)/.test(c))
+        w.push({t:'warn', m:"카메라 이동 «"+c.slice(0,22)+"…» 에 track 인자가 빠진 듯 — (값, Anim, track), 지상이면 track=-1."});
+    });
+    if (/setDateTime\s*\(/.test(code))
+      w.push({t:'info', m:"시각은 UTC 입니다 — 청주 정오=03:30 UTC (KST−9h). 낮/밤이 중요하면 변환을 꼭 확인!"});
+    if (/\bBolide\s*\(/.test(code) && !/setModel\s*\(/.test(code))
+      w.push({t:'warn', m:"Bolide(화구)는 setModel(ModelID.ColoredFireball, \"\") 가 없으면 안 그려져요."});
+    if (/\bClock\s*\(/.test(code) && !/setModelset\s*\(/.test(code))
+      w.push({t:'warn', m:"Clock(돔 시계)은 setModelset(Clock.Modelset.SystemClock001) 이 없으면 안 보여요."});
+    if (/FadeTo/.test(code) && !/setShadowStrength\s*\(\s*0/.test(code))
+      w.push({t:'info', m:"천체를 가까이 볼 땐 그림자 OFF(setShadowStrength(0)+setShadowContrast(0)+setPlanetShineStrength(1)) 권장 — 절반이 어두워지는 것 방지."});
+    if (/InsertText\s*\(/.test(code) && /setDistance\s*\(\s*20/.test(code))
+      w.push({t:'info', m:"자막 distance=20 은 행성/은하 프레임 전용 — 지상 씬이면 distance=1.0 로."});
+    return w;
+  }
+  function appendLint(cbEl, code) {
+    if (!cbEl || !code || code.trim().charAt(0) === '#') return;   // 에러 메시지면 스킵
+    const ws = lintCode(code);
+    const ICON = {err:'⛔', warn:'⚠️', info:'💡'};
+    const box = document.createElement('div');
+    box.className = 'lint-box';
+    box.innerHTML = ws.length
+      ? '<div class="lint-head">🔎 코드 검토 도움말 (' + ws.length + ')</div>' +
+        ws.map(x => '<div class="lint-item lint-' + x.t + '">' + ICON[x.t] + ' ' + esc(x.m) + '</div>').join('')
+      : '<div class="lint-ok">✓ 자주 나는 함정은 발견되지 않았어요</div>';
+    cbEl.appendChild(box);
   }
 
   // ── 사이드바 대화 목록 ──────────────────────────────────
@@ -1524,10 +1694,43 @@ CUSTOM_JS = r"""
   let skySelDay = null;      // 선택된 날짜 'YYYY-MM-DD' (없으면 그 달 전체)
   const _MON = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
 
+  // 관측지(도시) — 기본 청주. localStorage 에 저장, 생성 프롬프트에도 반영.
+  const CITIES = { '청주':[36.64,127.49], '서울':[37.57,126.98], '인천':[37.46,126.71],
+    '대전':[36.35,127.38], '대구':[35.87,128.60], '광주':[35.16,126.85], '부산':[35.18,129.08],
+    '울산':[35.54,129.31], '강릉':[37.75,128.90], '제주':[33.50,126.53] };
+  let observer = (() => {
+    try { const s = JSON.parse(localStorage.getItem('sky_observer'));
+      if (s && s.city && CITIES[s.city]) return s; } catch (e) {}
+    return { city:'청주', lat:36.64, lon:127.49 };
+  })();
+  function setObserver(city) {
+    const c = CITIES[city] || CITIES['청주'];
+    observer = { city: city, lat: c[0], lon: c[1] };
+    try { localStorage.setItem('sky_observer', JSON.stringify(observer)); } catch (e) {}
+    skyData = null;               // 관측지 바뀌면 다시 불러오기
+    loadSkyEvents();
+  }
+  function observerPrefix() {     // 청주가 아니면 생성 프롬프트에 관측지 지시
+    if (observer.city === '청주') return '';
+    return '관측지는 ' + observer.city + '(위도 ' + observer.lat + ', 경도 ' + observer.lon + ')로 설정해줘. ';
+  }
+  // 생성 옵션(관측지 + 길이 프리셋 + 해설 주석) → API 프롬프트 접두
+  let teachMode = false, lengthPreset = '';
+  try {
+    teachMode = localStorage.getItem('gen_teach') === '1';
+    lengthPreset = localStorage.getItem('gen_len') || '';
+  } catch (e) {}
+  function genPrefix() {
+    let p = observerPrefix();
+    if (lengthPreset) p += lengthPreset;
+    if (teachMode) p += '각 코드 줄에 초보자가 이해할 수 있는 한국어 주석을 자세히 달아줘. ';
+    return p;
+  }
+
   async function loadSkyEvents() {
-    if (skyData) { renderSky(); return; }      // 세션 내 1회만 로드
+    if (skyData) { renderSky(); return; }      // 캐시 있으면 재사용
     try {
-      const raw = await callApi('sky_events', ['']);
+      const raw = await callApi('sky_events', [JSON.stringify(observer)]);
       skyData = JSON.parse(raw);
       if (skyData.today) {
         const mm = parseInt(skyData.today.split('-')[1], 10);
@@ -1573,19 +1776,36 @@ CUSTOM_JS = r"""
     return skyData.all.filter(e => e._sd <= last && e._ed >= first);
   }
 
+  // 관측지 드롭다운 채우기 + 좌표 표시 + 변경 이벤트
+  function fillLocSelect() {
+    const sel = $('skyLoc');
+    if (!sel) return;
+    sel.innerHTML = Object.keys(CITIES).map(c =>
+      '<option value="' + c + '"' + (c === observer.city ? ' selected' : '') + '>' + c + '</option>').join('');
+    sel.onchange = () => setObserver(sel.value);
+    const cc = $('skyLocCoord');
+    if (cc) cc.textContent = observer.lat.toFixed(2) + '°N, ' + observer.lon.toFixed(2) + '°E';
+  }
+
   function renderSky() {
     const d = skyData;
     if (!d || d.error) {
       $('skyToday').innerHTML = '<div class="sky-loading">데이터 오류</div>';
       return;
     }
-    // ① 오늘 카드(한 줄) + '오늘 볼 수 있는 현상' (열 때마다 무작위)
-    const m = d.moon;
+    fillLocSelect();
+    // ① 오늘 카드(날짜·달·태양) + '오늘 볼 수 있는 현상' (열 때마다 무작위)
+    const m = d.moon, s = d.sun || {};
+    const sunLine = (s.rise || s.set)
+      ? '<div class="sky-sun">🌅 일출 <b>' + (s.rise || '—') + '</b>' +
+        ' · ☀️ 남중 <b>' + (s.transit || '—') + '</b>' +
+        ' · 🌇 일몰 <b>' + (s.set || '—') + '</b></div>'
+      : '';
     $('skyToday').innerHTML =
       '<div class="sky-today-top">' +
         '<span class="sky-date-badge">오늘 · ' + esc(d.todayLabel) + '</span>' +
         '<span class="sky-moon">' + m.icon + ' <b>' + esc(m.name) + '</b> ' + m.pct + '%</span>' +
-      '</div>' +
+      '</div>' + sunLine +
       '<div class="sky-sum-lbl first">🔭 오늘 볼 수 있는 현상' +
         '<button class="sky-reshuffle" id="skyReshuffle" title="다른 현상 보기">↻</button></div>' +
       '<div class="sky-sum-list" id="skyTodayList"></div>';
@@ -1838,6 +2058,7 @@ CUSTOM_JS = r"""
     prompt = (prompt || '').trim();
     if (!prompt || busy) return;
     busy = true;
+    const apiPrompt = genPrefix() + prompt;   // 관측지·길이·해설 지시를 API 프롬프트에만 반영
 
     if (!currentId) {
       currentId = Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
@@ -1857,7 +2078,7 @@ CUSTOM_JS = r"""
     scrollBottom();
 
     try {
-      const planJson = await callApi('plan', [prompt]);
+      const planJson = await callApi('plan', [apiPrompt]);
       planBlock.querySelector('.plan-loading-state')?.remove();
 
       let planData = null;
@@ -1885,7 +2106,7 @@ CUSTOM_JS = r"""
             const c0 = cur();
             const history = JSON.stringify((c0 ? c0.msgs : []).map(m => ({ q: m.q, code: m.code })));
             const scenesJson = JSON.stringify(planData);
-            const code = await callApi('generate', [prompt, history, scenesJson]);
+            const code = await callApi('generate', [apiPrompt, history, scenesJson]);
 
             loadDiv.remove();
             if (genBtn) genBtn.style.display = 'none';
@@ -1923,6 +2144,7 @@ CUSTOM_JS = r"""
               setTimeout(() => { codeWrap.querySelector('.copy-btn').textContent = '복사'; }, 1500);
             };
             codeWrap.querySelector('.dl-btn').onclick = () => downloadPy(pre.textContent, prompt);
+            appendLint(codeWrap.querySelector('.code-block'), code);
 
             // ⑤ 대화 기록 저장
             const m = { q: prompt, code: code };
@@ -1942,7 +2164,7 @@ CUSTOM_JS = r"""
         const fallbackBlock = addBlock(prompt, null);
         const c0 = cur();
         const history = JSON.stringify((c0 ? c0.msgs : []).map(m => ({ q: m.q, code: m.code })));
-        const code = await callApi('generate', [prompt, history, '']);
+        const code = await callApi('generate', [apiPrompt, history, '']);
         const m = { q: prompt, code: code };
         const c = cur();
         if (c) { c.msgs.push(m); save(); }
@@ -1972,6 +2194,21 @@ CUSTOM_JS = r"""
     document.querySelectorAll('.chip').forEach(c => {
       c.onclick = () => run(c.getAttribute('data-p'));
     });
+    // 생성 옵션: 해설 주석 토글 + 길이 프리셋 (localStorage 유지)
+    const tchk = $('teachChk');
+    if (tchk) {
+      tchk.checked = teachMode;
+      tchk.onchange = () => { teachMode = tchk.checked;
+        try { localStorage.setItem('gen_teach', teachMode ? '1' : '0'); } catch (e) {} };
+    }
+    document.querySelectorAll('.opt-len').forEach(b => {
+      b.classList.toggle('on', (b.dataset.len || '') === lengthPreset);
+      b.onclick = () => {
+        lengthPreset = b.dataset.len || '';
+        try { localStorage.setItem('gen_len', lengthPreset); } catch (e) {}
+        document.querySelectorAll('.opt-len').forEach(x => x.classList.toggle('on', x === b));
+      };
+    });
     $('newChatBtn').onclick = () => { switchTab('chat'); newChatView(); };
     $('clearAllBtn').onclick = () => {
       if (!convs.length) return;
@@ -1981,7 +2218,6 @@ CUSTOM_JS = r"""
     };
     $('tabChat').onclick = () => switchTab('chat');
     $('tabConv').onclick = () => switchTab('conv');
-    $('tabSky').onclick  = () => openSkyDrawer();
     $('skyFab').onclick  = () => openSkyDrawer();
     $('skyClose').onclick = () => closeSkyDrawer();
     $('skyBackdrop').onclick = () => closeSkyDrawer();
