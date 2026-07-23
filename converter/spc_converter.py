@@ -67,6 +67,14 @@ FAMILY = {
     "Asteroid":       0x14,   # Recording9 확정: 335544326 = 0x14000006 (DB Apophis 인스턴스)
     "DwarfPlanet":    0x08,   # Recording10 확정: 134217730 = 0x08000002 (Pluto)
     "GlobularCluster":0x22,   # Recording12 확정: 570425370 = 0x2200001A (NGC5139_omegaCen=idx25)
+    # ═══ 2026-07-20~22 세션 신규 클래스 family (Recording45~62 + Oumuamua 확정) ═══
+    "OrbitalPlace":   0x25,   # Recording48: 620756992 = 0x25000000 (인공위성 TLE 궤도)
+    "Chart2D":        0x24,   # Recording46: 603979777 = 0x24000001 (돔 데이터 차트)
+    "DrawableInsert": 0x26,   # Recording49: 637534208 = 0x26000000 (돔 자유 드로잉)
+    "Ephemeris":      0x2A,   # Recording50: 704643072 = 0x2A000000 (출몰 계산)
+    "Clock":          0x2B,   # Recording45: 721420289 = 0x2B000001 (돔 시계 HUD)
+    "Lut":            0x18,   # Recording52: 402653185 = 0x18000001 (별 스프라이트 LUT)
+    "Line":           0x20,   # Recording35: 536870913 = 0x20000001 (커스텀 지시선)
 }
 
 # --- 전역(매니저/싱글톤) 클래스: bodyId 없는 명령. ---
@@ -313,6 +321,68 @@ CMD = {
     #    14084 setStartPosition(Vec3 지리좌표) + 14085 setEndPosition + 14087(경로길이 스칼라) 발행.
     #    play(speed) → 14082 setEvolution 을 dur=경로길이/speed 로 애니(실측: speed 1.0 → 148초!).
     #    ⚠️ 화구가 '거의 안 움직임'의 원인 = 이 148초 크로싱. 빠른 화구는 speed 를 크게(≈50).
+    # ═══ 2026-07-20~22 세션 신규 매핑 (Recording45~62 + Oumuamua). ⚠️ value_anim/color/enum 은 지배적 레이아웃 패턴 기반 ═══
+    # Asteroid 궤도 표시(0x14) — Oumuamua SPC 로 확정(6414)
+    ("Asteroid", "setOrbitIntensity"):   dict(cmd=6414, head=[3, 6, "DUR"], pay=[1, "V", 1],       form="value_anim"),
+    ("Asteroid", "setOrbitColor"):       dict(cmd=6415, head=[3, 9, 0],     pay=["R","G","B",1,1], form="color"),
+    ("Asteroid", "setOrbitThickness"):   dict(cmd=6417, head=[3, 6, "DUR"], pay=[1, "V", 1],       form="value_anim"),
+    ("Asteroid", "setLabelIntensity"):   dict(cmd=6426, head=[3, 6, "DUR"], pay=[1, "V", 1],       form="value_anim"),
+    # OrbitalPlace(0x25) — 인공위성 TLE 궤도 (Recording48)
+    ("OrbitalPlace", "setMeanMotion"):             dict(cmd=11022, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setEccentricity"):           dict(cmd=11009, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setInclination"):            dict(cmd=11012, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setAscendingNodeLongitude"): dict(cmd=11013, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setArgumentOfPeriapsis"):    dict(cmd=11010, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setMeanAnomaly"):            dict(cmd=11011, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setEpochYears"):             dict(cmd=11019, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setBstar"):                  dict(cmd=11024, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setOrbitColor"):             dict(cmd=11027, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("OrbitalPlace", "setOrbitThickness"):         dict(cmd=11029, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("OrbitalPlace", "setOrbitIntensity"):         dict(cmd=11026, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    # Clock(0x2B) HUD 시계 (Recording45)
+    ("Clock", "setIntensity"):         dict(cmd=12289, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Clock", "setModelset"):          dict(cmd=12305, head=[1,2], pay=["IDX"], form="enum"),
+    ("Clock", "setSize"):              dict(cmd=12301, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Clock", "setDistance"):          dict(cmd=12303, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Clock", "setBackgroundColor"):   dict(cmd=12296, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Clock", "setForegroundColor"):   dict(cmd=12297, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Clock", "setHoursHandColor"):    dict(cmd=12298, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Clock", "setMinutesHandColor"):  dict(cmd=12299, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Clock", "setSecondsHandColor"):  dict(cmd=12300, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Clock", "setDisplaySecondsHand"):dict(cmd=12304, head=[1,1], pay=["V"], form="bool"),
+    # Chart2D(0x24) (Recording46)
+    ("Chart2D", "setIntensity"):    dict(cmd=10753, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Chart2D", "setChartType"):    dict(cmd=10757, head=[1,2], pay=["IDX"], form="enum"),
+    ("Chart2D", "setCategoryCount"):dict(cmd=10758, head=[1,2], pay=["IDX"], form="enum"),
+    ("Chart2D", "setSize"):         dict(cmd=10756, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Chart2D", "setDistance"):     dict(cmd=10755, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    # DrawableInsert(0x26) (Recording49)
+    ("DrawableInsert", "setIntensity"):  dict(cmd=11274, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("DrawableInsert", "setBrushType"):  dict(cmd=11271, head=[1,2], pay=["IDX"], form="enum"),
+    ("DrawableInsert", "setBrushColor"): dict(cmd=11272, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("DrawableInsert", "setBrushSize"):  dict(cmd=11275, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("DrawableInsert", "beginDraw"):     dict(cmd=11265, head=[1,1], pay=[], form="noarg"),
+    ("DrawableInsert", "endDraw"):       dict(cmd=11266, head=[1,1], pay=[], form="noarg"),
+    # Ephemeris(0x2A) (Recording50)
+    ("Ephemeris", "setUseSimulationTime"): dict(cmd=12040, head=[1,1], pay=["V"], form="bool"),
+    ("Ephemeris", "setTargetBody"):        dict(cmd=12035, head=[1,2], pay=["IDX"], form="enum"),
+    ("Ephemeris", "setDayLimit"):          dict(cmd=12039, head=[1,2], pay=["IDX"], form="enum"),
+    # Lut(0x18) 별 스프라이트 (Recording52)
+    ("Lut", "setSpriteScale"):     dict(cmd=5128, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Lut", "setDiameterScale"):   dict(cmd=5133, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Lut", "setSpriteSizeLimit"): dict(cmd=5130, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Lut", "setSmoothSizeLimit"): dict(cmd=5131, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    # Line(0x20) 커스텀 지시선 (Recording35)
+    ("Line", "setIntensity"):          dict(cmd=8961, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Line", "setLineColor"):          dict(cmd=8962, head=[3,9,0], pay=["R","G","B",1,1], form="color"),
+    ("Line", "setLineThickness"):      dict(cmd=8963, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Line", "setAdvancement"):        dict(cmd=8965, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Line", "setGraduationSize"):     dict(cmd=8971, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Line", "setAdvancementDivisor"): dict(cmd=8983, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    # Constellation(0x0A) 선/그림/경계 (Recording34/40)
+    ("Constellation", "setLinesIntensity"):  dict(cmd=1537, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Constellation", "setArtIntensity"):    dict(cmd=1545, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Constellation", "setLimitsIntensity"): dict(cmd=1541, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
 }
 
 # cmdId → (클래스, 메서드) 역참조 (SPC→Python 변환기가 재사용)
