@@ -870,6 +870,7 @@ CUSTOM_HTML = """
   <div class="sidebar">
     <div class="brand">🌌 Sky Explorer <span class="g">AI</span></div>
     <div class="side-tab active" id="tabChat">💬 스크립트 생성</div>
+    <div class="side-tab" id="calSide">🔭 오늘 볼 수 있는 하늘</div>
     <button class="new-chat" id="newChatBtn">＋ 새 대화</button>
     <div class="side-sec">대화 기록
       <button class="clear-all" id="clearAllBtn" title="기록 전체 삭제">🗑 전체 삭제</button>
@@ -895,6 +896,10 @@ CUSTOM_HTML = """
             <button type="button" class="opt-len" data-len="수업용으로 3분 정도 길이로 만들어줘. ">3분</button>
             <button type="button" class="opt-len" data-len="발표용으로 5분 정도 여유있게 만들어줘. ">5분</button>
           </span>
+        </div>
+        <div class="cal-cta">
+          <div class="cal-cta-text">🌙 뭘 만들지 모르겠다면?<br><b>오늘 청주에서 볼 수 있는 천체</b>로 시작해 보세요.</div>
+          <button type="button" class="cal-cta-btn" id="calCtaBtn">📅 오늘의 천문 달력 열기</button>
         </div>
         <div class="chips" id="chipRow">
           <div class="chip" data-p="토성으로 가서 크게 보여줘">🪐 토성으로 가서 크게 보여줘</div>
@@ -1072,6 +1077,18 @@ body { background: #04060c !important; }
 .opt-len:hover { color:#dce3f2; border-color:rgba(255,255,255,.2); }
 .opt-len.on { background:var(--as); border-color:rgba(255,184,77,.45); color:var(--accent); font-weight:600; }
 
+/* 달력 유도 배너 (뭘 만들지 모를 때 → 오늘 볼 수 있는 하늘) */
+.cal-cta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
+  width:min(720px,92%); margin:16px auto 0; padding:13px 18px;
+  background:linear-gradient(135deg, rgba(94,230,196,.09), rgba(255,184,77,.06));
+  border:1px solid rgba(94,230,196,.28); border-radius:14px; }
+.cal-cta-text { font-size:13.5px; color:#c8d2e8; line-height:1.55; }
+.cal-cta-text b { color:var(--nova); font-weight:700; }
+.cal-cta-btn { background:var(--nova); color:#04140f; border:none; border-radius:10px;
+  padding:9px 16px; font-family:var(--sans); font-weight:700; font-size:13.5px; cursor:pointer;
+  white-space:nowrap; transition:transform .12s, opacity .15s; }
+.cal-cta-btn:hover { opacity:.9; transform:translateY(-1px); }
+
 /* ── 사이드바: 새 대화 + 대화 목록 ── */
 .new-chat { background:var(--as); border:1px solid var(--accent); color:var(--accent);
   border-radius:10px; padding:10px 12px; font-family:var(--sans); font-weight:700;
@@ -1104,7 +1121,7 @@ main { flex:1; min-width:0; position:relative; display:flex; flex-direction:colu
 
 /* ── 웰컴 ── */
 .welcome { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center;
-  justify-content:center; padding:0 28px 60px; z-index:5;
+  justify-content:safe center; padding:40px 28px 60px; z-index:5; overflow-y:auto;
   transition:opacity .38s ease, transform .38s ease; }
 .welcome.out { opacity:0; pointer-events:none; transform:translateY(-14px); }
 .welcome h1 { font-weight:700; font-size:clamp(26px,4.5vw,46px); line-height:1.14;
@@ -1209,10 +1226,14 @@ button.run:disabled { opacity:.5; cursor:wait; }
 /* 관측지 선택 */
 .sky-loc-row { display:flex; align-items:center; gap:7px; flex-wrap:wrap;
   font-size:11.5px; color:var(--dim); }
-.sky-loc-select { font-family:var(--sans); font-size:12px; font-weight:600; color:#eef1fa;
-  background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:8px;
-  padding:3px 8px; cursor:pointer; outline:none; }
-.sky-loc-select:hover { border-color:rgba(255,184,77,.4); }
+.sky-loc-select { font-family:var(--sans); font-size:12.5px; font-weight:700; color:#fff;
+  background-color:rgba(255,184,77,.16); border:1px solid rgba(255,184,77,.5); border-radius:8px;
+  padding:4px 26px 4px 10px; cursor:pointer; outline:none;
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'><path d='M1 3l4 4 4-4' stroke='%23ffb84d' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat; background-position:right 8px center; }
+.sky-loc-select:hover { background-color:rgba(255,184,77,.28); }
+.sky-loc-select option { background:#0a0d16; color:#eef1fa; }
 .sky-loc-coord { font-family:var(--mono); font-size:10.5px; color:var(--dim); }
 
 /* 오늘 태양(일출/남중/일몰) 라인 */
@@ -2219,6 +2240,8 @@ CUSTOM_JS = r"""
     $('tabChat').onclick = () => switchTab('chat');
     $('tabConv').onclick = () => switchTab('conv');
     $('skyFab').onclick  = () => openSkyDrawer();
+    if ($('calSide')) $('calSide').onclick = () => openSkyDrawer();
+    if ($('calCtaBtn')) $('calCtaBtn').onclick = () => openSkyDrawer();
     $('skyClose').onclick = () => closeSkyDrawer();
     $('skyBackdrop').onclick = () => closeSkyDrawer();
     $('skyPrev').onclick = () => {
