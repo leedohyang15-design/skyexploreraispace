@@ -37,12 +37,15 @@ def narr(s, d=3.0):
 # ── 별을 크고 반짝이게 (Stars + Lut) ───────────────────────
 narr("청주 여름 밤하늘", 3.0)
 orig_amp = stars.twinklingAmplitude
-stars.setTwinklingAmplitude(2.0, Anim(2.0))              # 반짝임 증폭(운영권장 ~1.2 이상)
+orig_exp = stars.exposure
+stars.setTwinklingAmplitude(3.0, Anim(2.0))              # 반짝임 강하게(3.0=체감)
 stars.setPointSaturation(3.0, Anim(2.0))                 # 별색 채도 ↑
+stars.setExposure(8.0, Anim(2.0))                        # 노출↑ = 별 밝고 부풀음(기본5.68)
 lut = Lut(Lut.LutName.Lut001)
-orig_ss = lut.spriteScale
-lut.setSpriteScale(2.2, Anim(2.0))                       # 별 크게(과하면 하얘지니 2.2)
-sleep(2.2)
+orig_ss = lut.spriteScale; orig_ds = lut.diameterScale
+lut.setSpriteScale(12.0, Anim(2.0))                      # 별 크게 = 기본6.0보다 위로
+lut.setDiameterScale(3.0, Anim(2.0))                     # 지름도 위로(기본1.38)
+sleep(2.4)
 
 # ── 여름 대삼각형 (성군 프리셋) ────────────────────────────
 narr("여름 대삼각형 — 베가·데네브·알타이르", 3.0)
@@ -62,8 +65,10 @@ narr("여름철 밤하늘의 길잡이", 4.0)
 t.setIntensity(0.0, Anim(1.5)); sleep(1.6)
 narr(" ", 3.0)
 
-# ── 정리 (원복) ────────────────────────────────────────────
+# ── 정리 (원복 = 반드시 기본값으로) ────────────────────────
 stars.setTwinklingAmplitude(float(orig_amp) if isinstance(orig_amp, (int, float)) else 1.0, Anim(1.0))
+stars.setExposure(float(orig_exp) if isinstance(orig_exp, (int, float)) else 5.68, Anim(1.0))
 lut.setSpriteScale(float(orig_ss) if isinstance(orig_ss, (int, float)) else 6.0, Anim(1.0))
+lut.setDiameterScale(float(orig_ds) if isinstance(orig_ds, (int, float)) else 1.38, Anim(1.0))
 uni.setGlobalIntensity(0.0, Anim.cubic(3.0)); sleep(3.5)
 print("[AI 생성 테스트] 여름 대삼각형 — 정제 프롬프트만으로 생성. 별 크기/반짝임/삼각형 선·라벨 확인 요망.")
