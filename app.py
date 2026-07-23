@@ -1050,6 +1050,22 @@ button.run:disabled { opacity:.5; cursor:wait; }
 .sky-drawer-body { flex:1; overflow-y:auto; padding:18px 20px 44px; }
 .sky-drawer-body .sky-today { margin-bottom:20px; padding:16px 18px; }
 
+/* 오늘 기준 요약 (오늘 진행 중 + 다가오는) */
+.sky-sum-lbl { font-size:12.5px; font-weight:700; color:#dce3f2; margin:13px 0 8px; }
+.sky-sum-lbl.first { margin-top:2px; }
+.sky-sum-list { display:flex; flex-direction:column; gap:6px; }
+.sky-sum-row { display:flex; align-items:center; gap:9px; padding:9px 11px;
+  background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:10px;
+  cursor:pointer; transition:border-color .14s, background .14s; }
+.sky-sum-row:hover { border-color:rgba(255,184,77,.4); background:rgba(255,184,77,.07); }
+.sky-sum-icon { font-size:16px; flex-shrink:0; }
+.sky-sum-name { font-size:13.5px; font-weight:600; color:#eef1fa; flex:1; min-width:0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sky-sum-date { font-family:var(--mono); font-size:11px; color:var(--accent); flex-shrink:0; }
+.sky-sum-go { flex-shrink:0; font-size:11px; font-weight:700; color:#1a1206;
+  background:var(--accent); border-radius:7px; padding:4px 8px; }
+.sky-sum-none { font-size:12.5px; color:var(--dim); padding:7px 2px 2px; line-height:1.5; }
+
 /* 월간 달력 그리드 */
 .sky-cal { margin-bottom:22px; }
 .sky-cal-nav { display:flex; align-items:center; justify-content:center; gap:16px; margin-bottom:12px; }
@@ -1406,23 +1422,34 @@ CUSTOM_JS = r"""
       $('skyToday').innerHTML = '<div class="sky-loading">데이터 오류</div>';
       return;
     }
-    // ① 오늘 + 하이라이트
-    const h = d.highlight, m = d.moon;
+    // ① 오늘 기준 요약 — 오늘 진행 중 + 다가오는 현상 (날짜 기준 정리)
+    const m = d.moon;
+    const todayIso = d.today;
+    const ongoing = (d.all || []).filter(e => e._sd <= todayIso && todayIso <= e._ed);
+    const seenP = {};
+    ongoing.forEach(e => { seenP[e.prompt] = 1; });   // 오늘 진행 중과 중복 제거
+    const soon = (d.upcoming || []).filter(e => e._sd > todayIso && !seenP[e.prompt]).slice(0, 3);
+    const sumRow = (e) =>
+      '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
+        '<span class="sky-sum-icon">' + e.icon + '</span>' +
+        '<span class="sky-sum-name">' + esc(e.name) + '</span>' +
+        '<span class="sky-sum-date">' + esc(e.dateLabel) + '</span>' +
+        '<span class="sky-sum-go">✨ 만들기</span>' +
+      '</div>';
     $('skyToday').innerHTML =
       '<div class="sky-today-top">' +
         '<span class="sky-date-badge">오늘 · ' + esc(d.todayLabel) + '</span>' +
         '<span class="sky-moon">' + m.icon + ' <b>' + esc(m.name) + '</b> (' + m.pct + '%) — ' +
           esc(m.cond) + '</span>' +
       '</div>' +
-      '<div class="sky-hl-title">' +
-        '<span class="sky-hl-icon">' + h.icon + '</span>' +
-        '<span class="sky-hl-name">' + esc(h.name) + '</span>' +
-        '<span class="sky-hl-when">' + esc(h.dateLabel) + '</span>' +
-      '</div>' +
-      '<div class="sky-hl-desc">' + esc(h.desc) + '</div>' +
-      '<div class="sky-hl-tip">👀 ' + esc(h.tip) + '</div>' +
-      '<button class="sky-btn" onclick="__skyGo(' + JSON.stringify(h.prompt).replace(/"/g,'&quot;') + ')">' +
-        '✨ 이 현상으로 스크립트 만들기</button>';
+      '<div class="sky-sum-lbl first">🔭 오늘 볼 수 있는 현상</div>' +
+      (ongoing.length
+        ? '<div class="sky-sum-list">' + ongoing.map(sumRow).join('') + '</div>'
+        : '<div class="sky-sum-none">오늘 진행 중인 특별 현상은 없어요. 아래 다가오는 현상을 확인해 보세요.</div>') +
+      (soon.length
+        ? '<div class="sky-sum-lbl">⏳ 다가오는 현상</div>' +
+          '<div class="sky-sum-list">' + soon.map(sumRow).join('') + '</div>'
+        : '');
 
     renderCalendar();
     renderMonthList();
