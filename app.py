@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import time
 import urllib.request
 from pathlib import Path
 
@@ -582,11 +583,11 @@ def _build_messages(prompt: str, history_json: str) -> list:
         assert isinstance(hist, list)
     except Exception:
         hist = []
-    for m in hist[-4:]:                              # 최근 4턴까지만 (분당 토큰 한도 보호)
+    for m in hist[-3:]:                              # 최근 3턴까지만 (분당 토큰 한도 보호)
         if not isinstance(m, dict):
             continue
-        q = str(m.get("q", ""))[:1500]
-        code = str(m.get("code", ""))[:3500]
+        q = str(m.get("q", ""))[:1000]
+        code = str(m.get("code", ""))[:2500]
         if q:
             messages.append({"role": "user", "content": q})
         if code:
@@ -612,6 +613,31 @@ def _is_decommissioned(err) -> bool:
     # 모델 폐기/미존재: 다음 모델로 자동 스킵.
     s = str(err).lower()
     return "decommissioned" in s or "model_not_found" in s or "does not exist" in s
+
+
+# 429 응답에는 "try again in 6.5s" / retry-after 헤더가 담긴다.
+# 그 값을 읽어 '자동 대기 후 1회 재시도' → 짧은 분당 한도(TPM)를 사용자에게 안 보이게 넘긴다.
+_RETRY_WAIT_CAP = 20.0   # 자동 대기 상한(초). 이보다 길면 재시도 대신 다음 모델/에러 반환.
+
+
+def _retry_after_seconds(err):
+    """429 에러에서 권장 대기시간(초)을 추출. 못 찾으면 None."""
+    # 1) SDK 예외의 response 헤더 (Retry-After: 초)
+    resp = getattr(err, "response", None)
+    if resp is not None:
+        try:
+            ra = resp.headers.get("retry-after") or resp.headers.get("Retry-After")
+            if ra:
+                return float(ra)
+        except Exception:
+            pass
+    # 2) 메시지 본문의 "try again in 6.5s" / "in 1m30s" 패턴
+    s = str(err)
+    m = re.search(r"try again in\s+(?:(\d+)m)?\s*([\d.]+)s", s)
+    if m:
+        mins = float(m.group(1)) if m.group(1) else 0.0
+        return mins * 60.0 + float(m.group(2))
+    return None
 
 
 # ── 씬 플랜 생성 ──────────────────────────────────────────────
@@ -710,6 +736,7 @@ def plan(prompt: str) -> str:
 
     # 캐시 모델이 폐기됐을 경우를 대비해 PREFERRED 순서로 최대 2개까지 시도
     tried = []
+    waited_once = False                  # 자동 대기 재시도는 1회만
     for _ in range(3):
         model = _pick_model(client)
         if model in tried:
@@ -732,8 +759,19 @@ def plan(prompt: str) -> str:
             )
             break
         except Exception as e:
-            if _is_decommissioned(e) or _is_rate_limit(e):
+            if _is_rate_limit(e):
+                # 짧은 분당 한도면 권장 대기시간만큼 자동 대기 후 같은 모델 재시도.
+                wait = _retry_after_seconds(e)
+                if (not waited_once and wait is not None
+                        and wait <= _RETRY_WAIT_CAP):
+                    waited_once = True
+                    time.sleep(wait + 0.5)
+                    tried.pop()          # 같은 모델 재시도 허용
+                    continue
                 _model = None            # 캐시 무효화 → 다음 후보로
+                continue
+            if _is_decommissioned(e):
+                _model = None
                 continue
             return json.dumps({"scenes": [], "error": str(e)}, ensure_ascii=False)
     else:
@@ -823,39 +861,58 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
 
     last_err = None
     hit_rate_limit = False
+    waited_once = False               # 자동 대기 재시도는 요청당 1회만
     for model_candidate in fallback_models:
         # 히스토리 포함 → (413 발생 시) 히스토리 제거 순으로 시도
         histories = [history_json] + ([""] if history_json else [])
         for hist in histories:
-            try:
-                resp = client.chat.completions.create(
-                    model=model_candidate,
-                    temperature=0.2,
-                    # Groq TPM = 입력토큰 + max_tokens(응답예약). 8b 모델은 분당 6K 라
-                    # 큰 시스템 프롬프트 + 큰 예약분이면 1회 호출로도 한도 초과 → 예약분 축소.
-                    max_tokens=1400,
-                    messages=_build_messages(prompt, hist),
-                )
-                _model = model_candidate
-                text = resp.choices[0].message.content or ""
-                return _extract_code(text)
-            except Exception as e:
-                last_err = e
-                if _is_too_large(e) and hist:
-                    continue            # 토큰 초과 → 히스토리 빼고 같은 모델 재시도
-                if _is_rate_limit(e):
-                    hit_rate_limit = True
-                    break               # 이 모델은 한도 초과 → 다음 모델로
-                if _is_decommissioned(e):
-                    break               # 폐기된 모델 → 다음 모델로 (원문 노출 안 함)
-                # 그 외 에러(모델명·파라미터·서버 오류 등)는 원문을 그대로 보여준다.
-                _model = None
-                return "# Groq API 오류 (%s): %s" % (model_candidate, e)
+            while True:                 # while: 자동 대기 후 같은 (model, hist) 제자리 재시도
+                try:
+                    resp = client.chat.completions.create(
+                        model=model_candidate,
+                        temperature=0.2,
+                        # Groq TPM = 입력토큰 + max_tokens(응답예약). 8b 모델은 분당 6K 라
+                        # 큰 시스템 프롬프트 + 큰 예약분이면 1회 호출로도 한도 초과 → 예약분 축소.
+                        max_tokens=1400,
+                        messages=_build_messages(prompt, hist),
+                    )
+                    _model = model_candidate
+                    text = resp.choices[0].message.content or ""
+                    return _extract_code(text)
+                except Exception as e:
+                    last_err = e
+                    if _is_rate_limit(e):
+                        hit_rate_limit = True
+                        # 짧은 분당 한도면 권장 대기시간만큼 자동 대기 후 제자리 1회 재시도.
+                        wait = _retry_after_seconds(e)
+                        if (not waited_once and wait is not None
+                                and wait <= _RETRY_WAIT_CAP):
+                            waited_once = True
+                            time.sleep(wait + 0.5)
+                            continue    # while: 같은 (model, hist) 재시도
+                        break           # 이 모델은 한도 초과 → 다음 모델로
+                    if _is_too_large(e) and hist:
+                        break           # 토큰 초과 → 히스토리 빼고 같은 모델 재시도
+                    if _is_decommissioned(e):
+                        break           # 폐기된 모델 → 다음 모델로 (원문 노출 안 함)
+                    # 그 외 에러(모델명·파라미터·서버 오류 등)는 원문을 그대로 보여준다.
+                    _model = None
+                    return "# Groq API 오류 (%s): %s" % (model_candidate, e)
+            # while 를 break 로 빠져나왔을 때:
+            #   rate_limit/decommissioned → 다음 모델, too_large → 다음 hist(히스토리 제거)
+            if _is_rate_limit(last_err) or _is_decommissioned(last_err):
+                break                   # for hist 종료 → 다음 모델로
+            # too_large 는 for hist 계속(히스토리 뺀 재시도)
 
     _model = None
     if hit_rate_limit:
-        return ("# ⏳ 사용 가능한 모델의 분당 토큰 한도(TPM)에 걸렸습니다.\n"
-                "# 30초~1분 뒤에 다시 시도해 주세요. (일일 한도가 아니라 분당 한도입니다)\n"
+        return ("# ⏳ 분당 토큰 한도(TPM)에 걸렸습니다. (일일 한도가 아니라 '분당' 한도)\n"
+                "# 자동 대기 재시도까지 했지만 아직 여유가 안 났어요.\n"
+                "#\n"
+                "# ▶ 지금: 40초~1분 뒤 다시 눌러 주세요. 잠깐 쉬면 한도가 회복됩니다.\n"
+                "# ▶ 팁: 대화가 길어지면 토큰이 누적됩니다 — '＋ 새 대화'로 시작하면 가벼워져요.\n"
+                "# ▶ 근본 해결: console.groq.com → Billing 에서 결제수단을 등록하면\n"
+                "#   분당 한도가 수십 배로 올라가 이 오류가 사실상 사라집니다(개발 티어).\n"
                 "# ─ 상세: %s" % last_err)
     return "# Groq API 오류: %s" % last_err
 
