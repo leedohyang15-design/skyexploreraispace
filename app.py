@@ -11,6 +11,7 @@ import datetime as dt
 import json
 import os
 import re
+import urllib.request
 from pathlib import Path
 
 import gradio as gr
@@ -238,6 +239,132 @@ def _moon_phase_kr(d: dt.date) -> dict:
     return {"name": name, "icon": icon, "cond": cond, "pct": pct}
 
 
+# ── 계절별 '오늘 볼 수 있는' 별자리 (항상 최소 1개 보장용) ──────────
+#   한국(북반구) 저녁 하늘 기준. 날짜에 따라 목록에서 돌아가며 노출.
+SEASONAL_SKY = {
+    "spring": [
+        {"icon": "🦁", "name": "사자자리 (봄철 대표 별자리)", "label": "봄철 저녁 남쪽 하늘",
+         "prompt": "봄철 밤하늘에 사자자리를 보여줘"},
+        {"icon": "🔺", "name": "봄철 대삼각형 (아르크투루스·스피카·데네볼라)", "label": "봄철 저녁 하늘",
+         "prompt": "봄철 대삼각형을 이루는 별들을 선으로 이어서 보여줘"},
+        {"icon": "⭐", "name": "목동자리 아르크투루스", "label": "봄철 저녁 동쪽 하늘",
+         "prompt": "봄철 목동자리와 주황색 별 아르크투루스를 보여줘"},
+        {"icon": "♍", "name": "처녀자리와 스피카", "label": "봄철 저녁 남쪽 하늘",
+         "prompt": "봄철 처녀자리와 밝은 별 스피카를 보여줘"},
+    ],
+    "summer": [
+        {"icon": "🔺", "name": "여름 대삼각형 (직녀별·데네브·견우별)", "label": "여름철 밤 머리 위",
+         "prompt": "여름 대삼각형을 이루는 직녀별·데네브·견우별을 보여줘"},
+        {"icon": "🦢", "name": "백조자리와 은하수", "label": "여름철 밤 하늘",
+         "prompt": "여름 밤하늘의 백조자리와 은하수를 함께 보여줘"},
+        {"icon": "🦂", "name": "전갈자리와 안타레스", "label": "여름철 밤 남쪽 하늘",
+         "prompt": "여름 남쪽 하늘의 전갈자리와 붉은 별 안타레스를 보여줘"},
+        {"icon": "🏹", "name": "궁수자리 (은하수 중심 방향)", "label": "여름철 밤 남쪽 하늘",
+         "prompt": "여름 은하수 중심 방향의 궁수자리를 보여줘"},
+    ],
+    "autumn": [
+        {"icon": "🟦", "name": "페가수스 대사각형", "label": "가을철 밤 하늘",
+         "prompt": "가을철 페가수스자리의 큰 사각형을 보여줘"},
+        {"icon": "🌌", "name": "안드로메다자리와 안드로메다 은하", "label": "가을철 밤 하늘",
+         "prompt": "가을 밤하늘의 안드로메다자리와 안드로메다 은하를 보여줘"},
+        {"icon": "👑", "name": "카시오페이아자리 (W자)", "label": "가을철 밤 북쪽 하늘",
+         "prompt": "북쪽 하늘의 W자 모양 카시오페이아자리를 보여줘"},
+    ],
+    "winter": [
+        {"icon": "🌟", "name": "오리온자리", "label": "겨울철 밤 남쪽 하늘",
+         "prompt": "겨울 밤하늘에 오리온자리를 크게 보여줘"},
+        {"icon": "🔺", "name": "겨울 대삼각형 (베텔게우스·시리우스·프로키온)", "label": "겨울철 밤 하늘",
+         "prompt": "겨울 대삼각형을 이루는 별들을 선으로 이어서 보여줘"},
+        {"icon": "⭐", "name": "큰개자리 시리우스", "label": "겨울철 밤 남동쪽 하늘",
+         "prompt": "겨울철 가장 밝은 별 시리우스와 큰개자리를 보여줘"},
+        {"icon": "🐂", "name": "황소자리와 플레이아데스 성단", "label": "겨울철 밤 하늘",
+         "prompt": "겨울 황소자리와 플레이아데스 성단을 보여줘"},
+    ],
+}
+
+
+def _season_kr(month: int) -> str:
+    if month in (3, 4, 5):
+        return "spring"
+    if month in (6, 7, 8):
+        return "summer"
+    if month in (9, 10, 11):
+        return "autumn"
+    return "winter"
+
+
+# ── 실시간 행성/달: Visible Planets API (무료·키 불필요) ────────────
+#   청주(위·경도) 기준 '오늘 밤 지평선 위' 천체를 조회. 실패해도 조용히 폴백.
+_CJU_LAT, _CJU_LON = 36.64, 127.49
+_PLANET_KR = {
+    "Mercury": ("수성", "🪐"), "Venus": ("금성", "🌟"), "Mars": ("화성", "🔴"),
+    "Jupiter": ("목성", "🪐"), "Saturn": ("토성", "🪐"),
+    "Uranus": ("천왕성", "🔵"), "Neptune": ("해왕성", "🔵"),
+}
+_VP_CACHE = {}          # {날짜ISO: [items]} — 서버 프로세스당 하루 1회만 외부 호출
+
+
+def _compass_kr(az: float) -> str:
+    dirs = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"]
+    return dirs[int((az % 360) / 45.0 + 0.5) % 8]
+
+
+def _visible_planets(today: dt.date) -> list:
+    """청주에서 '오늘 밤(21시 KST=12 UTC)' 지평선 위에 뜬 행성을 실시간 조회.
+    네트워크/형식 오류 시 조용히 빈 리스트 → 계절 별자리 표로 폴백."""
+    key = today.isoformat()
+    if key in _VP_CACHE:
+        return _VP_CACHE[key]
+    out = []
+    try:
+        url = ("https://api.visibleplanets.dev/v3?latitude=%s&longitude=%s&time=%sT12:00:00Z"
+               % (_CJU_LAT, _CJU_LON, key))
+        req = urllib.request.Request(url, headers={"User-Agent": "sky-explorer-ai"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        for b in payload.get("data", []):
+            name = b.get("name")
+            if name not in _PLANET_KR or not b.get("aboveHorizon"):
+                continue
+            if b.get("nakedEyeObject") is False:          # 맨눈 불가(천왕성·해왕성) 제외
+                continue
+            kr, icon = _PLANET_KR[name]
+            comp = _compass_kr(b.get("azimuth") or 0)
+            out.append({
+                "icon": icon, "name": kr,
+                "dateLabel": "오늘 밤 %s쪽 하늘" % comp,
+                "prompt": "오늘 밤 하늘에서 볼 수 있는 %s을 크게 보여줘" % kr,
+            })
+    except Exception:                                     # noqa: BLE001 — 조용히 폴백
+        out = []
+    _VP_CACHE[key] = out
+    return out
+
+
+def _today_visible(today: dt.date) -> list:
+    """날짜와 무관하게 '오늘 볼 수 있는' 항목을 항상 최소 1개 이상 만든다.
+    실시간 행성(청주 저녁) + 계절 대표 별자리 2개(날짜 순환) + 보름/상현/하현달이면 달."""
+    out = list(_visible_planets(today))            # ① 실시간 행성 (있으면)
+    items = SEASONAL_SKY[_season_kr(today.month)]  # ② 계절 대표 별자리 (항상)
+    i = today.day % len(items)
+    picks = [items[i]]
+    if len(items) > 1:
+        picks.append(items[(i + 1) % len(items)])
+    out.extend([{"icon": p["icon"], "name": p["name"], "dateLabel": p["label"],
+                 "prompt": p["prompt"]} for p in picks])
+
+    mp = _moon_phase_kr(today)
+    moon_prompt = {
+        "보름달": "오늘 밤 보름달을 크게 보여줘",
+        "상현달": "오늘 초저녁 상현달을 보여줘",
+        "하현달": "오늘 새벽 하현달을 보여줘",
+    }
+    if mp["name"] in moon_prompt:                 # 보름/상현/하현달일 때만 달 항목 추가
+        out.append({"icon": mp["icon"], "name": "%s (%d%%)" % (mp["name"], mp["pct"]),
+                    "dateLabel": "오늘 밤", "prompt": moon_prompt[mp["name"]]})
+    return out
+
+
 def sky_events(month: str = "") -> str:
     """천문 달력 데이터를 JSON 으로 반환.
     month="" → 오늘 기준 하이라이트 + 다가오는 이벤트 + 전체 목록."""
@@ -288,6 +415,7 @@ def sky_events(month: str = "") -> str:
             "today": today.isoformat(),
             "todayLabel": "%d월 %d일" % (today.month, today.day),
             "moon": _moon_phase_kr(today),
+            "always": _today_visible(today),     # 오늘 볼 수 있는 현상(항상 최소 1개)
             "highlight": highlight,
             "upcoming": upcoming[:6],
             "all": sorted(items, key=lambda x: x["_sd"]),
@@ -1426,8 +1554,10 @@ CUSTOM_JS = r"""
     const m = d.moon;
     const todayIso = d.today;
     const ongoing = (d.all || []).filter(e => e._sd <= todayIso && todayIso <= e._ed);
+    const always = d.always || [];                    // 실시간 행성·계절 별자리·달 (항상 최소 1개)
+    const todayList = always.concat(ongoing);         // 오늘 볼 수 있는 현상
     const seenP = {};
-    ongoing.forEach(e => { seenP[e.prompt] = 1; });   // 오늘 진행 중과 중복 제거
+    todayList.forEach(e => { seenP[e.prompt] = 1; });
     const soon = (d.upcoming || []).filter(e => e._sd > todayIso && !seenP[e.prompt]).slice(0, 3);
     const sumRow = (e) =>
       '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
@@ -1443,9 +1573,9 @@ CUSTOM_JS = r"""
           esc(m.cond) + '</span>' +
       '</div>' +
       '<div class="sky-sum-lbl first">🔭 오늘 볼 수 있는 현상</div>' +
-      (ongoing.length
-        ? '<div class="sky-sum-list">' + ongoing.map(sumRow).join('') + '</div>'
-        : '<div class="sky-sum-none">오늘 진행 중인 특별 현상은 없어요. 아래 다가오는 현상을 확인해 보세요.</div>') +
+      (todayList.length
+        ? '<div class="sky-sum-list">' + todayList.map(sumRow).join('') + '</div>'
+        : '<div class="sky-sum-none">천문 데이터를 불러오는 중…</div>') +
       (soon.length
         ? '<div class="sky-sum-lbl">⏳ 다가오는 현상</div>' +
           '<div class="sky-sum-list">' + soon.map(sumRow).join('') + '</div>'
