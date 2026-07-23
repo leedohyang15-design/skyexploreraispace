@@ -13,6 +13,16 @@ sys.path.insert(0, HERE)
 from spc_converter import (CMD, CMD_BY_ID, FAMILY_BY_CODE, GLOBAL, _is_pos,
                            TZ_CODE2NAME)  # 단일 소스 매핑 재사용
 
+# 부모 클래스별 기본 portId 멤버(각 클래스 XxxPort enum 이 다름 — 실측 이름).
+# SPC 에 포트 인덱스가 없어 '부착에 적합한 대표 포트'를 클래스별로 지정. 미등록은 "Synchronous" 폴백.
+DEFAULT_PARENT_PORT = {
+    "Planet": "EquatorialSynchronous", "Satellite": "EquatorialSynchronous",
+    "DwarfPlanet": "EquatorialSynchronous",
+    "Asteroid": "Synchronous", "Comet": "Synchronous", "OrbitalPlace": "Synchronous",
+    "IndividualStar": "Ecliptic", "Galaxy": "Galactic", "GlobularCluster": "Galactic",
+    "Nebula": "LineOfSightLocal",
+}
+
 
 def _fnum(x):
     """intensity/anim/color 값 → float 표기(1 → '1.0'). 정수형이면 .0 부여."""
@@ -115,6 +125,18 @@ def parse_spc(spc_text):
                 method = "set%s%sIntensity" % (lname, kind)
                 args = [_fnum(v)] + (["Anim(%s)" % _fnum(dur)] if dur else [])
                 events.append((scls, (body & 0xFFFFFF) - 1, method, args, tc))
+                continue
+            except Exception:
+                pass
+        if cmd_id == 6405:     # Asteroid/OrbitalBody 결합 궤도요소(케플러8) → 개별 setter 로 전개
+            try:                # payload[8..] = [const1, node, incl, ecc, argperi, a, M, ?, epochJD]
+                body = int(cols[7]); idx = (body & 0xFFFFFF) - 1
+                p = [float(cols[8 + i]) for i in range(9)]
+                order = [("setLongitudeOfAscendingNode", p[1]), ("setInclination", p[2]),
+                         ("setEccentricity", p[3]), ("setArgumentOfPeriapsis", p[4]),
+                         ("setSemiMajorAxis", p[5]), ("setMeanAnomaly", p[6]), ("setEpoch", p[8])]
+                for m, v in order:
+                    events.append(("Asteroid", idx, m, [_fnum(v)], tc))
                 continue
             except Exception:
                 pass
@@ -229,11 +251,13 @@ def to_python(spc_text, timed=False, fps=30):
         if cls == "?":
             lines.append(pyargs[0]); continue
         var = ensure_var(cls, index)
-        # setParent: 부모 객체 변수 생성 후 <child>.setParent(<parent>.portId(...Port.EquatorialSynchronous))
+        # setParent: 부모 객체 변수 생성 후 <child>.setParent(<parent>.portId(...Port.X))
+        # ⚠️ SPC 는 포트 인덱스를 안 담음 → 부모 클래스별 '유효한 기본 포트'로 렌더(클래스마다 enum 멤버가 다름).
         if pyargs and isinstance(pyargs[0], tuple) and pyargs[0][0] == "__PARENT__":
             _, pcls, pidx = pyargs[0]
             pvar = ensure_var(pcls, pidx)
-            port = "%s.%sPort.EquatorialSynchronous" % (pcls, pcls)
+            port_name = DEFAULT_PARENT_PORT.get(pcls, "Synchronous")
+            port = "%s.%sPort.%s" % (pcls, pcls, port_name)
             lines.append("%s.setParent(%s.portId(%s))" % (var, pvar, port))
             continue
         lines.append("%s.%s(%s)" % (var, method, ", ".join(str(a) for a in pyargs)))
