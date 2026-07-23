@@ -390,7 +390,9 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   (v1 의 '십자 스파이크 PNG'가 안 바뀐 것처럼 보인 건 기본 별과 모양이 비슷 + 스파이크가 가늘어서였음. 링처럼 확 다른 모양이어야 판별됨.) 원본은 `lut.spriteTexture` 로 읽어 복귀.
 - 🛑🛑 **`setColorPalette(파일, magMin, magMax)` = 무효 확정 (2026-07-22 사용자 "색깔이 안 바뀌어", 스샷)**:
   등급→색 매핑 팔레트인데 **극단 초록→빨강 PNG를 가로(256폭)·세로(256높이) 둘 다** mag -1.5~6.5 로 걸어도 **별 색 전혀 안 바뀜**(링 스프라이트가 전부 흰색 유지 = 팔레트 미적용 결정적 확인).
-  스프라이트 텍스처는 되는데 색 팔레트만 안 됨 → 별색 소스가 카탈로그(B-V)/엔진 우선이라 PNG 팔레트를 안 읽는 걸로 추정(전용 포맷일 수도). → **별 색 조절은 `Stars.setPointSaturation`(채도) 로만. Lut setColorPalette 는 재시도 금지.**
+  스프라이트 텍스처는 되는데 색 팔레트만 안 됨.
+  ✅✅ **원인 발견 = 팔레트 전용 폴더 (2026-07-23 사용자 제보)**: 진짜 별색 팔레트 PNG 는 **`D:\SkyExplorer-Data\user\studio\starColors`** 에 있음(user폴더 루트 아님!).
+  실제 파일 = 가로 그라데이션(왼쪽 뜨거운 청백 → 오른쪽 차가운 적색, 항성 온도/B-V). **내가 실패한 건 파일을 user폴더 루트에 둬서 = 경로 문제로 추정** → `studio/starColors/` 경로로 다시 걸면 될 가능성. (재도전 시 이 폴더에 배치 + 실제 파일 규격 매칭.)
 - ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
   개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
   메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·

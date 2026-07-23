@@ -400,6 +400,8 @@ CMD = {
     ("Insert2D", "setSize"):                 dict(cmd=1798, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
     ("Insert2D", "setDistance"):             dict(cmd=1795, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
     ("Insert2D", "setTexture"):              dict(cmd=1796, head=[2,1],       pay=[],        form="modelfile"),
+    # 코퍼스(469개) 교차대조로 레이아웃 확정: Insert2D.setPosition = pay[const3, az, h, roll]
+    ("Insert2D", "setPosition"):             dict(cmd=1794, head=[3,8,"DUR"], pay=[3,"R","G","B"], form="vec"),
 }
 
 # cmdId → (클래스, 메서드) 역참조 (SPC→Python 변환기가 재사용)
