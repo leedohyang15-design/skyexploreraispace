@@ -383,6 +383,23 @@ CMD = {
     ("Constellation", "setLinesIntensity"):  dict(cmd=1537, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
     ("Constellation", "setArtIntensity"):    dict(cmd=1545, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
     ("Constellation", "setLimitsIntensity"): dict(cmd=1541, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    # ═══ 코퍼스 커버리지 채굴(spc_coverage.py) 상위 미매핑 중 CLAUDE.md 확정 cmd — 스칼라/enum/텍스트만 ═══
+    ("IndividualStar", "setLabelIntensity"): dict(cmd=791, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Satellite", "setOrbitIntensity"):      dict(cmd=1286, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Satellite", "setLabelIntensity"):      dict(cmd=1302, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Satellite", "setScale"):               dict(cmd=1283, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setAuroraIntensity"):        dict(cmd=1051, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setShadowStrength"):         dict(cmd=1040, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setShadowContrast"):         dict(cmd=1041, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setNightLightsIntensity"):   dict(cmd=1057, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setCloudCoverage"):          dict(cmd=1141, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setPlanetShineStrength"):    dict(cmd=1140, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Planet", "setRotationSpeedScale"):     dict(cmd=1029, head=[1,2],       pay=["V"],     form="value"),
+    ("Planet", "setCloudModel"):             dict(cmd=1185, head=[1,2],       pay=["IDX"],   form="enum"),
+    ("Insert2D", "setIntensity"):            dict(cmd=1802, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Insert2D", "setSize"):                 dict(cmd=1798, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Insert2D", "setDistance"):             dict(cmd=1795, head=[3,6,"DUR"], pay=[1,"V",1], form="value_anim"),
+    ("Insert2D", "setTexture"):              dict(cmd=1796, head=[2,1],       pay=[],        form="modelfile"),
 }
 
 # cmdId → (클래스, 메서드) 역참조 (SPC→Python 변환기가 재사용)
