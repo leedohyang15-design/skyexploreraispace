@@ -21,12 +21,14 @@ from groq import Groq
 
 HERE = Path(__file__).parent
 
+# ⚠️ 70B 고정 (사용자 확정). 한 번 생성이 ~7-8K 토큰이라, 분당 한도가 6K인 모델
+# (8b-instant / qwen3-32b)로 폴백하면 단일 요청조차 한도를 못 넘어 '무조건 429' →
+# 그 낮은 한도 모델들을 폴백에서 제거했다. 남긴 건 70B(12K, 주력)와, 70B 폐기/장애
+# 시에만 쓰는 8K 안전망(gpt-oss-120b) 하나뿐. 70B 가 분당 한도에 걸리면 폴백 대신
+# 자동 대기 재시도(_retry_after_seconds)로 70B 를 다시 노린다.
 PREFERRED_MODELS = [
-    "llama-3.3-70b-versatile",       # 분당 12K tok — TPM 가장 넉넉 → 1순위
-    "openai/gpt-oss-120b",           # 분당 8K tok
-    "openai/gpt-oss-20b",            # 분당 8K tok
-    "llama-3.1-8b-instant",          # 분당 6K tok (일일 요청 한도는 가장 큼)
-    "qwen/qwen3-32b",                # 분당 6K tok, 일 500K tok
+    "llama-3.3-70b-versatile",       # 분당 12K tok — 무료 티어 TPM 가장 큼 → 고정 주력
+    "openai/gpt-oss-120b",           # 분당 8K tok — 70B 폐기/장애 시에만 쓰는 안전망
 ]
 
 # ── 남용/쿼터 보호 상한 (공개 엔드포인트라 서버측에서 강제) ──
