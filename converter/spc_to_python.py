@@ -141,7 +141,18 @@ def parse_spc(spc_text):
             except Exception:
                 pass
         if cmd_id not in CMD_BY_ID:
-            events.append(("?", None, "?", ["# 미매핑 cmdId=%d (%s)" % (cmd_id, _label_text(cols) or "?")], tc))
+            # 미매핑이라도 bodyId 로 family(클래스)를 찾아 주석에 표기 → 학습/향후 매핑에 유용
+            fam_cls = "?"
+            for cc in cols[4:14]:
+                try:
+                    v = int(cc)
+                    if v > 0x1000000:
+                        fam_cls = FAMILY_BY_CODE.get(v >> 24, "0x%02X" % (v >> 24)); break
+                except ValueError:
+                    pass
+            lbl = _label_text(cols)
+            note = "# 미매핑 %s cmd %d%s" % (fam_cls, cmd_id, (" (%s)" % lbl if lbl else ""))
+            events.append(("?", None, "?", [note], tc))
             continue
         cls, method = CMD_BY_ID[cmd_id]
         spec = CMD[(cls, method)]
