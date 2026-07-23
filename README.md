@@ -23,12 +23,16 @@ Sky Explorer SDK 의 **실측 검증된 지식**(레퍼런스 + 함정 + 검증 
 | 파일 | 역할 |
 |---|---|
 | `app.py` | Gradio UI + Groq 호출 + 지식팩 조립 |
-| `knowledge/reference.md` | 실측 레퍼런스 (원본: 레포 CLAUDE.md — 갱신 시 다시 복사) |
-| `knowledge/examples.md` | 검증된 자연어→코드 few-shot 5종 |
+| `knowledge/reference.md` | 정제 AI 프롬프트 (원본: 레포 `reference/AI_SYSTEM_PROMPT.md` — 전체 클래스 레시피 압축본) |
+| `knowledge/examples.md` | 검증된 자연어→코드 few-shot |
+| `converter/` | 순수 파이썬 SPC→Python 변환기 (레포 `scripts/spc_convert/` 와 동기화) |
 
 ## 지식 갱신 방법
-레포에서 record-confirm 루프로 CLAUDE.md 가 갱신되면:
+레포에서 record-confirm 루프로 지식이 갱신되면:
 ```bash
-cp CLAUDE.md webapp/hf_space/knowledge/reference.md
+cp reference/AI_SYSTEM_PROMPT.md   webapp/hf_space/knowledge/reference.md
+cp scripts/spc_convert/spc_to_python.py scripts/spc_convert/spc_converter.py \
+   scripts/spc_convert/tz_table.py  webapp/hf_space/converter/
 ```
 후 Space 에 다시 업로드 — 재학습 없이 즉시 반영됩니다.
+(⚠️ CLAUDE.md 원본을 그대로 넣지 말 것 — 실험 로그라 토큰만 잡아먹고 생성 품질↓. 반드시 정제본 사용.)
