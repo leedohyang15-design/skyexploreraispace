@@ -69,7 +69,10 @@ from Initialization import *      # DateManager 등 매니저 클래스
   → **대삼각형·육각형·북두칠성 등은 별을 직접 잇지 말고 반드시 `ASTERISM_*` 프리셋을 켠다**(Constellation 객체라 `setLinesIntensity` 로 그려짐):
   · 여름 대삼각형 = `ASTERISM_STr` · 겨울 삼각형 = `ASTERISM_WTr` · 겨울 대육각형 = `ASTERISM_WHx` · 봄 대삼각형 = `ASTERISM_SpT` ·
   북두칠성 = `ASTERISM_BDr` · 페가수스 대사각형 = `ASTERISM_GSP` · 북십자 = `ASTERISM_NCr`.
-  예) `Constellation(Constellation.ConstellationName.ASTERISM_STr).setLinesIntensity(1.0, Anim(1.5))` (지상 밤하늘, 카메라 이동 금지).
+  ⚠️⚠️ **별자리·성군은 `DataManager...data(...).action(FadeTo)` 로 접근 금지!** — `Data.Type.ConstellationType` 은 **없거나 None 반환** →
+  `'NoneType' object has no attribute 'action'` 로 죽는다. **FadeTo/GoTo/ConnectTo 는 행성·성운·은하용**이고, 별자리는 **지상 밤하늘에 직접 그리는 것**이다.
+  ✅ **정답은 클래스 직접 호출**: `Constellation(Constellation.ConstellationName.ASTERISM_STr).setLinesIntensity(1.0, Anim(1.5))`
+  (지상 밤하늘 세팅 위에서, 카메라 이동 없이 선만 켠다. 여러 개 켜려면 각각 반복). `setArtIntensity`(그림)/`setLabelIntensity`(이름)도 같은 방식.
   개별 별을 '지목'만 하려면 `IndividualStar(IndividualStar.IndividualStarName.Vega).setPointerIntensity(1.0, Anim)` + `setLabelIntensity`.
 
 - **인공위성/ISS 궤도 — 지구만 나오고 궤도 안 뜸 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4) →
