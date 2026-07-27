@@ -98,6 +98,11 @@ from Initialization import *      # DateManager 등 매니저 클래스
   봄 저녁 해 진 직후(3월 20시 KST = 11:00 UTC) + **서쪽 저각 조준**(`cam.setOrientationH(-90)` + `setTargetHeight(15)`) + `Earth.setEclipticGridIntensity(0.6)`(빛이 황도를 따라감 시각화).
   은은한 현상이라 **0↔1 A/B 반복**으로 대비를 보여줄 것. 이 세터 없이 하늘만 세팅하면 '변화 없음'.
 
+- **밤의 지구/도시 불빛 — 화면 이동 후 지구 벗어남 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4)(외부 도킹) → 줌은 **읽은 R×배율만**(절대값·L/B 재기입 금지 = 이탈 원인) →
+  ⚠️ 이 쇼는 **그림자 ON**(밤면을 만들어야 도시광이 보임 — 운영 그림자OFF 규칙의 예외): `setShadowStrength(1)`+`setShadowContrast(1)`+`setPlanetShineStrength(0.05)` →
+  `earth.setNightLightsIntensity(1, Anim)`(밤면 호박색 도시광)+`setCloudsIntensity(1, Anim)`+`setTerrainModel(Planet.TerrainModel.BMNG_Ocean)` →
+  ⚠️⚠️ **낮면·밤면 함께 보이기 = 관성 프레임(EquatorialJ2000) + 자전 정지 + 날짜만 흘림**(카메라 L 공전은 암석행성이라 이탈): `ip = earth.portId(Planet.PlanetPort.EquatorialJ2000); cam.setPositionLBR(Vec(현L,현B,현R), Anim, ip)` + 시선정렬 → `earth.setRotationSpeedScale(0.0)` → `dm.setDateTime(+3개월, Anim(20))`(태양각이 반구를 쓸어 밤→터미네이터→낮). 터미네이터 지점(한 화면에 도시광+구름)에서 홀드. 끝에 `resetRotationSpeedScale()`.
+
 - **달 표면 크레이터 — 변화 없음 방지**: `data(SatelliteType,"Moon").action(FadeTo)`; sleep(4) → 그림자 OFF → **줌인 필수**(멀면 티 안 남):
   `for _ in range(3): p=cam.positionLBR; cam.setPositionR(p.z*0.5, Anim.cubic(2.5), -1); sleep(2.6)` → `Satellite(Satellite.SatelliteName.Moon).setTerrainModel(Satellite.TerrainModel.LROC)` + `setElevationScale(8, Anim)`(크레이터 기복=근접에서만). 줌 안 하면 멀어서 '변화 없음'.
 

@@ -185,7 +185,10 @@ cam.setTargetHeight(30.0, Anim(0.5)); sleep(2.0)
 풀백 `cam.setPositionLBR(Vec(L,35,12),Anim,-1)`+`setTargetHeight(30)` → `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`;
 `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
 TLE 세터(각 val, Anim): `setMeanMotion`(revs/day)·`setEccentricity`·`setInclination`·`setAscendingNodeLongitude`·`setArgumentOfPeriapsis`·`setMeanAnomaly` + `setEpochYears`/`setEpochDays`;
-표시 `setOrbitColor(Vec3)`/`setOrbitThickness`/`setOrbitIntensity`/`setIntensity` → 시간가속 `dm.setDateTime(+1일, Anim)`.
+표시 `setOrbitColor(Vec3)`/`setOrbitThickness`/`setOrbitIntensity` → 시간가속 `dm.setDateTime(+1일, Anim)`.
+⚠️⚠️ **OrbitalPlace = '궤도선 전용'** — `setIntensity`·`setLabel*` **없음**(호출 시 AttributeError로 스크립트 사망, 실측 확정). 위성 이름은 **InsertText 자막**으로:
+`t = InsertText(InsertText.InsertTextName(1)); cam.addChild(t.id, Camera.CameraPort.FixedForeground); t.setPosition(Vec(0,25,0)); t.setColor(Vec(0.5,0.9,1.0)); t.setDistance(20.0, Anim(0.0)); t.setText("...")` —
+⚠️ 행성 프레임 자막은 **`setSize` 호출 금지(기본값) + `setDistance(20)`** (distance 20 프레임에서 setSize 걸면 자막이 사라짐, ISS 실측).
 ⚠️ ISS/허블은 MeanMotion≈15.5(저궤도)라 지구에 붙어 R=12 줌에선 묻힘 → 근접 줌 필요. GPS(MM 2)/정지궤도(MM 1)/몰니야(e=0.74 찌그러진 타원)가 잘 보임.
 
 **"혜성"**: reset → FadeTo `data(Data.Type.CometType,"1P/Halley")`(황도 J2000 프레임=지구 자전 없음) →
