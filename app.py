@@ -580,6 +580,21 @@ def _get_client():
     return _client
 
 
+def _llama_score(mid: str) -> int:
+    """실제 모델 id 표기가 흔들려도 llama-3.3-70b 를 최우선 선택하기 위한 점수.
+       ⚠️ gemma/qwen 등 '알파벳순 첫 모델'을 잘못 고르는 사고(402 유료모델) 방지."""
+    m = mid.lower()
+    if "llama" in m and "3.3" in m and "70b" in m:
+        return 4
+    if "llama" in m and "70b" in m:
+        return 3
+    if "llama" in m and ("8b" in m or "3.1" in m):
+        return 2
+    if "llama" in m:
+        return 1
+    return 0                       # 비-llama(gemma/qwen 등)는 자동 선택 안 함
+
+
 def _pick_model(client) -> str:
     global _model
     if _model:
@@ -589,19 +604,21 @@ def _pick_model(client) -> str:
         _model = env
         return _model
     try:
-        available = {m.id for m in client.models.list().data}
+        available = [m.id for m in client.models.list().data]
+        # 1) PREFERRED 정확 일치 우선
         for cand in PREFERRED_MODELS:
             if cand in available:
                 _model = cand
                 return _model
-        chat_like = sorted(m for m in available
-                           if "whisper" not in m and "guard" not in m and "tts" not in m)
-        if chat_like:
-            _model = chat_like[0]
+        # 2) llama 계열만 점수순 선택(70b>8b). gemma/qwen 등으로는 절대 안 빠짐.
+        llamas = sorted((m for m in available if _llama_score(m) > 0),
+                        key=_llama_score, reverse=True)
+        if llamas:
+            _model = llamas[0]
             return _model
     except Exception:
         pass
-    _model = PREFERRED_MODELS[0]
+    _model = PREFERRED_MODELS[0]     # 목록 못 얻으면 PREFERRED[0](llama-3.3-70b)
     return _model
 
 
@@ -650,6 +667,12 @@ def _is_decommissioned(err) -> bool:
     # 모델 폐기/미존재: 다음 모델로 자동 스킵.
     s = str(err).lower()
     return "decommissioned" in s or "model_not_found" in s or "does not exist" in s
+
+
+def _is_payment_required(err) -> bool:
+    # 402: 그 모델이 유료 전용(무료 티어 미포함). 다음(무료) 모델로 스킵.
+    s = str(err).lower()
+    return "402" in s or "payment_required" in s or "payment required" in s
 
 
 # 429 응답에는 "try again in 6.5s" / retry-after 헤더가 담긴다.
@@ -813,7 +836,7 @@ def plan(prompt: str) -> str:
                     continue
                 _model = None            # 캐시 무효화 → 다음 후보로
                 continue
-            if _is_decommissioned(e):
+            if _is_decommissioned(e) or _is_payment_required(e):
                 _model = None
                 continue
             return json.dumps({"scenes": [], "error": str(e)}, ensure_ascii=False)
@@ -934,14 +957,15 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                         break           # 이 모델은 한도 초과 → 다음 모델로
                     if _is_too_large(e) and hist:
                         break           # 토큰 초과 → 히스토리 빼고 같은 모델 재시도
-                    if _is_decommissioned(e):
-                        break           # 폐기된 모델 → 다음 모델로 (원문 노출 안 함)
+                    if _is_decommissioned(e) or _is_payment_required(e):
+                        _model = None
+                        break           # 폐기/유료전용 모델 → 다음(무료) 모델로
                     # 그 외 에러(모델명·파라미터·서버 오류 등)는 원문을 그대로 보여준다.
                     _model = None
                     return "# Cerebras API 오류 (%s): %s" % (model_candidate, e)
             # while 를 break 로 빠져나왔을 때:
-            #   rate_limit/decommissioned → 다음 모델, too_large → 다음 hist(히스토리 제거)
-            if _is_rate_limit(last_err) or _is_decommissioned(last_err):
+            #   rate_limit/decommissioned/402 → 다음 모델, too_large → 다음 hist(히스토리 제거)
+            if _is_rate_limit(last_err) or _is_decommissioned(last_err) or _is_payment_required(last_err):
                 break                   # for hist 종료 → 다음 모델로
             # too_large 는 for hist 계속(히스토리 뺀 재시도)
 
@@ -953,6 +977,12 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                 "# ▶ 지금: 40초~1분 뒤 다시 눌러 주세요. 잠깐 쉬면 한도가 회복됩니다.\n"
                 "# ▶ 팁: 대화가 길어지면 토큰이 누적됩니다 — '＋ 새 대화'로 시작하면 가벼워져요.\n"
                 "# ▶ 근본 해결: cloud.cerebras.ai 콘솔에서 티어/한도를 확인하거나 상향하세요.\n"
+                "# ─ 상세: %s" % last_err)
+    if _is_payment_required(last_err):
+        return ("# 💳 Cerebras 결제/티어 문제입니다 (402 Payment required).\n"
+                "# 무료 티어에 llama-3.3-70b 접근이 없거나, 계정에 결제가 필요합니다.\n"
+                "# ▶ cloud.cerebras.ai → Billing 탭에서 상태를 확인하세요.\n"
+                "# ▶ 또는 무료로 쓸 수 있는 모델이 있으면 HF secret 에 CEREBRAS_MODEL 로 지정하세요.\n"
                 "# ─ 상세: %s" % last_err)
     return "# Cerebras API 오류: %s" % last_err
 
