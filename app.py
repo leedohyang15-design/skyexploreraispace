@@ -452,9 +452,11 @@ def _season_pool(today: dt.date) -> list:
 
 def sky_events(arg: str = "") -> str:
     """천문 달력 데이터를 JSON 으로 반환.
-    arg 는 관측지 JSON({"city","lat","lon"}) 또는 빈 문자열(기본 청주)."""
+    arg 는 관측지 JSON({"city","lat","lon","date"}) 또는 빈 문자열(기본 청주·오늘).
+    "date"(YYYY-MM-DD)를 주면 그 날짜 기준으로 일출·달·볼거리를 계산(달력 날짜 클릭용)."""
     try:
         city, lat, lon = "청주", _CJU_LAT, _CJU_LON
+        pick = None                      # 요청된 특정 날짜 (없으면 오늘)
         if arg:
             try:
                 o = json.loads(arg)
@@ -464,9 +466,12 @@ def sky_events(arg: str = "") -> str:
                     lon = float(o.get("lon", lon))
                     if not (-90 <= lat <= 90 and -180 <= lon <= 180):   # 방어
                         city, lat, lon = "청주", _CJU_LAT, _CJU_LON
+                    ds = str(o.get("date", "") or "")
+                    if ds:
+                        pick = dt.date.fromisoformat(ds[:10])
             except Exception:
                 pass
-        today = dt.date.today()
+        today = pick or dt.date.today()
         # 2026 달력이므로 연도를 2026 으로 맞춰 비교(연도 무관 MM-DD 기준)
         def to_date(mmdd: str) -> dt.date:
             m, d = mmdd.split("-")
@@ -933,8 +938,8 @@ CUSTOM_HTML = """
   <div class="sidebar">
     <div class="brand">🌌 Sky Explorer <span class="g">AI</span></div>
     <div class="side-tab active" id="tabChat">💬 스크립트 생성</div>
-    <div class="side-tab" id="calSide">🔭 오늘 볼 수 있는 하늘</div>
     <button class="new-chat" id="newChatBtn">＋ 새 대화</button>
+    <div class="side-tab" id="calSide">🔭 오늘 볼 수 있는 하늘</div>
     <div class="side-sec">대화 기록
       <button class="clear-all" id="clearAllBtn" title="기록 전체 삭제">🗑 전체 삭제</button>
     </div>
@@ -952,12 +957,10 @@ CUSTOM_HTML = """
           <button class="run" id="runBtn">스크립트 생성 ✨</button>
         </div>
         <div class="gen-opts" id="genOpts">
-          <span class="opt-presets">⏱ 길이
-            <button type="button" class="opt-len on" data-len="">기본</button>
-            <button type="button" class="opt-len" data-len="전체 길이를 30초 정도로 짧게 만들어줘. ">30초</button>
-            <button type="button" class="opt-len" data-len="수업용으로 3분 정도 길이로 만들어줘. ">3분</button>
-            <button type="button" class="opt-len" data-len="발표용으로 5분 정도 여유있게 만들어줘. ">5분</button>
-          </span>
+          <span class="opt-len-lbl">⏱ 상영 길이</span>
+          <input type="range" id="lenSlider" min="0" max="300" step="30" value="0">
+          <span class="opt-len-val" id="lenVal">기본</span>
+          <span class="opt-len-hint">— 예제 버튼에도 적용됩니다</span>
         </div>
         <div class="cal-cta">
           <div class="cal-cta-text">🌙 뭘 만들지 모르겠다면?<br><b>오늘 청주에서 볼 수 있는 천체</b>로 시작해 보세요.</div>
@@ -1123,18 +1126,17 @@ body { background: #04060c !important; }
 .lint-info { background:rgba(94,230,196,.06);   border-left-color:var(--nova); color:#b8ead9; }
 .lint-ok   { font-size:11.5px; color:#7fcfa8; }
 
-/* 생성 옵션 (해설 주석 · 길이 프리셋) */
-.gen-opts { display:flex; align-items:center; gap:16px; flex-wrap:wrap;
-  margin-top:12px; justify-content:center; }
-.opt-chk { display:flex; align-items:center; gap:6px; font-size:12.5px; color:#c8d2e8;
-  cursor:pointer; user-select:none; }
-.opt-chk input { accent-color:var(--accent); cursor:pointer; }
-.opt-presets { display:flex; align-items:center; gap:6px; font-size:12px; color:var(--dim); }
-.opt-len { font-family:var(--sans); font-size:11.5px; color:var(--dim);
-  background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:14px;
-  padding:4px 11px; cursor:pointer; transition:all .14s; }
-.opt-len:hover { color:#dce3f2; border-color:rgba(255,255,255,.2); }
-.opt-len.on { background:var(--as); border-color:rgba(255,184,77,.45); color:var(--accent); font-weight:600; }
+/* 생성 옵션 — 상영 길이 슬라이더 (칩 예제에도 적용) */
+.gen-opts { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  margin-top:14px; justify-content:center;
+  background:rgba(255,184,77,.06); border:1px solid rgba(255,184,77,.25);
+  border-radius:12px; padding:10px 18px; width:min(560px,92%); margin-left:auto; margin-right:auto; }
+.opt-len-lbl { font-size:14px; font-weight:700; color:#ffd9a0; white-space:nowrap; }
+#lenSlider { flex:1; min-width:160px; accent-color:var(--accent); cursor:pointer; height:20px; }
+.opt-len-val { font-size:14px; font-weight:800; color:var(--accent);
+  background:var(--as); border:1px solid rgba(255,184,77,.45); border-radius:10px;
+  padding:4px 12px; min-width:52px; text-align:center; white-space:nowrap; }
+.opt-len-hint { font-size:11.5px; color:#9aa6bf; white-space:nowrap; }
 
 /* 달력 유도 배너 (뭘 만들지 모를 때 → 오늘 볼 수 있는 하늘) */
 .cal-cta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
@@ -1486,6 +1488,11 @@ button.run:disabled { opacity:.5; cursor:wait; }
 .sky-ev-go:hover { opacity:.9; transform:translateY(-1px); }
 .sky-ev-go:active { transform:translateY(0); }
 .sky-empty { color:var(--dim); font-size:13px; text-align:center; padding:22px 0; }
+/* 선택한 날짜의 '그날 볼 수 있는 현상' 카드 (달력 날짜 클릭 시) */
+.sky-dayinfo { background:linear-gradient(160deg, rgba(255,184,77,.07), rgba(94,230,196,.05));
+  border:1px solid rgba(255,184,77,.28); border-radius:13px;
+  padding:13px 15px 11px; margin-bottom:12px; }
+.sky-dayinfo .sky-sum-lbl.first { margin-top:10px; }
 
 @media (max-width:520px) {
   .sky-fab-txt { display:none; }
@@ -1788,22 +1795,24 @@ CUSTOM_JS = r"""
     observer = { city: city, lat: c[0], lon: c[1] };
     try { localStorage.setItem('sky_observer', JSON.stringify(observer)); } catch (e) {}
     skyData = null;               // 관측지 바뀌면 다시 불러오기
+    Object.keys(dayCache).forEach(k => delete dayCache[k]);   // 날짜별 캐시도 무효화
     loadSkyEvents();
   }
   function observerPrefix() {     // 청주가 아니면 생성 프롬프트에 관측지 지시
     if (observer.city === '청주') return '';
     return '관측지는 ' + observer.city + '(위도 ' + observer.lat + ', 경도 ' + observer.lon + ')로 설정해줘. ';
   }
-  // 생성 옵션(관측지 + 길이 프리셋 + 해설 주석) → API 프롬프트 접두
-  let teachMode = false, lengthPreset = '';
-  try {
-    teachMode = localStorage.getItem('gen_teach') === '1';
-    lengthPreset = localStorage.getItem('gen_len') || '';
-  } catch (e) {}
+  // 생성 옵션(관측지 + 상영 길이 슬라이더) → API 프롬프트 접두. 칩 예제도 run() 경유라 동일 적용.
+  let lengthSec = 0;                              // 0 = 기본(지정 안 함)
+  try { lengthSec = parseInt(localStorage.getItem('gen_len_sec') || '0', 10) || 0; } catch (e) {}
+  function lenLabel(s) {
+    if (!s) return '기본';
+    if (s < 60) return s + '초';
+    return (s % 60 === 0) ? (s / 60) + '분' : Math.floor(s / 60) + '분 ' + (s % 60) + '초';
+  }
   function genPrefix() {
     let p = observerPrefix();
-    if (lengthPreset) p += lengthPreset;
-    if (teachMode) p += '각 코드 줄에 초보자가 이해할 수 있는 한국어 주석을 자세히 달아줘. ';
+    if (lengthSec > 0) p += '쇼 전체 길이를 약 ' + lenLabel(lengthSec) + '(' + lengthSec + '초) 정도로 만들어줘. ';
     return p;
   }
 
@@ -1910,16 +1919,57 @@ CUSTOM_JS = r"""
       const t = pool[i]; pool[i] = pool[j]; pool[j] = t;
     }
     const list = real.concat(ongoing).concat(pool.slice(0, 3));
-    const sumRow = (e) =>
-      '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
-        '<span class="sky-sum-icon">' + e.icon + '</span>' +
-        '<span class="sky-sum-name">' + esc(e.name) + '</span>' +
-        '<span class="sky-sum-date">' + esc(e.dateLabel) + '</span>' +
-        '<span class="sky-sum-go">✨</span>' +
-      '</div>';
     $('skyTodayList').innerHTML = list.length
-      ? list.map(sumRow).join('')
+      ? list.map(skySumRow).join('')
       : '<div class="sky-sum-none">천문 데이터를 불러오는 중…</div>';
+  }
+
+  // 공용: '볼 수 있는 현상' 한 줄 (클릭 = 스크립트 생성)
+  function skySumRow(e) {
+    return '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
+      '<span class="sky-sum-icon">' + e.icon + '</span>' +
+      '<span class="sky-sum-name">' + esc(e.name) + '</span>' +
+      '<span class="sky-sum-date">' + esc(e.dateLabel) + '</span>' +
+      '<span class="sky-sum-go">✨</span>' +
+    '</div>';
+  }
+
+  // 선택한 날짜의 '그날 볼 수 있는 현상' — 날짜별로 서버 재계산(일출·달·행성), 캐시
+  const dayCache = {};
+  async function renderDayInfo(iso) {
+    const box = $('skyDayInfo');
+    if (!box) return;
+    let d = dayCache[iso];
+    if (!d) {
+      box.innerHTML = '<div class="sky-loading">이날의 하늘 정보를 불러오는 중…</div>';
+      try {
+        const raw = await callApi('sky_events',
+          [JSON.stringify(Object.assign({}, observer, { date: iso }))]);
+        d = JSON.parse(raw);
+        if (!d || d.error) throw new Error(d && d.error);
+        dayCache[iso] = d;
+      } catch (e) { box.innerHTML = ''; return; }
+    }
+    if (skySelDay !== iso) return;               // 로딩 사이 다른 날짜로 바뀜
+    const m = d.moon || {}, s = d.sun || {};
+    const list = (d.always || []).concat((d.seasonPool || []).slice(0, 3));
+    box.innerHTML =
+      '<div class="sky-dayinfo">' +
+        '<div class="sky-today-top">' +
+          '<span class="sky-date-badge">' + esc(d.todayLabel) + '</span>' +
+          (m.icon ? '<span class="sky-moon">' + m.icon + ' <b>' + esc(m.name || '') + '</b> ' +
+                    (m.pct != null ? m.pct + '%' : '') + '</span>' : '') +
+        '</div>' +
+        ((s.rise || s.set)
+          ? '<div class="sky-sun">🌅 일출 <b>' + (s.rise || '—') + '</b>' +
+            ' · ☀️ 남중 <b>' + (s.transit || '—') + '</b>' +
+            ' · 🌇 일몰 <b>' + (s.set || '—') + '</b></div>' : '') +
+        '<div class="sky-sum-lbl first">🔭 이날 볼 수 있는 현상</div>' +
+        '<div class="sky-sum-list">' +
+          (list.length ? list.map(skySumRow).join('')
+                       : '<div class="sky-sum-none">정보 없음</div>') +
+        '</div>' +
+      '</div>';
   }
 
   // ② 월간 달력 그리드
@@ -1948,12 +1998,12 @@ CUSTOM_JS = r"""
         dots = Object.values(seen).slice(0, 3).map(c =>
           '<span class="sky-day-dot" style="background:' + c + '"></span>').join('');
       }
-      const attr = evs.length ? ' data-day="' + iso + '"' : '';
-      cells += '<div class="' + cls + '"' + attr + '><span>' + day + '</span>' +
+      cells += '<div class="' + cls + '" data-day="' + iso + '"><span>' + day + '</span>' +
                '<div class="sky-day-dots">' + dots + '</div></div>';
     }
     $('skyCalGrid').innerHTML = cells;
-    $('skyCalGrid').querySelectorAll('.sky-day.has-ev').forEach(el => {
+    // 모든 날짜 클릭 가능 — 이벤트 없어도 '그날 볼 수 있는 현상'을 보여준다
+    $('skyCalGrid').querySelectorAll('.sky-day:not(.blank)').forEach(el => {
       el.onclick = () => {
         const iso = el.dataset.day;
         skySelDay = (skySelDay === iso) ? null : iso;   // 같은 날 다시 클릭 = 해제
@@ -1988,12 +2038,16 @@ CUSTOM_JS = r"""
       const b = $('skyClearDay');
       if (b) b.onclick = () => { skySelDay = null; renderCalendar(); renderMonthList(); };
     }
+    // 날짜를 고르면 이벤트 유무와 무관하게 '그날 볼 수 있는 현상' 카드를 먼저 보여준다
+    const dayBox = skySelDay ? '<div id="skyDayInfo"></div>' : '';
     if (!list.length) {
-      $('skyMonthList').innerHTML =
-        '<div class="sky-empty">이 ' + (skySelDay ? '날' : '달') + '에는 등록된 천문현상이 없습니다.</div>';
+      $('skyMonthList').innerHTML = dayBox +
+        (skySelDay ? '' :
+          '<div class="sky-empty">이 달에는 등록된 천문현상이 없습니다.</div>');
+      if (skySelDay) renderDayInfo(skySelDay);
       return;
     }
-    $('skyMonthList').innerHTML = list.map(e =>
+    $('skyMonthList').innerHTML = dayBox + list.map(e =>
       '<div class="sky-ev">' +
         '<div class="sky-ev-head">' +
           '<span class="sky-ev-icon">' + e.icon + '</span>' +
@@ -2007,6 +2061,7 @@ CUSTOM_JS = r"""
         '<button class="sky-ev-go" onclick="__skyGo(' +
           JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">✨ 스크립트 만들기</button>' +
       '</div>').join('');
+    if (skySelDay) renderDayInfo(skySelDay);
   }
 
   // ── Gradio REST 호출 (공용) — HTTP 에러/네트워크 실패 방어 ──
@@ -2274,21 +2329,17 @@ CUSTOM_JS = r"""
     document.querySelectorAll('.chip').forEach(c => {
       c.onclick = () => run(c.getAttribute('data-p'));
     });
-    // 생성 옵션: 해설 주석 토글 + 길이 프리셋 (localStorage 유지)
-    const tchk = $('teachChk');
-    if (tchk) {
-      tchk.checked = teachMode;
-      tchk.onchange = () => { teachMode = tchk.checked;
-        try { localStorage.setItem('gen_teach', teachMode ? '1' : '0'); } catch (e) {} };
-    }
-    document.querySelectorAll('.opt-len').forEach(b => {
-      b.classList.toggle('on', (b.dataset.len || '') === lengthPreset);
-      b.onclick = () => {
-        lengthPreset = b.dataset.len || '';
-        try { localStorage.setItem('gen_len', lengthPreset); } catch (e) {}
-        document.querySelectorAll('.opt-len').forEach(x => x.classList.toggle('on', x === b));
+    // 생성 옵션: 상영 길이 슬라이더 (localStorage 유지, 칩 예제에도 적용)
+    const lsl = $('lenSlider'), lvl = $('lenVal');
+    if (lsl && lvl) {
+      lsl.value = String(lengthSec);
+      lvl.textContent = lenLabel(lengthSec);
+      lsl.oninput = () => {
+        lengthSec = parseInt(lsl.value, 10) || 0;
+        lvl.textContent = lenLabel(lengthSec);
+        try { localStorage.setItem('gen_len_sec', String(lengthSec)); } catch (e) {}
       };
-    });
+    }
     $('newChatBtn').onclick = () => { switchTab('chat'); newChatView(); };
     $('clearAllBtn').onclick = () => {
       if (!convs.length) return;
