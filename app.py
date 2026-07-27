@@ -971,17 +971,17 @@ CUSTOM_HTML = """
             <span class="opt-len-lbl">⏱ 상영 길이</span>
             <input type="range" id="lenSlider" min="0" max="300" step="30" value="0">
             <span class="opt-len-val" id="lenVal">기본</span>
-          </div>
+        </div>
           <div class="opt-len-hint">기본 = 길이 자동 · 예제 버튼에도 적용됩니다</div>
-        </div>
-        <div class="cal-cta">
-          <div class="cal-cta-text">🌙 뭘 만들지 모르겠다면?<br><b>오늘 청주에서 볼 수 있는 천체</b>로 시작해 보세요.</div>
-          <button type="button" class="cal-cta-btn" id="calCtaBtn">📅 오늘의 천문 달력 열기</button>
-        </div>
+        </div>        
         <div class="chips" id="chipRow">
           <div class="chip" data-p="토성으로 가서 크게 보여줘">🪐 토성으로 가서 크게 보여줘</div>
           <div class="chip" data-p="오늘 밤 청주 하늘 보여줘">🌃 오늘 밤 청주 하늘을 보여줘</div>
           <div class="chip" data-p="은하수를 켜줘">🌌 은하수를 하늘에 켜줘</div>
+        </div>
+        <div class="cal-cta">
+          <div class="cal-cta-text">🌙 뭘 만들지 모르겠다면?<br><b>오늘 청주에서 볼 수 있는 천체</b>로 시작해 보세요.</div>
+          <button type="button" class="cal-cta-btn" id="calCtaBtn">📅 오늘의 천문 달력 열기</button>
         </div>
         <div class="onboard-hint">💡 생성된 스크립트를 <b>복사·다운로드(.py)</b> → Sky Explorer <b>Studio에 가져오면</b> 돔에서 실행됩니다.</div>
       </div>
