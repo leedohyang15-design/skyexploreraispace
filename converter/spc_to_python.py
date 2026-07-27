@@ -7,7 +7,7 @@ SPC 라인 → 대상 천체/명령/값 복원 → Python 스크립트 생성.
 라인 포맷(TAB 67컬럼): [0]E [1]타임코드 [2]101 [3]cmdId [4..]헤더 bodyId 값들 0패딩 [66]꼬리
   cmdId → (클래스,메서드),  bodyId → (family, index),  값 슬롯 → Python 인자.
 """
-import os, sys
+import os, sys, re
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from spc_converter import (CMD, CMD_BY_ID, FAMILY_BY_CODE, GLOBAL, _is_pos,
@@ -225,9 +225,83 @@ def _tc_seconds(tc, fps=30):
         return None
 
 
+# ── 후처리: 오퍼레이터가 트랙볼로 한 '연속 팬'은 SPC 에 0.16초마다 한 프레임씩 기록됨 →
+#    거의 같은 setPositionLBR 수십~수백 줄이 됨. 그 '기어가는 키프레임 run' 을 끝점 하나로
+#    압축하고(전체 시간만큼 Anim), 컷(Anim(0.0))에서 구간을 나눈다. 스크립트가 사람이 읽을 만해짐.
+_CAM_KF = {"setPositionLBR", "setPositionR", "setOrientationSmoothXYZR", "setTarget"}
+
+
+def _anim_is_instant(a):
+    return isinstance(a, str) and re.match(r"\s*Anim\(0(\.0+)?\)\s*$", a) is not None
+
+
+def _has_anim(args):
+    return any(isinstance(a, str) and a.startswith("Anim(") for a in args)
+
+
+def _retime_anim(a, span):
+    """arg 문자열의 Anim(...) 지속시간을 전체 제스처 시간(span)으로 교체."""
+    if span is None or not (isinstance(a, str) and a.startswith("Anim(")):
+        return a
+    return re.sub(r"Anim\([^)]*\)", "Anim(%s)" % _fnum(span), a)
+
+
+def _collapse_camera_runs(events, fps=30, min_run=4):
+    """연속 카메라 키프레임 run → 마지막(끝점) 위치/방향 한 번 + Anim(run 시간).
+       컷(Anim(0.0))·비카메라 이벤트에서 run 을 끊는다."""
+    out, buf = [], []
+
+    def flush():
+        if not buf:
+            return
+        if len(buf) <= min_run:                 # 짧은 run 은 그대로(진짜 단계 이동일 수 있음)
+            out.extend(buf); buf.clear(); return
+        t0 = _tc_seconds(buf[0][4], fps)
+        t1 = _tc_seconds(buf[-1][4], fps)
+        span = (t1 - t0) if (t0 is not None and t1 is not None and t1 > t0) else None
+        last, order = {}, []
+        for ev in buf:                          # 메서드별 '마지막' 값만 남김
+            m = ev[2]
+            if m not in last:
+                order.append(m)
+            last[m] = ev
+        for m in order:
+            ev = last[m]
+            a = [_retime_anim(x, span) for x in ev[3]]
+            out.append((ev[0], ev[1], m, a, buf[0][4]))   # tc=run 시작(뒤 sleep 이 run 시간 흡수)
+        buf.clear()
+
+    for ev in events:
+        cls, idx, method, args, tc = ev
+        is_kf = (cls == "Camera" and method in _CAM_KF)
+        # 즉시(Anim 0.0) 컷은 run 을 끊고 그대로 출력
+        if is_kf and not (_has_anim(args) and any(_anim_is_instant(a) for a in args)):
+            buf.append(ev)
+        else:
+            flush()
+            out.append(ev)
+    flush()
+    return out
+
+
+def _dedup_consecutive(events):
+    """바로 앞과 (클래스·인덱스·메서드·인자) 가 똑같은 이벤트 제거(같은 값 재설정 = no-op)."""
+    out = []
+    for ev in events:
+        if ev[0] == "?":                        # 주석/미매핑은 건드리지 않음
+            out.append(ev); continue
+        if out and out[-1][0] == ev[0] and out[-1][1] == ev[1] \
+                and out[-1][2] == ev[2] and out[-1][3] == ev[3]:
+            continue
+        out.append(ev)
+    return out
+
+
 def to_python(spc_text, timed=False, fps=30):
     """timed=True 면 타임코드 증가분마다 sleep() 삽입 → 시간축 애니메이션 재현."""
     events = parse_spc(spc_text)
+    events = _collapse_camera_runs(events, fps)   # 트랙볼 팬 압축
+    events = _dedup_consecutive(events)           # 연속 중복 제거
     # ⚠️ 3종 import 를 '항상' 넣는다 — 우리의 검증된 예제 표준과 동일.
     #    sleep()·DateManager 등이 Initialization 에서 노출되므로, 조건부로 빼면
     #    (예: DateManager 없는 clock 스크립트) `NameError: name 'sleep' is not defined` 로 죽는다.

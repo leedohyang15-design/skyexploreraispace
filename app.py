@@ -960,7 +960,7 @@ CUSTOM_HTML = """
       <button class="clear-all" id="clearAllBtn" title="기록 전체 삭제">🗑 전체 삭제</button>
     </div>
     <div class="conv-list" id="convList"></div>
-    <div class="side-tab" id="tabConv">🔁 SPC → Python 변환</div>
+    <div class="side-tab" id="tabConv">🔁 SPC → Python 변환 <span class="exp-badge">실험적</span></div>
     <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Groq · Llama</div>
   </div>
 
@@ -997,9 +997,13 @@ CUSTOM_HTML = """
 
     <div class="conv-view" id="convView" style="display:none">
       <div class="conv-box">
-        <h2>🔁 SPC → Python 변환기</h2>
+        <h2>🔁 SPC → Python 변환기 <span class="exp-badge">실험적</span></h2>
         <p class="conv-hint">Studio 녹화 .SPC 파일 내용을 붙여넣으면, 우리가 실측으로 만든
            매핑 테이블로 Python 스크립트를 복원합니다.</p>
+        <p class="conv-warn">⚠️ <b>실험적 기능</b>입니다. SPC 포맷을 역공학으로 해석하는 것이라
+           <b>일부 명령은 미지원(주석으로 표시)</b>되거나 포트가 raw 숫자로 나올 수 있습니다.
+           트랙볼로 녹화된 연속 카메라 움직임은 <b>자동으로 하나의 부드러운 이동으로 압축</b>합니다.
+           변환 결과는 <b>Studio에서 반드시 확인</b>하세요.</p>
         <div class="conv-controls">
           <label class="file-btn">📂 파일 선택<input type="file" id="spcFile" accept=".SPC,.spc,.txt" hidden></label>
           <label class="timed-chk"><input type="checkbox" id="timedChk" checked> 타임코드 → sleep() 재현</label>
@@ -1274,7 +1278,11 @@ button.run:disabled { opacity:.5; cursor:wait; }
 .conv-view { position:absolute; inset:0; overflow-y:auto; overscroll-behavior:contain; z-index:6; }
 .conv-box { max-width:840px; margin:0 auto; padding:40px 24px 80px; }
 .conv-box h2 { font-size:22px; font-weight:700; margin:0 0 6px; }
-.conv-hint { font-size:13px; color:var(--dim); margin:0 0 18px; line-height:1.6; }
+.conv-hint { font-size:13px; color:var(--dim); margin:0 0 10px; line-height:1.6; }
+.exp-badge { font-size:11px; font-weight:700; color:#ffcf6b; background:rgba(255,180,60,.13);
+  border:1px solid rgba(255,180,60,.4); border-radius:8px; padding:2px 8px; vertical-align:middle; margin-left:6px; }
+.conv-warn { font-size:12px; color:#e7d9b8; background:rgba(255,180,60,.08);
+  border:1px solid rgba(255,180,60,.25); border-radius:10px; padding:10px 13px; margin:0 0 18px; line-height:1.65; }
 .conv-controls { display:flex; gap:14px; align-items:center; margin-bottom:10px; flex-wrap:wrap; }
 .file-btn { background:rgba(10,14,26,.7); border:1px solid var(--line); border-radius:10px;
   padding:9px 14px; font-size:12.5px; cursor:pointer; transition:border-color .15s; }
