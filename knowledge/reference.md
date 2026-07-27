@@ -66,7 +66,8 @@ from Initialization import *      # DateManager 등 매니저 클래스
   풀백 `cam.setPositionLBR(Vec(cam.positionLBR.x, 35, 12), Anim.cubic(3), -1)` + `cam.setTargetHeight(30)` →
   `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`; `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
   TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
-  ⚠️ **OrbitalPlace 엔 `setIntensity` 없음**(실측 AttributeError — 'orbitIntensity' 제안됨). 표시는 궤도 세터(setOrbitIntensity/Color/Thickness)와 라벨만 사용.
+  ⚠️⚠️ **OrbitalPlace = '궤도선 전용' 클래스 (전체 API 덤프로 확정)**: 있는 세터 = 궤도요소들 + `setOrbitColor/setOrbitIntensity/setOrbitThickness` + `setParent` **뿐**.
+  **`setIntensity`·`setLabelNameOverride`·`setLabelIntensity` 등 본체/라벨 API 전무**(호출 시 AttributeError로 스크립트 사망). 위성 이름 표시는 **InsertText 자막**으로 대체할 것.
   ⚠️ ISS는 저궤도(MM≈15.5)라 R=12 줌에선 지구에 묻힘 → 잘 보이려면 **근접 줌**(R 더 작게) 또는 MM 낮은(고고도) 궤도로 강조. 궤도 세팅 없이 FadeTo만 하면 '지구만' 뜸.
 
 - **은하/성운 '여행'(안드로메다·게성운·M42 등) — 대상이 점처럼 작음(배율 부족) 방지**: 지상 setPositionLBR 직접 이동 X →
