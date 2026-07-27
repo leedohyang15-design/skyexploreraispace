@@ -33,6 +33,36 @@ from Initialization import *      # DateManager 등 매니저 클래스
 7. **무한 루프엔 `sleep(0.016)`** 필수(CPU 낭비 방지).
 8. **네임스페이스 중복 금지**: `Planet(...)` ✅ / `skyExplorer.Planet(...)` ❌.
 
+## 1.5 자주 틀리는 장면 — 필수 레시피 (이 오류들 반드시 방지)
+
+- **화구/유성(Bolide) — 화구 안 보이고 밤하늘만 뜸 방지**: `b = Bolide(Bolide.BolideName.Bolide001)` →
+  **반드시 `b.setModel(Bolide.ModelID.ColoredFireball, "")` 를 먼저**(모델 없으면 아무것도 안 그려짐) →
+  `b.setElement(Bolide.Element.Sodium, Vec3(0,0,0), Anim(0.0))`(3인자 필수) → `b.setIntensity(1.0, Anim(0.5))` →
+  `b.set(시작az, 시작h, 90000, 끝az, 끝h, 20000, 1.0)`(끝 speed=**1.0 고정**) → `b.play(14)`(약 10초 낙하). 지상 밤하늘 세팅 위에서.
+
+- **세차운동 — 안 도는 것 방지**: `dm.setMotionType(DateManager.MotionType.MotionPrecession)` 만으론 정지 →
+  **시간가속이 있어야 세차가 보임**: `dm.stop(); dm.setDateTime(올해+13000, 1, 1, 3, 30, 0, tz, Anim(45))`(수천~1.3만 년 흘림). 지상 대기 OFF + 지면 OFF.
+  천구 북극 이동 표시 = `Planet(Earth).setEquatorialPolePointerIntensity(1.0, Anim)` + `setEclipticPolePointerIntensity(1.0, Anim)`(동그라미). 별 포인터/화살표는 끄기(요동).
+
+- **줌/확대 — 배율이 너무 작음 방지**: 행성 클로즈업은 `p.z*0.5` **한 번으론 부족** → **3~4단계 반복**:
+  `for _ in range(4): p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(2.5), -1); sleep(2.6)`.
+  지상 천체(태양·달·코로나 등)는 카메라 줌 무효 → **`orig = obj.scale; obj.setScale(orig*25, Anim)`**(×5는 티 안 남, 원본 먼저 읽기).
+
+- **지구 확대 — 지구 밖으로 튐 방지**: 지구를 외부에서 보려면 `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)` →
+  줌은 **읽은 R × 배율만**: `p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(3), -1)`. ⚠️ **절대값·큰 수 절대 금지**(넣으면 지구 이탈).
+  줌 중 `setPositionLBR`로 L/B 를 다시 쓰지 말 것(track=-1로 R만 변경). GoTo 지구는 '집에 가기(R=0)'라 외부 조망엔 부적합 — FadeTo 사용.
+
+- **금성/행성 위상 — 프레임 전환 후 아무것도 안 보임 방지**: FadeTo 도킹 후 관성 프레임 전환은 **같은 L/B/R 유지 + 시선정렬 필수**:
+  `ip = Planet(Planet.PlanetName.Venus).portId(Planet.PlanetPort.EquatorialJ2000); p = cam.positionLBR` →
+  `cam.setPositionLBR(Vec(p.x, p.y, p.z), Anim, ip)` + **`cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, ip)`**(이 시선정렬이 빠지면 대상이 화면 밖으로 사라짐).
+  B(위도)를 억지로 바꾸지 말 것. 위상은 그림자 ON(`setShadowStrength(1)`+`setPlanetShineStrength(0)`) + 시간가속(금성 1공전 243일).
+
+- **별자리(오리온 등) — 화면만 이동하고 아무것도 안 뜸 방지**: 별자리는 **지상 밤하늘에서 선/그림만 켠다** —
+  `Constellation(Constellation.ConstellationName.Ori).setLinesIntensity(1.0, Anim(1.5))` (+`setArtIntensity(0.85, Anim(2))`).
+  ⚠️ **카메라 이동/줌 금지**(지상 Sky View에서 `setPositionLBR`은 무효 + 화면만 흔들림). 방향이 필요하면 `cam.setOrientationH`만.
+
+- **특정 천체 요청인데 '지구 지상 하늘'만 뜸 방지**: 요청한 천체를 실제로 띄운다 — 행성=`FadeTo`(reset 먼저), 성운=`Nebula(NebulaName.X)` 이름 enum + LOS 포트, 달=`Satellite(Moon)`+FadeTo, 은하수=`Galaxy(MilkyWay)`. 지상 밤하늘 세팅만 하고 끝내지 말 것.
+
 ## 2. 씬 골격 템플릿 (복붙 후 채우기)
 
 ### (A) 지상 밤하늘 (청주)

@@ -85,7 +85,7 @@ DROP_SECTIONS = ("## 실행 방법", "## Hello World")   # 코드 생성에 불�
 # 그래서 큐레이션 새 지식을 '요약 주입'으로 줄여 무료 티어에서 돌아가게 함.
 # ✅ Developer 티어가 다시 열리면(결제 등록 가능해지면) 아래를 14000/17000 로 올려
 #    두 파일 전체를 실으면 됨(품질 최대). 그때 이력·max_tokens 도 함께 복원.
-KNOWLEDGE_CHAR_LIMIT = {"reference.md": 7000, "examples.md": 3000}
+KNOWLEDGE_CHAR_LIMIT = {"reference.md": 9500, "examples.md": 3000}
 
 
 def _read_knowledge(name: str) -> str:
@@ -952,7 +952,6 @@ CUSTOM_HTML = """
           <button class="run" id="runBtn">스크립트 생성 ✨</button>
         </div>
         <div class="gen-opts" id="genOpts">
-          <label class="opt-chk"><input type="checkbox" id="teachChk"> 🎓 수업용 해설 주석</label>
           <span class="opt-presets">⏱ 길이
             <button type="button" class="opt-len on" data-len="">기본</button>
             <button type="button" class="opt-len" data-len="전체 길이를 30초 정도로 짧게 만들어줘. ">30초</button>
@@ -966,11 +965,8 @@ CUSTOM_HTML = """
         </div>
         <div class="chips" id="chipRow">
           <div class="chip" data-p="토성으로 가서 크게 보여줘">🪐 토성으로 가서 크게 보여줘</div>
-          <div class="chip" data-p="지구를 돔 한가운데 놓고 두 배 확대해줘">🌍 지구를 돔 한가운데서 두 배로 키워줘</div>
-          <div class="chip" data-p="말머리성운까지 여행하는 쇼 만들어줘">🐴 말머리성운까지 여행을 떠나요</div>
           <div class="chip" data-p="오늘 밤 청주 하늘 보여줘">🌃 오늘 밤 청주 하늘을 보여줘</div>
           <div class="chip" data-p="은하수를 켜줘">🌌 은하수를 하늘에 켜줘</div>
-          <div class="chip" data-p="화면에 '우주에 오신 것을 환영합니다' 라고 띄워줘">✨ 환영 인사를 화면에 띄워줘</div>
         </div>
         <div class="onboard-hint">💡 생성된 스크립트를 <b>복사·다운로드(.py)</b> → Sky Explorer <b>Studio에 가져오면</b> 돔에서 실행됩니다.</div>
       </div>
