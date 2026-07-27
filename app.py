@@ -85,7 +85,7 @@ DROP_SECTIONS = ("## 실행 방법", "## Hello World")   # 코드 생성에 불�
 # 그래서 큐레이션 새 지식을 '요약 주입'으로 줄여 무료 티어에서 돌아가게 함.
 # ✅ Developer 티어가 다시 열리면(결제 등록 가능해지면) 아래를 14000/17000 로 올려
 #    두 파일 전체를 실으면 됨(품질 최대). 그때 이력·max_tokens 도 함께 복원.
-KNOWLEDGE_CHAR_LIMIT = {"reference.md": 9500, "examples.md": 3000}
+KNOWLEDGE_CHAR_LIMIT = {"reference.md": 12500, "examples.md": 3000}
 
 
 def _read_knowledge(name: str) -> str:

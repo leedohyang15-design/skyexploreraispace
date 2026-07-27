@@ -48,9 +48,9 @@ from Initialization import *      # DateManager 등 매니저 클래스
   `for _ in range(4): p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(2.5), -1); sleep(2.6)`.
   지상 천체(태양·달·코로나 등)는 카메라 줌 무효 → **`orig = obj.scale; obj.setScale(orig*25, Anim)`**(×5는 티 안 남, 원본 먼저 읽기).
 
-- **지구 확대 — 지구 밖으로 튐 방지**: 지구를 외부에서 보려면 `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)` →
-  줌은 **읽은 R × 배율만**: `p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(3), -1)`. ⚠️ **절대값·큰 수 절대 금지**(넣으면 지구 이탈).
-  줌 중 `setPositionLBR`로 L/B 를 다시 쓰지 말 것(track=-1로 R만 변경). GoTo 지구는 '집에 가기(R=0)'라 외부 조망엔 부적합 — FadeTo 사용.
+- **행성 확대·위성계(지구·화성 등) — 화면 밖으로 튐 방지**: 행성을 외부에서 = `SceneGraph().reset(1)` → `data(PlanetType,"Earth"/"Mars"...).action(FadeTo)`; sleep(4) →
+  줌은 **읽은 R × 배율만**: `p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(3), -1)`. ⚠️ **절대값·큰 수 절대 금지**(넣으면 행성 이탈), 줌 중 `setPositionLBR`로 L/B 다시 쓰지 말 것(track=-1로 R만).
+  위성(화성 Phobos/Deimos)은 `Satellite(Satellite.SatelliteName.Phobos)` + `setIntensity(1,..)`/`setScale(8,..)`/`setLabelIntensity(1,..)` + 시간가속 `dm.setDateTime(+1일, Anim)`(포보스 7.6h가 빨리 돎). GoTo 지구는 R=0(집)이라 외부 조망엔 FadeTo.
 
 - **금성/행성 위상 — 프레임 전환 후 아무것도 안 보임 방지**: FadeTo 도킹 후 관성 프레임 전환은 **같은 L/B/R 유지 + 시선정렬 필수**:
   `ip = Planet(Planet.PlanetName.Venus).portId(Planet.PlanetPort.EquatorialJ2000); p = cam.positionLBR` →
@@ -77,6 +77,18 @@ from Initialization import *      # DateManager 등 매니저 클래스
   지상 대기 OFF + 지면 OFF + 12궁 별자리 `setLinesIntensity(0.6)`/`setLabelIntensity(0.9)` + `Planet(Earth).setEclipticGridIntensity(1,..)` + `IndividualStar(IndividualStar.IndividualStarName.Sun).setScale(3)` +
   청주 정오(03:30 UTC) 춘분 시작 → **`dm.setMotionType(DateManager.MotionType.MotionAnalemma)`** → `dm.setDateTime(올해+1, 3, 20, 3, 30, 0, tz, Anim(42))`(1년 가속).
   카메라는 남쪽 **한 번만** 고정(`cam.setOrientationH(0.0, Anim)` + `cam.setTargetHeight(37)`), 이동 금지. MotionAnalemma 없이 카메라만 움직이면 아무것도 안 뜸.
+
+- **개기일식·코로나 — '그냥 낮/아침'만 뜸 방지**: 일식은 **실제 일식 날짜·시각·관측지**가 있어야 달이 태양을 가림(임의 날짜면 그냥 해만 뜸). 지상 낮 하늘(대기 ON) + 그 일식의 관측지 Place2D + 그 날짜/시각(UTC) `dm.setDateTime` →
+  **태양 조준** `cam.setOrientationH(180-태양방위, Anim)` + `cam.setTargetHeight(30)` → **시간가속**으로 식 진행(`dm.setDateTime(식 끝 시각, tz, Anim(40))`) → 코로나 클로즈업 = `IndividualStar(Sun).setScale(원본×25, Anim)`(+달 같은 배율). 날짜/시각이 실제 일식과 안 맞으면 식이 안 일어나 '그냥 아침'.
+
+- **행성 클로즈업 과노출(목성 등) — 본체가 하얗게 뜸 방지**: 그림자 OFF(`setShadowStrength(0)`+`setShadowContrast(0)`) 후 본체가 너무 밝으면 →
+  **`planet.setPlanetShineStrength(0.6, Anim)` 로 낮추고**(1.0은 밤면까지 다 밝혀 과노출) 본체 `setIntensity`는 **1.0 유지(1.5~2 금지)**. GlobalIntensity도 1.0. 목성 대적점 클로즈업 = 적정 밝기 + 관성프레임(EquatorialJ2000) 전환 후 `setRotationSpeedScale`+시간가속으로 자전.
+
+- **명왕성+카론(쌍행성) — 명왕성만 뜸 방지**: `data(DwarfPlanetType,"Pluto").action(FadeTo)`; sleep(4) → 그림자 OFF →
+  **`ch = Satellite(Satellite.SatelliteName.Charon)`; ch.setIntensity(1,..)+ch.setScale(6,..)+ch.setLabelIntensity(1,..)** → 카론 궤도(~16 명왕성반지름)가 담기게 **풀백** `p=cam.positionLBR; cam.setPositionR(p.z*3, Anim.cubic(3), -1)`. 명왕성 표면=`DwarfPlanet(...Pluto).setTerrainModel(DwarfPlanet.TerrainModel.NewHorizons)`(하트). 카론 안 켜면 '명왕성만'.
+
+- **달 표면 크레이터 — 변화 없음 방지**: `data(SatelliteType,"Moon").action(FadeTo)`; sleep(4) → 그림자 OFF → **줌인 필수**(멀면 티 안 남):
+  `for _ in range(3): p=cam.positionLBR; cam.setPositionR(p.z*0.5, Anim.cubic(2.5), -1); sleep(2.6)` → `Satellite(Satellite.SatelliteName.Moon).setTerrainModel(Satellite.TerrainModel.LROC)` + `setElevationScale(8, Anim)`(크레이터 기복=근접에서만). 줌 안 하면 멀어서 '변화 없음'.
 
 - **특정 천체 요청인데 '지구 지상 하늘'만 뜸 방지**: 요청한 천체를 실제로 띄운다 — 행성=`FadeTo`(reset 먼저), 성운=`Nebula(NebulaName.X)` 이름 enum + LOS 포트, 달=`Satellite(Moon)`+FadeTo, 은하수=`Galaxy(MilkyWay)`. 지상 밤하늘 세팅만 하고 끝내지 말 것.
 
