@@ -35,6 +35,16 @@ from Initialization import *      # DateManager 등 매니저 클래스
 
 ## 1.5 자주 틀리는 장면 — 필수 레시피 (이 오류들 반드시 방지)
 
+- **⭐ [제일 중요] '직접 켜는 것' vs 'FadeTo 로 가는 것' — `'NoneType' object has no attribute 'action'` 방지**:
+  ⚠️⚠️ **모든 걸 `DataManager...data(Type,이름).action(FadeTo)` 로 부르지 말 것.** 이미 하늘에 있는 레이어(은하수·별·별자리·성운)는
+  DB 조회가 **None 을 반환**해서 `.action` 에서 죽는다. **이들은 클래스로 직접 켠다:**
+  · **은하수**: `Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(1.0, Anim(2))` — ("은하수 켜줘"=이 한 줄. FadeTo·DataManager 절대 금지)
+  · **별(전천)**: `Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim)`
+  · **별자리·성군**: `Constellation(Constellation.ConstellationName.Ori / ASTERISM_STr).setLinesIntensity(1.0, Anim)`
+  · **성운**: `Nebula(Nebula.NebulaName.HORSEHEAD).setIntensity(1.0, Anim)` (이름 enum)
+  → **`FadeTo/GoTo/ConnectTo + DataManager` 는 '가서 크게 보는' 천체(행성·달·태양·왜소행성·혜성·소행성)에만.**
+  ⚠️ 그 경우도 **DB 이름 정확히**: 은하수(굳이 DataManager면)="Milky Way"(공백!), 달="Moon", 화성="Mars", 토성="Saturn". "MilkyWay"(붙임)·"ASTERISM_STr" 등은 DB 에 없음.
+
 - **화구/유성(Bolide) — 화구 안 보이고 밤하늘만 뜸 방지**: `b = Bolide(Bolide.BolideName.Bolide001)` →
   **반드시 `b.setModel(Bolide.ModelID.ColoredFireball, "")` 를 먼저**(모델 없으면 아무것도 안 그려짐) →
   `b.setElement(Bolide.Element.Sodium, Vec3(0,0,0), Anim(0.0))`(3인자 필수) → `b.setIntensity(1.0, Anim(0.5))` →
