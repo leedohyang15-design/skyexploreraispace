@@ -51,6 +51,7 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **행성 확대·위성계(지구·화성 등) — 화면 밖으로 튐 방지**: 행성을 외부에서 = `SceneGraph().reset(1)` → `data(PlanetType,"Earth"/"Mars"...).action(FadeTo)`; sleep(4) →
   줌은 **읽은 R × 배율만**: `p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(3), -1)`. ⚠️ **절대값·큰 수 절대 금지**(넣으면 행성 이탈), 줌 중 `setPositionLBR`로 L/B 다시 쓰지 말 것(track=-1로 R만).
   위성(화성 Phobos/Deimos)은 `Satellite(Satellite.SatelliteName.Phobos)` + `setIntensity(1,..)`/`setScale(8,..)`/`setLabelIntensity(1,..)` + 시간가속 `dm.setDateTime(+1일, Anim)`(포보스 7.6h가 빨리 돎). GoTo 지구는 R=0(집)이라 외부 조망엔 FadeTo.
+  ⚠️ **암석행성 도킹은 북극 상공(B≈90) — B(위도)를 옮긴 뒤엔 반드시 시선정렬**: `cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, 행성.portId(Planet.PlanetPort.EquatorialSynchronous))` — 안 하면 **화면 상하가 뒤집힘**. 위성 공전 가속 전엔 관성 프레임(EquatorialJ2000) 전환 + 시선정렬(동기 프레임이면 위성 대신 천구가 돎).
 
 - **금성/행성 위상 — 프레임 전환 후 아무것도 안 보임 방지**: FadeTo 도킹 후 관성 프레임 전환은 **같은 L/B/R 유지 + 시선정렬 필수**:
   `ip = Planet(Planet.PlanetName.Venus).portId(Planet.PlanetPort.EquatorialJ2000); p = cam.positionLBR` →
@@ -64,12 +65,13 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **인공위성/ISS 궤도 — 지구만 나오고 궤도 안 뜸 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4) →
   풀백 `cam.setPositionLBR(Vec(cam.positionLBR.x, 35, 12), Anim.cubic(3), -1)` + `cam.setTargetHeight(30)` →
   `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`; `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
-  TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)`+`op.setIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
+  TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
+  ⚠️ **OrbitalPlace 엔 `setIntensity` 없음**(실측 AttributeError — 'orbitIntensity' 제안됨). 표시는 궤도 세터(setOrbitIntensity/Color/Thickness)와 라벨만 사용.
   ⚠️ ISS는 저궤도(MM≈15.5)라 R=12 줌에선 지구에 묻힘 → 잘 보이려면 **근접 줌**(R 더 작게) 또는 MM 낮은(고고도) 궤도로 강조. 궤도 세팅 없이 FadeTo만 하면 '지구만' 뜸.
 
 - **은하/성운 '여행'(안드로메다·게성운·M42 등) — 대상이 점처럼 작음(배율 부족) 방지**: 지상 setPositionLBR 직접 이동 X →
   `h = DataManager.database().data(Data.Type.NebulaType, "M31")`(안드로메다; 게성운="M1"·오리온대성운="M42") → 암전(GlobalIntensity 0) → `h.action(Action.Type.ConnectTo).trigger()`; sleep(4) →
-  `cam.setTargetHeight(90.0, Anim(1))`(성운 LOS 프레임은 90이 돔 중앙) → 페이드인 → **절대타겟 지오메트릭 줌 여러 단계**(한 단계론 점 그대로):
+  `cam.setTargetHeight(30.0, Anim(1))`(**관람 표준 30 — 90(천정)은 관객이 목 꺾어야 해서 금지**, 사용자 확정) → 페이드인 → **절대타겟 지오메트릭 줌 여러 단계**(한 단계론 점 그대로):
   `p0 = cam.positionLBR.z`; `for f in (0.4, 0.16, 0.06, 0.024): cam.setPositionR(p0*f, Anim.cubic(3), -1); sleep(2.4)`.
   ⚠️ 은하(M31)는 얕게 + `cam.setOrientationHPR(Vec(H,P,R+35), Anim)` roll로 세워 통과 방지. (말머리 등 Nebula 이름 enum은 LOS 포트 방식 — 아래 성운 항목.)
 
@@ -84,8 +86,10 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **행성 클로즈업 과노출(목성 등) — 본체가 하얗게 뜸 방지**: 그림자 OFF(`setShadowStrength(0)`+`setShadowContrast(0)`) 후 본체가 너무 밝으면 →
   **`planet.setPlanetShineStrength(0.6, Anim)` 로 낮추고**(1.0은 밤면까지 다 밝혀 과노출) 본체 `setIntensity`는 **1.0 유지(1.5~2 금지)**. GlobalIntensity도 1.0. 목성 대적점 클로즈업 = 적정 밝기 + 관성프레임(EquatorialJ2000) 전환 후 `setRotationSpeedScale`+시간가속으로 자전.
 
-- **명왕성+카론(쌍행성) — 명왕성만 뜸 방지**: `data(DwarfPlanetType,"Pluto").action(FadeTo)`; sleep(4) → 그림자 OFF →
-  **`ch = Satellite(Satellite.SatelliteName.Charon)`; ch.setIntensity(1,..)+ch.setScale(6,..)+ch.setLabelIntensity(1,..)** → 카론 궤도(~16 명왕성반지름)가 담기게 **풀백** `p=cam.positionLBR; cam.setPositionR(p.z*3, Anim.cubic(3), -1)`. 명왕성 표면=`DwarfPlanet(...Pluto).setTerrainModel(DwarfPlanet.TerrainModel.NewHorizons)`(하트). 카론 안 켜면 '명왕성만'.
+- **명왕성+카론(쌍행성) — 명왕성만 뜸/천구만 도는 것 방지**: `data(DwarfPlanetType,"Pluto").action(FadeTo)`; sleep(4) → 그림자 OFF →
+  **`ch = Satellite(Satellite.SatelliteName.Charon)`; ch.setIntensity(1,..)+ch.setScale(3,..)+ch.setLabelIntensity(1,..)** → 카론 궤도(~16 명왕성반지름)가 담기게 **풀백** `p=cam.positionLBR; cam.setPositionR(p.z*5, Anim.cubic(3), -1)`.
+  ⚠️⚠️ **가속 전 관성 프레임 전환 필수**: FadeTo 도킹은 동기 프레임이라 카론(조석고정=공전주기 6.39일=명왕성 자전)이 **정지해 보이고 천구만 돎** →
+  `ip = pluto.portId(DwarfPlanet.DwarfPlanetPort.EquatorialJ2000)` 로 같은 L/B/R 전환 + `setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, ip)` 시선정렬 후 시간가속(+6.4일) = 카론이 돌고 별은 고정.
 
 - **황도광 — 변화 없음 방지**: 황도광 세터는 '태양(IndividualStar)' 소속 — `sun = IndividualStar(IndividualStar.IndividualStarName.Sun)` →
   `sun.setZodiacalLightIntensity(1.0, Anim(3))` + `sun.setZodiacalLightScatteringIntensity(1.0, Anim(3))`. **대기 OFF 필수**(켜면 하늘빛에 묻혀 안 보임) + 지면 OFF.
