@@ -675,7 +675,7 @@ PLAN_SYSTEM = """당신은 Sky Explorer 플라네타리움 쇼의 씬 기획자�
 camera 파라미터 규칙:
   setup   : {"type":"setup"}
   fadeto  : {"type":"fadeto","target_height":90.0}       ← 돔 높이 0~90
-  zoom    : {"type":"zoom","scale":0.5}                  ← R×scale (0.5=2배 확대)
+  zoom    : {"type":"zoom","zoom":2.0}                   ← R/zoom (숫자↑=더 확대, 2.0=2배)
   orbit   : {"type":"orbit","degrees":360,"step_dt":0.5} ← 공전
   travel  : {"type":"travel","distance_pc":400.0}        ← 우주 비행
   observe : {"type":"observe"}                           ← 감상/대기
@@ -685,7 +685,7 @@ camera 파라미터 규칙:
 {"scenes":[
   {"id":1,"name":"초기 세팅","description":"암전 후 천체 활성화","duration":2.0,"camera":{"type":"setup"}},
   {"id":2,"name":"지구 도착","description":"FadeTo로 지구에 시점 고정","duration":4.0,"camera":{"type":"fadeto","target_height":90.0}},
-  {"id":3,"name":"2배 줌인","description":"현재 거리 절반으로 줌인","duration":5.0,"camera":{"type":"zoom","scale":0.5}}
+  {"id":3,"name":"2배 줌인","description":"현재 거리 절반으로 줌인","duration":5.0,"camera":{"type":"zoom","zoom":2.0}}
 ],"total_duration":11.0}
 """
 
@@ -699,8 +699,8 @@ def _format_plan_for_prompt(data: dict) -> str:
         cam_parts = ["type=%s" % cam.get("type", "?")]
         if "target_height" in cam:
             cam_parts.append("target_height=%.1f" % cam["target_height"])
-        if "scale" in cam:
-            cam_parts.append("scale=%.2f (R*%.2f로 setPositionR)" % (cam["scale"], cam["scale"]))
+        if "zoom" in cam:
+            cam_parts.append("zoom=%.1f배 (setPositionR(R/%.1f) = 확대)" % (cam["zoom"], cam["zoom"]))
         if "degrees" in cam:
             cam_parts.append("orbit=%.0f°" % cam["degrees"])
         if "distance_pc" in cam:
@@ -823,11 +823,11 @@ def plan(prompt: str) -> str:
                         cam["target_height"] = max(0.0, min(90.0, float(cam["target_height"])))
                     except (TypeError, ValueError):
                         cam["target_height"] = 90.0
-                if "scale" in cam:
+                if "zoom" in cam:
                     try:
-                        cam["scale"] = max(0.1, min(3.0, float(cam["scale"])))
+                        cam["zoom"] = max(1.0, min(10.0, float(cam["zoom"])))
                     except (TypeError, ValueError):
-                        cam["scale"] = 0.5
+                        cam["zoom"] = 2.0
                 if "degrees" in cam:
                     try:
                         cam["degrees"] = max(30.0, min(720.0, float(cam["degrees"])))
@@ -2177,9 +2177,9 @@ CUSTOM_JS = r"""
       addSlider('🎯 돔 높이', 0, 90, 1, cam.target_height,
         v => v + '°', v => { cam.target_height = v; });
 
-    if (cam.scale !== undefined)
-      addSlider('🔭 줌 배율', 0.1, 3.0, 0.1, cam.scale,
-        v => 'R×' + parseFloat(v).toFixed(2), v => { cam.scale = v; });
+    if (cam.zoom !== undefined)
+      addSlider('🔭 줌 배율', 1.0, 6.0, 0.5, cam.zoom,
+        v => '×' + parseFloat(v).toFixed(1) + '배 확대', v => { cam.zoom = v; });
 
     if (cam.degrees !== undefined)
       addSlider('🔄 공전 각도', 30, 720, 30, cam.degrees,
