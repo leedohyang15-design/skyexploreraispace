@@ -39,8 +39,10 @@ uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
 sleep(3.0)
 
 # ③ 화면 고정 줌 — R "만" 변경 (track=-1 = 현재 프레임 유지)
-p = cam.positionLBR                            # R 단위 = 행성반지름 (절대값 금지)
-cam.setPositionR(p.z * 0.5, Anim.cubic(4.0), -1)
+# ⭐ 배율(zoom)이 클수록 더 확대. 절대값 금지 → 읽은 R 을 배율로 '나눈다'.
+zoom = 2.0                                     # 2배 확대 (숫자↑ = 더 크게)
+p = cam.positionLBR                            # R 단위 = 행성반지름
+cam.setPositionR(p.z / zoom, Anim.cubic(4.0), -1)
 sleep(4.5)
 ```
 
@@ -143,7 +145,8 @@ cam.setTargetHeight(30.0, Anim(0.5)); sleep(2.0)
 ## 추가 패턴 (핵심 API 순서 — 요청한 천체/현상으로 치환해 조합. 전부 실측 검증)
 
 **"지구·행성을 돔 중앙에 두 배 확대"** — 예제1과 동일: FadeTo → `setTargetHeight(30)` → 페이드인 →
-`p = cam.positionLBR; cam.setPositionR(p.z*0.5, Anim.cubic(6), -1)` (0.5=2배). 절대값 금지, 읽은 R×배율.
+`zoom = 2.0; p = cam.positionLBR; cam.setPositionR(p.z / zoom, Anim.cubic(6), -1)`.
+⭐ **배율(zoom)이 클수록 더 확대** — 항상 `R / zoom` 으로(0.5 역수 곱 금지). 절대값 금지. ⚠️ PC(파섹)는 성운 전용 — 행성엔 안 씀.
 
 **"○○ 유성우 보여줘"** (지상 밤): reset → 지상 밤 세팅(지구 `setIntensity(1)`+`setAtmosphereIntensity(0)`+
 `setTerrainIntensity(0)`+`Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.6)`+Stars 1) → 청주 좌표·밤 시각(UTC) →
@@ -178,7 +181,7 @@ cam.setTargetHeight(30.0, Anim(0.5)); sleep(2.0)
 `sun.setCoronaIntensity(1, Anim)`. 304Å 필터 = 홍염.
 
 **"화성/암석행성 표면 확대"**: FadeTo Mars → 그림자 OFF → `mars.setTerrainModel(Planet.TerrainModel.Topography)`(DEM 모델) →
-근접 줌+오블리크 `p=cam.positionLBR; cam.setPositionLBR(Vec(p.x, 22, max(1.5, p.z*0.4)), Anim.cubic(6), -1)` →
+근접 줌+오블리크 `p=cam.positionLBR; cam.setPositionLBR(Vec(p.x, 22, max(1.5, p.z / 2.5)), Anim.cubic(6), -1)`(R/배율) →
 `mars.setElevationScale(10)`(DEM+근접에서만 산·협곡이 솟음).
 
 **"인공위성/ISS 궤도"** (지구 둘레): reset → FadeTo `data(Data.Type.PlanetType,"Earth")`(외부) →
@@ -192,7 +195,7 @@ TLE 세터(각 val, Anim): `setMeanMotion`(revs/day)·`setEccentricity`·`setInc
 ⚠️ ISS/허블은 MeanMotion≈15.5(저궤도)라 지구에 붙어 R=12 줌에선 묻힘 → 근접 줌 필요. GPS(MM 2)/정지궤도(MM 1)/몰니야(e=0.74 찌그러진 타원)가 잘 보임.
 
 **"혜성"**: reset → FadeTo `data(Data.Type.CometType,"1P/Halley")`(황도 J2000 프레임=지구 자전 없음) →
-`cam.setPositionR(cam.positionLBR.z*0.45, Anim.cubic(5), -1)`(혜성 확대) → 시간가속(근일점 전후 몇 달)으로 코마·꼬리 변화 관찰.
+`cam.setPositionR(cam.positionLBR.z / 2.2, Anim.cubic(5), -1)`(혜성 확대, R/배율) → 시간가속(근일점 전후 몇 달)으로 코마·꼬리 변화 관찰.
 ⚠️ 궤도선은 지상 시점 전용(FadeTo 후엔 안 보임).
 
 **"소행성대"** (태양계 위에서 조망): `sun = IndividualStar(IndividualStar.IndividualStarName.Sun)`;
@@ -232,7 +235,7 @@ TLE 세터(각 val, Anim): `setMeanMotion`(revs/day)·`setEccentricity`·`setInc
 
 **딥스카이(성운/은하) 접근은 '깊게' 줌인해야 보인다.** ConnectTo 직후 R 은 수백 pc 라 성운이 점.
 한 번(×0.5) 줌으론 안 됨 → **초기 R 을 한 번 읽고 절대타겟 여러 단계로 겹쳐 줌**
-(`p0=cam.positionLBR.z` → `for f in (0.4,0.16,0.06,0.024,0.01): cam.setPositionR(p0*f, Anim.cubic(3), -1); sleep(2.4)`).
+(`p0=cam.positionLBR.z` → `for zoom in (2.5, 6, 16, 40, 100): cam.setPositionR(p0 / zoom, Anim.cubic(3), -1); sleep(2.4)` — 원래 R 을 배율로 나눔, 배율↑=더 깊이).
 sleep<anim 로 겹쳐야 매끄럽고, 최종 R 이 돔을 채운다.
 
 **유명 성운(말머리·게성운 등)은 DB ConnectTo 말고 `Nebula` 이름 enum + LOS 포트로.** (2026-07-23 확정)

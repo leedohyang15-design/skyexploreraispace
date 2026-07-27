@@ -44,12 +44,13 @@ from Initialization import *      # DateManager 등 매니저 클래스
   **시간가속이 있어야 세차가 보임**: `dm.stop(); dm.setDateTime(올해+13000, 1, 1, 3, 30, 0, tz, Anim(45))`(수천~1.3만 년 흘림). 지상 대기 OFF + 지면 OFF.
   천구 북극 이동 표시 = `Planet(Earth).setEquatorialPolePointerIntensity(1.0, Anim)` + `setEclipticPolePointerIntensity(1.0, Anim)`(동그라미). 별 포인터/화살표는 끄기(요동).
 
-- **줌/확대 — 배율이 너무 작음 방지**: 행성 클로즈업은 `p.z*0.5` **한 번으론 부족** → **3~4단계 반복**:
-  `for _ in range(4): p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(2.5), -1); sleep(2.6)`.
+- **줌/확대 — 배율이 너무 작음 방지**: 행성 클로즈업은 한 번으론 부족 → **3~4단계 반복**(배율↑=더 확대):
+  `for _ in range(4): p = cam.positionLBR; cam.setPositionR(p.z / 1.6, Anim.cubic(2.5), -1); sleep(2.6)` (매 스텝 1.6배씩 확대).
+  ⭐ 줌은 항상 **읽은 R 을 배율로 '나눔'**(`R / zoom`) — zoom 이 클수록 더 확대. 0.5 같은 역수를 곱하지 말 것(방향 헷갈림).
   지상 천체(태양·달·코로나 등)는 카메라 줌 무효 → **`orig = obj.scale; obj.setScale(orig*25, Anim)`**(×5는 티 안 남, 원본 먼저 읽기).
 
 - **행성 확대·위성계(지구·화성 등) — 화면 밖으로 튐 방지**: 행성을 외부에서 = `SceneGraph().reset(1)` → `data(PlanetType,"Earth"/"Mars"...).action(FadeTo)`; sleep(4) →
-  줌은 **읽은 R × 배율만**: `p = cam.positionLBR; cam.setPositionR(p.z*0.6, Anim.cubic(3), -1)`. ⚠️ **절대값·큰 수 절대 금지**(넣으면 행성 이탈), 줌 중 `setPositionLBR`로 L/B 다시 쓰지 말 것(track=-1로 R만).
+  줌은 **읽은 R 을 배율로 나눔**: `zoom = 1.6; p = cam.positionLBR; cam.setPositionR(p.z / zoom, Anim.cubic(3), -1)`(zoom↑=더 확대). ⚠️ **절대값·큰 수·PC(파섹) 절대 금지**(넣으면 행성 이탈; PC는 성운 전용), 줌 중 `setPositionLBR`로 L/B 다시 쓰지 말 것(track=-1로 R만).
   위성(화성 Phobos/Deimos)은 `Satellite(Satellite.SatelliteName.Phobos)` + `setIntensity(1,..)`/`setScale(8,..)`/`setLabelIntensity(1,..)` + 시간가속 `dm.setDateTime(+1일, Anim)`(포보스 7.6h가 빨리 돎). GoTo 지구는 R=0(집)이라 외부 조망엔 FadeTo.
   ⚠️ **암석행성 도킹은 북극 상공(B≈90) — B(위도)를 옮긴 뒤엔 반드시 시선정렬**: `cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, 행성.portId(Planet.PlanetPort.EquatorialSynchronous))` — 안 하면 **화면 상하가 뒤집힘**. 위성 공전 가속 전엔 관성 프레임(EquatorialJ2000) 전환 + 시선정렬(동기 프레임이면 위성 대신 천구가 돎).
 
@@ -74,7 +75,7 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **은하/성운 '여행'(안드로메다·게성운·M42 등) — 대상이 점처럼 작음(배율 부족) 방지**: 지상 setPositionLBR 직접 이동 X →
   `h = DataManager.database().data(Data.Type.NebulaType, "M31")`(안드로메다; 게성운="M1"·오리온대성운="M42") → 암전(GlobalIntensity 0) → `h.action(Action.Type.ConnectTo).trigger()`; sleep(4) →
   `cam.setTargetHeight(30.0, Anim(1))`(**관람 표준 30 — 90(천정)은 관객이 목 꺾어야 해서 금지**, 사용자 확정) → 페이드인 → **절대타겟 지오메트릭 줌 여러 단계**(한 단계론 점 그대로):
-  `p0 = cam.positionLBR.z`; `for f in (0.4, 0.16, 0.06, 0.024): cam.setPositionR(p0*f, Anim.cubic(3), -1); sleep(2.4)`.
+  `p0 = cam.positionLBR.z`; `for zoom in (2.5, 6, 16, 40): cam.setPositionR(p0 / zoom, Anim.cubic(3), -1); sleep(2.4)`(원래 R 을 배율로 나눔, 배율↑=더 깊이).
   ⚠️ 은하(M31)는 얕게 + `cam.setOrientationHPR(Vec(H,P,R+35), Anim)` roll로 세워 통과 방지. (말머리 등 Nebula 이름 enum은 LOS 포트 방식 — 아래 성운 항목.)
 
 - **황도 12궁(태양이 1년간 별자리 통과) — 화면만 움직이고 아무것도 안 뜸 방지**: 카메라 추적/줌/줌락 하지 말 것 →
@@ -104,7 +105,7 @@ from Initialization import *      # DateManager 등 매니저 클래스
   ⚠️⚠️ **낮면·밤면 함께 보이기 = 관성 프레임(EquatorialJ2000) + 자전 정지 + 날짜만 흘림**(카메라 L 공전은 암석행성이라 이탈): `ip = earth.portId(Planet.PlanetPort.EquatorialJ2000); cam.setPositionLBR(Vec(현L,현B,현R), Anim, ip)` + 시선정렬 → `earth.setRotationSpeedScale(0.0)` → `dm.setDateTime(+3개월, Anim(20))`(태양각이 반구를 쓸어 밤→터미네이터→낮). 터미네이터 지점(한 화면에 도시광+구름)에서 홀드. 끝에 `resetRotationSpeedScale()`.
 
 - **달 표면 크레이터 — 변화 없음 방지**: `data(SatelliteType,"Moon").action(FadeTo)`; sleep(4) → 그림자 OFF → **줌인 필수**(멀면 티 안 남):
-  `for _ in range(3): p=cam.positionLBR; cam.setPositionR(p.z*0.5, Anim.cubic(2.5), -1); sleep(2.6)` → `Satellite(Satellite.SatelliteName.Moon).setTerrainModel(Satellite.TerrainModel.LROC)` + `setElevationScale(8, Anim)`(크레이터 기복=근접에서만). 줌 안 하면 멀어서 '변화 없음'.
+  `for _ in range(3): p=cam.positionLBR; cam.setPositionR(p.z / 2.0, Anim.cubic(2.5), -1); sleep(2.6)`(매 스텝 2배 확대) → `Satellite(Satellite.SatelliteName.Moon).setTerrainModel(Satellite.TerrainModel.LROC)` + `setElevationScale(8, Anim)`(크레이터 기복=근접에서만). 줌 안 하면 멀어서 '변화 없음'.
 
 - **특정 천체 요청인데 '지구 지상 하늘'만 뜸 방지**: 요청한 천체를 실제로 띄운다 — 행성=`FadeTo`(reset 먼저), 성운=`Nebula(NebulaName.X)` 이름 enum + LOS 포트, 달=`Satellite(Moon)`+FadeTo, 은하수=`Galaxy(MilkyWay)`. 지상 밤하늘 세팅만 하고 끝내지 말 것.
 
@@ -144,7 +145,8 @@ SceneGraph().reset(1)                                     # FadeTo 잠김 방지
 DataManager.database().data(Data.Type.PlanetType, "Saturn").action(Action.Type.FadeTo).trigger()
 sleep(4.0)                                                # 옆도킹(가스행성 R≈5,B20 / 암석행성 북극 R=4)
 p = cam.positionLBR                                        # ⚠️ R 단위 = '트랙 대상 반지름'(km 아님!)
-cam.setPositionLBR(Vec(p.x, p.y, p.z*0.5), Anim.cubic(4.0), -1)   # 줌 = 읽은값 × 배율 (절대값 금지)
+zoom = 2.0                                                # 배율↑ = 더 확대
+cam.setPositionLBR(Vec(p.x, p.y, p.z / zoom), Anim.cubic(4.0), -1)   # 줌 = 읽은 R / 배율 (절대값 금지)
 # 클로즈업 표준: 그림자 OFF 로 표면 다 보이게 (위상/일식 장면 제외)
 sat = Planet(Planet.PlanetName.Saturn)
 sat.setShadowStrength(0.0, Anim(1)); sat.setShadowContrast(0.0, Anim(1)); sat.setPlanetShineStrength(1.0, Anim(1))
