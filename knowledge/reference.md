@@ -63,6 +63,15 @@ from Initialization import *      # DateManager 등 매니저 클래스
   `Constellation(Constellation.ConstellationName.Ori).setLinesIntensity(1.0, Anim(1.5))` (+`setArtIntensity(0.85, Anim(2))`).
   ⚠️ **카메라 이동/줌 금지**(지상 Sky View에서 `setPositionLBR`은 무효 + 화면만 흔들림). 방향이 필요하면 `cam.setOrientationH`만.
 
+- **성군(대삼각형·대육각형·북두칠성 등 '별 잇는 도형') — `ConstellationName.Vega` 같은 AttributeError 방지**:
+  ⚠️⚠️ **Vega/Deneb/Altair·베텔게우스·시리우스·프로키온 등은 '별'(IndividualStar)이지 별자리가 아니다** —
+  `Constellation.ConstellationName.Vega` 는 **존재하지 않아 AttributeError**. ConstellationName 멤버는 **IAU 3자 약어(Ori/Lyr/Cyg/UMa…)와 `ASTERISM_*` 프리셋뿐**.
+  → **대삼각형·육각형·북두칠성 등은 별을 직접 잇지 말고 반드시 `ASTERISM_*` 프리셋을 켠다**(Constellation 객체라 `setLinesIntensity` 로 그려짐):
+  · 여름 대삼각형 = `ASTERISM_STr` · 겨울 삼각형 = `ASTERISM_WTr` · 겨울 대육각형 = `ASTERISM_WHx` · 봄 대삼각형 = `ASTERISM_SpT` ·
+  북두칠성 = `ASTERISM_BDr` · 페가수스 대사각형 = `ASTERISM_GSP` · 북십자 = `ASTERISM_NCr`.
+  예) `Constellation(Constellation.ConstellationName.ASTERISM_STr).setLinesIntensity(1.0, Anim(1.5))` (지상 밤하늘, 카메라 이동 금지).
+  개별 별을 '지목'만 하려면 `IndividualStar(IndividualStar.IndividualStarName.Vega).setPointerIntensity(1.0, Anim)` + `setLabelIntensity`.
+
 - **인공위성/ISS 궤도 — 지구만 나오고 궤도 안 뜸 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4) →
   풀백 `cam.setPositionLBR(Vec(cam.positionLBR.x, 35, 12), Anim.cubic(3), -1)` + `cam.setTargetHeight(30)` →
   `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`; `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
