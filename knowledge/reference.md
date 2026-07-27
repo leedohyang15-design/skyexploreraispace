@@ -61,6 +61,23 @@ from Initialization import *      # DateManager 등 매니저 클래스
   `Constellation(Constellation.ConstellationName.Ori).setLinesIntensity(1.0, Anim(1.5))` (+`setArtIntensity(0.85, Anim(2))`).
   ⚠️ **카메라 이동/줌 금지**(지상 Sky View에서 `setPositionLBR`은 무효 + 화면만 흔들림). 방향이 필요하면 `cam.setOrientationH`만.
 
+- **인공위성/ISS 궤도 — 지구만 나오고 궤도 안 뜸 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4) →
+  풀백 `cam.setPositionLBR(Vec(cam.positionLBR.x, 35, 12), Anim.cubic(3), -1)` + `cam.setTargetHeight(30)` →
+  `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`; `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
+  TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)`+`op.setIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
+  ⚠️ ISS는 저궤도(MM≈15.5)라 R=12 줌에선 지구에 묻힘 → 잘 보이려면 **근접 줌**(R 더 작게) 또는 MM 낮은(고고도) 궤도로 강조. 궤도 세팅 없이 FadeTo만 하면 '지구만' 뜸.
+
+- **은하/성운 '여행'(안드로메다·게성운·M42 등) — 대상이 점처럼 작음(배율 부족) 방지**: 지상 setPositionLBR 직접 이동 X →
+  `h = DataManager.database().data(Data.Type.NebulaType, "M31")`(안드로메다; 게성운="M1"·오리온대성운="M42") → 암전(GlobalIntensity 0) → `h.action(Action.Type.ConnectTo).trigger()`; sleep(4) →
+  `cam.setTargetHeight(90.0, Anim(1))`(성운 LOS 프레임은 90이 돔 중앙) → 페이드인 → **절대타겟 지오메트릭 줌 여러 단계**(한 단계론 점 그대로):
+  `p0 = cam.positionLBR.z`; `for f in (0.4, 0.16, 0.06, 0.024): cam.setPositionR(p0*f, Anim.cubic(3), -1); sleep(2.4)`.
+  ⚠️ 은하(M31)는 얕게 + `cam.setOrientationHPR(Vec(H,P,R+35), Anim)` roll로 세워 통과 방지. (말머리 등 Nebula 이름 enum은 LOS 포트 방식 — 아래 성운 항목.)
+
+- **황도 12궁(태양이 1년간 별자리 통과) — 화면만 움직이고 아무것도 안 뜸 방지**: 카메라 추적/줌/줌락 하지 말 것 →
+  지상 대기 OFF + 지면 OFF + 12궁 별자리 `setLinesIntensity(0.6)`/`setLabelIntensity(0.9)` + `Planet(Earth).setEclipticGridIntensity(1,..)` + `IndividualStar(IndividualStar.IndividualStarName.Sun).setScale(3)` +
+  청주 정오(03:30 UTC) 춘분 시작 → **`dm.setMotionType(DateManager.MotionType.MotionAnalemma)`** → `dm.setDateTime(올해+1, 3, 20, 3, 30, 0, tz, Anim(42))`(1년 가속).
+  카메라는 남쪽 **한 번만** 고정(`cam.setOrientationH(0.0, Anim)` + `cam.setTargetHeight(37)`), 이동 금지. MotionAnalemma 없이 카메라만 움직이면 아무것도 안 뜸.
+
 - **특정 천체 요청인데 '지구 지상 하늘'만 뜸 방지**: 요청한 천체를 실제로 띄운다 — 행성=`FadeTo`(reset 먼저), 성운=`Nebula(NebulaName.X)` 이름 enum + LOS 포트, 달=`Satellite(Moon)`+FadeTo, 은하수=`Galaxy(MilkyWay)`. 지상 밤하늘 세팅만 하고 끝내지 말 것.
 
 ## 2. 씬 골격 템플릿 (복붙 후 채우기)
