@@ -107,6 +107,8 @@ def parse_spc(spc_text):
         if cat != "101":                             # 주석/매크로/기타 카테고리
             lbl = _label_text(cols)
             kind = {"0": "주석", "600": "매크로", "": "cat?"}.get(cat, "cat=%s" % cat)
+            if not lbl and kind == "주석":            # 빈 섹션 주석(내용 없음) → 생략
+                continue
             note = "# [%s] %s" % (kind, lbl) if lbl else "# [%s] (cmd %d)" % (kind, cmd_id)
             events.append(("?", None, "?", [note], tc))
             continue
@@ -206,6 +208,18 @@ def parse_spc(spc_text):
             events.append((real_cls, index, method, [("__PARENT__", pcls, pidx)], tc))
             continue
         pyargs = _render_args(spec, real_cls, method, slots)
+        # setDateTime 상대/특수 모드(항성시 등) 방어: 연도가 비정상(<100)이면 깨진 절대날짜 대신 주석.
+        if real_cls == "DateManager" and method == "setDateTime":
+            try:
+                yr = int(float(str(pyargs[0])))
+            except (ValueError, IndexError):
+                yr = None
+            if yr is not None and yr < 100:
+                events.append(("?", None, "?",
+                    ["# [시간 이동] setDateTime 상대/특수 모드(cmd 257, 항성시 기준) — 자동 해독 불가. "
+                     "원본은 '시간을 빠르게 흘려보내는' 명령이니 필요 시 setDateTime(목표날짜, Anim(초))로 직접 지정."],
+                    tc))
+                continue
         events.append((real_cls, index, method, pyargs, tc))
     return events
 
