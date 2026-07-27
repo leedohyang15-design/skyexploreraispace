@@ -674,17 +674,23 @@ PLAN_SYSTEM = """당신은 Sky Explorer 플라네타리움 쇼의 씬 기획자�
 
 camera 파라미터 규칙:
   setup   : {"type":"setup"}
-  fadeto  : {"type":"fadeto","target_height":90.0}       ← 돔 높이 0~90
+  fadeto  : {"type":"fadeto","target_height":30.0}       ← 돔 높이 0~90 (관람 표준 30)
   zoom    : {"type":"zoom","zoom":2.0}                   ← R/zoom (숫자↑=더 확대, 2.0=2배)
   orbit   : {"type":"orbit","degrees":360,"step_dt":0.5} ← 공전
-  travel  : {"type":"travel","distance_pc":400.0}        ← 우주 비행
+  travel  : {"type":"travel","distance_pc":400.0}        ← 성운·은하 딥스카이 여행 전용(파섹 거리)
   observe : {"type":"observe"}                           ← 감상/대기
   text    : {"type":"text"}                              ← 텍스트 오버레이
+
+⚠️ 매우 중요 — 천체 종류별 접근 방식:
+- 행성·달·태양·위성·왜소행성 등 **태양계 천체**는 **fadeto → zoom** 으로 접근한다.
+  이들에는 **travel/distance_pc(파섹)를 절대 쓰지 말 것** — 태양계는 파섹 거리 개념이 아니다(토성을 800pc 로 두면 안 됨).
+- **travel/distance_pc 는 성운·은하 등 딥스카이 여행에만** 쓴다(수백 파섹 거리라 의미가 있음).
+- "토성으로 이동/여행" 같은 행성 요청도 fadeto(도킹) + zoom(확대)로 표현한다.
 
 반환 형식 예시:
 {"scenes":[
   {"id":1,"name":"초기 세팅","description":"암전 후 천체 활성화","duration":2.0,"camera":{"type":"setup"}},
-  {"id":2,"name":"지구 도착","description":"FadeTo로 지구에 시점 고정","duration":4.0,"camera":{"type":"fadeto","target_height":90.0}},
+  {"id":2,"name":"토성 도착","description":"FadeTo로 토성에 시점 고정","duration":4.0,"camera":{"type":"fadeto","target_height":30.0}},
   {"id":3,"name":"2배 줌인","description":"현재 거리 절반으로 줌인","duration":5.0,"camera":{"type":"zoom","zoom":2.0}}
 ],"total_duration":11.0}
 """
@@ -822,7 +828,7 @@ def plan(prompt: str) -> str:
                     try:
                         cam["target_height"] = max(0.0, min(90.0, float(cam["target_height"])))
                     except (TypeError, ValueError):
-                        cam["target_height"] = 90.0
+                        cam["target_height"] = 30.0
                 if "zoom" in cam:
                     try:
                         cam["zoom"] = max(1.0, min(10.0, float(cam["zoom"])))
