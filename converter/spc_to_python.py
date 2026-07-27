@@ -228,12 +228,12 @@ def _tc_seconds(tc, fps=30):
 def to_python(spc_text, timed=False, fps=30):
     """timed=True 면 타임코드 증가분마다 sleep() 삽입 → 시간축 애니메이션 재현."""
     events = parse_spc(spc_text)
-    # Initialization import 는 매니저 클래스(DateManager 등)만 필요. Camera 는 skyExplorer 에 있음.
-    NEEDS_INIT = {"DateManager"}
-    need_init = any(cls in NEEDS_INIT for cls, *_ in events if cls != "?")
-    lines = ["from skyExplorer import *", "from studio import *"]
-    if need_init:
-        lines.append("from Initialization import *")   # DateManager 등 매니저 노출
+    # ⚠️ 3종 import 를 '항상' 넣는다 — 우리의 검증된 예제 표준과 동일.
+    #    sleep()·DateManager 등이 Initialization 에서 노출되므로, 조건부로 빼면
+    #    (예: DateManager 없는 clock 스크립트) `NameError: name 'sleep' is not defined` 로 죽는다.
+    lines = ["from skyExplorer import *",
+             "from studio import *",
+             "from Initialization import *"]   # sleep·DateManager 등 노출 (항상 필요)
     lines.append("")
     seen = {}     # (cls,index) → varname
 

@@ -80,10 +80,13 @@
    ```
 5. **import 3종 세트** — 매니저 클래스(`DateManager` 등)는 `skyExplorer import *` 에 **없음**
    (`NameError: name 'DateManager' is not defined`). `Initialization` 에서 노출됨.
+   ⚠️⚠️ **`sleep()` 도 `Initialization` 에서 노출됨 (2026-07-27 컨버터 버그로 확정)**: skyExplorer/studio 만 import 하고
+   `sleep(1.0)` 을 쓰면 **`NameError: name 'sleep' is not defined`**. 그래서 **3종 import 를 '항상' 다 넣어야 함**
+   (DateManager 없는 스크립트라도 Initialization 생략 금지 — sleep 이 죽는다). SPC→Python 컨버터도 이 규칙으로 수정함.
    ```python
    from skyExplorer import *
    from studio import *
-   from Initialization import *   # ← DateManager 등 매니저는 여기서 (실측 확정)
+   from Initialization import *   # ← DateManager·sleep 등은 여기서 노출 (항상 필요, 실측 확정)
    ```
 6. **TimeZone.UTC 는 없음** — 실제 멤버는 `UTC_P_10_30_MON`/`DefaultTimeZone` 류.
    `dir(DateManager.TimeZone)` 로 확인해 골라 쓸 것(하드코딩 `TimeZone.UTC` → AttributeError).
