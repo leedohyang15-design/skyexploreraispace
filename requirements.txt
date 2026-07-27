@@ -1,2 +1,3 @@
-# 상한을 둔다 — groq 2.x 가 나오면 자동으로 딸려 들어와 Space 가 깨질 수 있다.
-groq>=1.0,<2
+# Cerebras Inference SDK (llama-3.3-70b 등). 상한을 둔다 — 메이저 업이
+# 자동으로 딸려 들어와 Space 가 깨지는 걸 막는다.
+cerebras_cloud_sdk>=1.0,<2

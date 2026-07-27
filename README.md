@@ -16,13 +16,15 @@ Sky Explorer SDK 의 **실측 검증된 지식**(레퍼런스 + 함정 + 검증 
 
 ## Space 설정 (필수)
 1. **Settings → Variables and secrets → New secret**
-   - Name: `GROQ_API_KEY` / Value: console.groq.com 에서 발급한 키
-2. (선택) `GROQ_MODEL` 변수로 모델 변경 — 기본 `llama-3.3-70b-versatile`
+   - Name: `CEREBRAS_API_KEY` / Value: cloud.cerebras.ai 에서 발급한 키
+2. (선택) `CEREBRAS_MODEL` 변수로 모델 변경 — 기본 `llama-3.3-70b`
+3. (선택) `KNOW_REF_LIMIT` / `KNOW_EX_LIMIT` — 지식 주입 글자수(기본 16000 / 6000).
+   생성이 context/토큰 초과로 실패하면 낮추고, 잘 되면 올려서 지식을 더 넣는다.
 
 ## 파일 구성
 | 파일 | 역할 |
 |---|---|
-| `app.py` | Gradio UI + Groq 호출 + 지식팩 조립 |
+| `app.py` | Gradio UI + Cerebras 호출 + 지식팩 조립 |
 | `knowledge/reference.md` | 정제 AI 프롬프트 (원본: 레포 `reference/AI_SYSTEM_PROMPT.md` — 전체 클래스 레시피 압축본) |
 | `knowledge/examples.md` | 검증된 자연어→코드 few-shot |
 | `converter/` | 순수 파이썬 SPC→Python 변환기 (레포 `scripts/spc_convert/` 와 동기화) |

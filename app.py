@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Sky Explorer AI — 자연어 → Python 스크립트 생성기 (Hugging Face Space + Groq)
+Sky Explorer AI — 자연어 → Python 스크립트 생성기 (Hugging Face Space + Cerebras)
 ====================================================================
 UI: 커스텀 HTML(우주 테마) 전면 + Gradio 는 API 엔진으로 숨김
     사이드바 = 대화 로그(localStorage 저장, 클릭 복원) — Claude/Gemini 스타일
 지식: knowledge/reference.md(정제 AI 프롬프트) + knowledge/examples.md 를 시스템 프롬프트로 주입
-Space 설정: Settings → Variables and secrets → GROQ_API_KEY (필수)
+Space 설정: Settings → Variables and secrets → CEREBRAS_API_KEY (필수)
+  · 선택: CEREBRAS_MODEL(기본 llama-3.3-70b) · KNOW_REF_LIMIT/KNOW_EX_LIMIT(지식 주입량)
 """
 import datetime as dt
 import json
@@ -17,18 +18,18 @@ import urllib.request
 from pathlib import Path
 
 import gradio as gr
-from groq import Groq
+from cerebras.cloud.sdk import Cerebras
 
 HERE = Path(__file__).parent
 
-# ⚠️ 70B 고정 (사용자 확정). 한 번 생성이 ~7-8K 토큰이라, 분당 한도가 6K인 모델
-# (8b-instant / qwen3-32b)로 폴백하면 단일 요청조차 한도를 못 넘어 '무조건 429' →
-# 그 낮은 한도 모델들을 폴백에서 제거했다. 남긴 건 70B(12K, 주력)와, 70B 폐기/장애
-# 시에만 쓰는 8K 안전망(gpt-oss-120b) 하나뿐. 70B 가 분당 한도에 걸리면 폴백 대신
+# 🟢 provider = Cerebras Inference (Groq 에서 이관, 2026-07-27). 같은 llama-3.3-70b 라
+# 지금까지 맞춘 지식/프롬프트가 그대로 먹히고, 무료 티어 한도가 커서 지식을 더 넣을 수 있다.
+# 주력 = llama-3.3-70b, 장애 시 폴백 = llama3.1-8b(빠름). 분당 한도에 걸리면 폴백 대신
 # 자동 대기 재시도(_retry_after_seconds)로 70B 를 다시 노린다.
+# 모델 id 는 CEREBRAS_MODEL 로 오버라이드 가능.
 PREFERRED_MODELS = [
-    "llama-3.3-70b-versatile",       # 분당 12K tok — 무료 티어 TPM 가장 큼 → 고정 주력
-    "openai/gpt-oss-120b",           # 분당 8K tok — 70B 폐기/장애 시에만 쓰는 안전망
+    "llama-3.3-70b",       # 주력 (Cerebras)
+    "llama3.1-8b",         # 폴백 (70B 장애/한도 시)
 ]
 
 # ── 남용/쿼터 보호 상한 (공개 엔드포인트라 서버측에서 강제) ──
@@ -79,16 +80,23 @@ BASE_RULES = """당신은 Sky Explorer 플라네타리움 SDK 의 Python 스크�
 
 DROP_SECTIONS = ("## 실행 방법", "## Hello World")   # 코드 생성에 불필요 → 토큰 절약
 
-# 시스템 프롬프트 입력 토큰이 모델 분당 한도(TPM)를 넘지 않도록 지식 파일 길이 상한.
-# reference.md = 정제 AI 프롬프트(전체 클래스 레시피 압축본, ~9.6K자) → 통째로 주입.
-# examples.md = 검증된 few-shot(~6.8K자) → 통째로 주입. (초과 시에만 섹션 경계 절단)
-# examples 는 기존 5000 유지(이미 그 예산으로 동작 검증됨) — TPM 여유 확보.
-# ⚠️ 무료 티어(분당 12K) 안전값. Groq Developer 티어 업그레이드가 현재
-# '수요 폭주로 일시 중단'이라 결제로 한도를 못 올림 → 큰 프롬프트는 계속 한도 초과.
-# 그래서 큐레이션 새 지식을 '요약 주입'으로 줄여 무료 티어에서 돌아가게 함.
-# ✅ Developer 티어가 다시 열리면(결제 등록 가능해지면) 아래를 14000/17000 로 올려
-#    두 파일 전체를 실으면 됨(품질 최대). 그때 이력·max_tokens 도 함께 복원.
-KNOWLEDGE_CHAR_LIMIT = {"reference.md": 12500, "examples.md": 3000}
+# 시스템 프롬프트에 넣는 지식 파일 길이 상한. Cerebras 이관으로 한도가 커져 상향했다.
+# ⚠️ Cerebras 무료 티어 context/TPM 한도가 불확실 → env 로 조절 가능하게 뒀다:
+#    KNOW_REF_LIMIT / KNOW_EX_LIMIT (HF secret 에 숫자만 넣으면 즉시 반영, 코드 수정 불필요).
+# · 생성이 context/토큰 초과로 실패하면 → 값을 낮춘다(예 12500/3000).
+# · 잘 되면 → 전체(reference ~21000 / examples ~13100)까지 올려 지식 통째 주입.
+# 초과분은 불릿(- ** )/섹션(## ) 경계에서 잘려 '자주 틀리는 장면'이 통으로 사라지지 않음.
+def _int_env(name, default):
+    try:
+        return int(os.environ.get(name, "").strip() or default)
+    except (TypeError, ValueError):
+        return default
+
+
+KNOWLEDGE_CHAR_LIMIT = {
+    "reference.md": _int_env("KNOW_REF_LIMIT", 16000),
+    "examples.md":  _int_env("KNOW_EX_LIMIT", 6000),
+}
 
 
 def _read_knowledge(name: str) -> str:
@@ -560,10 +568,15 @@ _client = None          # 지연 생성 — 키 없이 import 해도 앱은 뜬�
 _model = None
 
 
+def _api_key():
+    # 새 키(CEREBRAS_API_KEY) 우선, 예전 이름도 하위호환으로 허용.
+    return (os.environ.get("CEREBRAS_API_KEY") or os.environ.get("GROQ_API_KEY") or "").strip()
+
+
 def _get_client():
     global _client
     if _client is None:
-        _client = Groq(api_key=os.environ["GROQ_API_KEY"])
+        _client = Cerebras(api_key=_api_key())
     return _client
 
 
@@ -571,7 +584,7 @@ def _pick_model(client) -> str:
     global _model
     if _model:
         return _model
-    env = os.environ.get("GROQ_MODEL", "").strip()
+    env = os.environ.get("CEREBRAS_MODEL", "").strip()
     if env:
         _model = env
         return _model
@@ -607,11 +620,11 @@ def _build_messages(prompt: str, history_json: str) -> list:
         assert isinstance(hist, list)
     except Exception:
         hist = []
-    for m in hist[-2:]:                              # 최근 2턴 (무료 티어 분당 한도 보호)
+    for m in hist[-3:]:                              # 최근 3턴 (Cerebras 로 여유 ↑)
         if not isinstance(m, dict):
             continue
-        q = str(m.get("q", ""))[:800]
-        code = str(m.get("code", ""))[:1800]
+        q = str(m.get("q", ""))[:1000]
+        code = str(m.get("code", ""))[:2200]
         if q:
             messages.append({"role": "user", "content": q})
         if code:
@@ -757,7 +770,7 @@ def plan(prompt: str) -> str:
     prompt = (prompt or "").strip()[:MAX_PROMPT_CHARS]   # 남용 방지: 길이 상한
     if not prompt:
         return json.dumps({"scenes": [], "error": "요청 없음"}, ensure_ascii=False)
-    if not os.environ.get("GROQ_API_KEY"):
+    if not _api_key():
         return json.dumps({"scenes": [], "error": "API 키 없음"}, ensure_ascii=False)
     try:
         client = _get_client()
@@ -865,10 +878,10 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
     prompt = (prompt or "").strip()[:MAX_PROMPT_CHARS]   # 남용 방지: 길이 상한
     if not prompt:
         return "# 요청을 입력해 주세요."
-    if not os.environ.get("GROQ_API_KEY"):
-        return ("# 오류: GROQ_API_KEY 가 설정되지 않았습니다.\n"
+    if not _api_key():
+        return ("# 오류: CEREBRAS_API_KEY 가 설정되지 않았습니다.\n"
                 "# Space Settings → Variables and secrets → New secret 에서\n"
-                "# Name: GROQ_API_KEY / Value: console.groq.com 발급 키 를 추가하세요.")
+                "# Name: CEREBRAS_API_KEY / Value: cloud.cerebras.ai 발급 키 를 추가하세요.")
 
     # 씬 플랜이 있으면 프롬프트에 타이밍 지시문 삽입
     if scenes_json:
@@ -883,7 +896,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
         client = _get_client()
         first_model = _pick_model(client)
     except Exception as e:
-        return "# Groq API 오류: %s" % e
+        return "# Cerebras API 오류: %s" % e
 
     # 재시도 대상 모델: 현재 모델 우선, 이후 PREFERRED 순서.
     # models.list() 호출은 실패해도 무시하고 PREFERRED 로 폴백(불필요한 API 왕복 방지).
@@ -901,8 +914,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                     resp = client.chat.completions.create(
                         model=model_candidate,
                         temperature=0.2,
-                        # 무료 티어 한도 보호를 위해 응답 예약분 축소(1200). 결제 티어 열리면 1600.
-                        max_tokens=1200,
+                        max_tokens=1600,          # Cerebras 로 여유가 커져 응답 예약분 복원
                         messages=_build_messages(prompt, hist),
                     )
                     _model = model_candidate
@@ -926,7 +938,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                         break           # 폐기된 모델 → 다음 모델로 (원문 노출 안 함)
                     # 그 외 에러(모델명·파라미터·서버 오류 등)는 원문을 그대로 보여준다.
                     _model = None
-                    return "# Groq API 오류 (%s): %s" % (model_candidate, e)
+                    return "# Cerebras API 오류 (%s): %s" % (model_candidate, e)
             # while 를 break 로 빠져나왔을 때:
             #   rate_limit/decommissioned → 다음 모델, too_large → 다음 hist(히스토리 제거)
             if _is_rate_limit(last_err) or _is_decommissioned(last_err):
@@ -940,10 +952,9 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                 "#\n"
                 "# ▶ 지금: 40초~1분 뒤 다시 눌러 주세요. 잠깐 쉬면 한도가 회복됩니다.\n"
                 "# ▶ 팁: 대화가 길어지면 토큰이 누적됩니다 — '＋ 새 대화'로 시작하면 가벼워져요.\n"
-                "# ▶ 근본 해결: console.groq.com → Billing 에서 결제수단을 등록하면\n"
-                "#   분당 한도가 수십 배로 올라가 이 오류가 사실상 사라집니다(개발 티어).\n"
+                "# ▶ 근본 해결: cloud.cerebras.ai 콘솔에서 티어/한도를 확인하거나 상향하세요.\n"
                 "# ─ 상세: %s" % last_err)
-    return "# Groq API 오류: %s" % last_err
+    return "# Cerebras API 오류: %s" % last_err
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -963,7 +974,7 @@ CUSTOM_HTML = """
     </div>
     <div class="conv-list" id="convList"></div>
     <div class="side-tab" id="tabConv">🔁 SPC → Python 변환 <span class="exp-badge">실험적</span></div>
-    <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Groq · Llama</div>
+    <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Cerebras · Llama 3.3 70B</div>
   </div>
 
   <main>
@@ -1641,7 +1652,7 @@ CUSTOM_JS = r"""
     block.innerHTML =
       '<div class="msg-user">&gt; ' + esc(q) + '</div>' +
       '<div class="msg-result">' +
-        '<div class="log-ticker">⟳ Groq 엔진이 스크립트를 생성하는 중...</div>' +
+        '<div class="log-ticker">⟳ Cerebras 엔진이 스크립트를 생성하는 중...</div>' +
         '<div class="code-block" style="display:none">' +
           '<div class="code-tools">' +
             '<button class="tool-btn edit-btn">✎ 수정</button>' +
