@@ -87,6 +87,11 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **명왕성+카론(쌍행성) — 명왕성만 뜸 방지**: `data(DwarfPlanetType,"Pluto").action(FadeTo)`; sleep(4) → 그림자 OFF →
   **`ch = Satellite(Satellite.SatelliteName.Charon)`; ch.setIntensity(1,..)+ch.setScale(6,..)+ch.setLabelIntensity(1,..)** → 카론 궤도(~16 명왕성반지름)가 담기게 **풀백** `p=cam.positionLBR; cam.setPositionR(p.z*3, Anim.cubic(3), -1)`. 명왕성 표면=`DwarfPlanet(...Pluto).setTerrainModel(DwarfPlanet.TerrainModel.NewHorizons)`(하트). 카론 안 켜면 '명왕성만'.
 
+- **황도광 — 변화 없음 방지**: 황도광 세터는 '태양(IndividualStar)' 소속 — `sun = IndividualStar(IndividualStar.IndividualStarName.Sun)` →
+  `sun.setZodiacalLightIntensity(1.0, Anim(3))` + `sun.setZodiacalLightScatteringIntensity(1.0, Anim(3))`. **대기 OFF 필수**(켜면 하늘빛에 묻혀 안 보임) + 지면 OFF.
+  봄 저녁 해 진 직후(3월 20시 KST = 11:00 UTC) + **서쪽 저각 조준**(`cam.setOrientationH(-90)` + `setTargetHeight(15)`) + `Earth.setEclipticGridIntensity(0.6)`(빛이 황도를 따라감 시각화).
+  은은한 현상이라 **0↔1 A/B 반복**으로 대비를 보여줄 것. 이 세터 없이 하늘만 세팅하면 '변화 없음'.
+
 - **달 표면 크레이터 — 변화 없음 방지**: `data(SatelliteType,"Moon").action(FadeTo)`; sleep(4) → 그림자 OFF → **줌인 필수**(멀면 티 안 남):
   `for _ in range(3): p=cam.positionLBR; cam.setPositionR(p.z*0.5, Anim.cubic(2.5), -1); sleep(2.6)` → `Satellite(Satellite.SatelliteName.Moon).setTerrainModel(Satellite.TerrainModel.LROC)` + `setElevationScale(8, Anim)`(크레이터 기복=근접에서만). 줌 안 하면 멀어서 '변화 없음'.
 

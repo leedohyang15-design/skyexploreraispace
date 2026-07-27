@@ -407,7 +407,7 @@ def _visible_planets(today: dt.date, lat: float, lon: float) -> list:
         url = ("https://api.visibleplanets.dev/v3?latitude=%s&longitude=%s&time=%sT12:00:00Z"
                % (lat, lon, today.isoformat()))
         req = urllib.request.Request(url, headers={"User-Agent": "sky-explorer-ai"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.urlopen(req, timeout=2.5) as resp:
             payload = json.loads(resp.read().decode("utf-8"))
         for b in payload.get("data", []):
             name = b.get("name")
@@ -428,10 +428,11 @@ def _visible_planets(today: dt.date, lat: float, lon: float) -> list:
     return out
 
 
-def _today_real(today: dt.date, lat: float, lon: float) -> list:
+def _today_real(today: dt.date, lat: float, lon: float, fast: bool = False) -> list:
     """오늘의 '실제' 항목 = 실시간 행성(최대 2개) + 보름/상현/하현달.
+    fast=True 면 외부 행성 API 를 건너뜀(달력 날짜 클릭용 — 즉시 응답).
     프런트에서 여기에 계절 풀을 무작위로 섞어 매번 다르게 보여준다."""
-    out = list(_visible_planets(today, lat, lon))[:2]   # 실시간 행성 (최대 2)
+    out = [] if fast else list(_visible_planets(today, lat, lon))[:2]   # 실시간 행성 (최대 2)
     mp = _moon_phase_kr(today)
     moon_prompt = {
         "보름달": "오늘 밤 보름달을 크게 보여줘",
@@ -457,6 +458,7 @@ def sky_events(arg: str = "") -> str:
     try:
         city, lat, lon = "청주", _CJU_LAT, _CJU_LON
         pick = None                      # 요청된 특정 날짜 (없으면 오늘)
+        fast = False                     # True = 외부 행성 API 생략(달력 클릭 즉시 응답)
         if arg:
             try:
                 o = json.loads(arg)
@@ -469,6 +471,7 @@ def sky_events(arg: str = "") -> str:
                     ds = str(o.get("date", "") or "")
                     if ds:
                         pick = dt.date.fromisoformat(ds[:10])
+                    fast = bool(o.get("fast"))
             except Exception:
                 pass
         today = pick or dt.date.today()
@@ -519,7 +522,7 @@ def sky_events(arg: str = "") -> str:
             "moon": _moon_phase_kr(today),
             "loc": {"city": city, "lat": round(lat, 2), "lon": round(lon, 2)},
             "sun": _sun_times(today, lat, lon),  # 오늘 일출/남중/일몰 (KST)
-            "always": _today_real(today, lat, lon),  # 실시간 행성 + 달 (실제)
+            "always": _today_real(today, lat, lon, fast),  # 실시간 행성 + 달 (fast 면 달만)
             "seasonPool": _season_pool(today),   # 계절 천체 풀 (열 때마다 무작위)
             "highlight": highlight,
             "upcoming": upcoming[:6],
@@ -957,10 +960,12 @@ CUSTOM_HTML = """
           <button class="run" id="runBtn">스크립트 생성 ✨</button>
         </div>
         <div class="gen-opts" id="genOpts">
-          <span class="opt-len-lbl">⏱ 상영 길이</span>
-          <input type="range" id="lenSlider" min="0" max="300" step="30" value="0">
-          <span class="opt-len-val" id="lenVal">기본</span>
-          <span class="opt-len-hint">— 예제 버튼에도 적용됩니다</span>
+          <div class="opt-len-row">
+            <span class="opt-len-lbl">⏱ 상영 길이</span>
+            <input type="range" id="lenSlider" min="0" max="300" step="30" value="0">
+            <span class="opt-len-val" id="lenVal">기본</span>
+          </div>
+          <div class="opt-len-hint">기본 = 길이 자동 · 예제 버튼에도 적용됩니다</div>
         </div>
         <div class="cal-cta">
           <div class="cal-cta-text">🌙 뭘 만들지 모르겠다면?<br><b>오늘 청주에서 볼 수 있는 천체</b>로 시작해 보세요.</div>
@@ -1126,17 +1131,20 @@ body { background: #04060c !important; }
 .lint-info { background:rgba(94,230,196,.06);   border-left-color:var(--nova); color:#b8ead9; }
 .lint-ok   { font-size:11.5px; color:#7fcfa8; }
 
-/* 생성 옵션 — 상영 길이 슬라이더 (칩 예제에도 적용) */
-.gen-opts { display:flex; align-items:center; gap:12px; flex-wrap:wrap;
-  margin-top:14px; justify-content:center;
+/* 생성 옵션 — 상영 길이 슬라이더 (칩 예제에도 적용)
+   ⚠️ 값 칩은 '고정폭'(width) — 텍스트 길이가 바뀌어도 슬라이더 폭이 안 밀려 흔들림 없음 */
+.gen-opts { display:flex; flex-direction:column; align-items:center; gap:6px;
+  margin-top:14px;
   background:rgba(255,184,77,.06); border:1px solid rgba(255,184,77,.25);
-  border-radius:12px; padding:10px 18px; width:min(560px,92%); margin-left:auto; margin-right:auto; }
-.opt-len-lbl { font-size:14px; font-weight:700; color:#ffd9a0; white-space:nowrap; }
-#lenSlider { flex:1; min-width:160px; accent-color:var(--accent); cursor:pointer; height:20px; }
-.opt-len-val { font-size:14px; font-weight:800; color:var(--accent);
+  border-radius:12px; padding:10px 18px 8px; width:min(560px,92%); margin-left:auto; margin-right:auto; }
+.opt-len-row { display:flex; align-items:center; gap:12px; flex-wrap:nowrap; width:100%; }
+.opt-len-lbl { font-size:14px; font-weight:700; color:#ffd9a0; white-space:nowrap; flex:none; }
+#lenSlider { flex:1; min-width:120px; accent-color:var(--accent); cursor:pointer; height:20px; }
+.opt-len-val { font-size:13.5px; font-weight:800; color:var(--accent);
   background:var(--as); border:1px solid rgba(255,184,77,.45); border-radius:10px;
-  padding:4px 12px; min-width:52px; text-align:center; white-space:nowrap; }
-.opt-len-hint { font-size:11.5px; color:#9aa6bf; white-space:nowrap; }
+  padding:4px 0; width:76px; flex:none; text-align:center; white-space:nowrap;
+  font-variant-numeric:tabular-nums; }
+.opt-len-hint { font-size:11.5px; color:#9aa6bf; text-align:center; }
 
 /* 달력 유도 배너 (뭘 만들지 모를 때 → 오늘 볼 수 있는 하늘) */
 .cal-cta { display:flex; align-items:center; gap:14px; flex-wrap:wrap; justify-content:center;
@@ -1934,26 +1942,38 @@ CUSTOM_JS = r"""
     '</div>';
   }
 
-  // 선택한 날짜의 '그날 볼 수 있는 현상' — 날짜별로 서버 재계산(일출·달·행성), 캐시
+  // 선택한 날짜의 '그날 볼 수 있는 현상' — fast 모드(행성 API 생략) + 즉시 부분 렌더
   const dayCache = {};
+  function dayInfoShell(iso) {           // 서버 응답 전 즉시 보여줄 부분 카드
+    const dd = iso.split('-');
+    const list = ((skyData && skyData.seasonPool) || []).slice(0, 3);
+    return '<div class="sky-dayinfo">' +
+      '<div class="sky-today-top"><span class="sky-date-badge">' +
+        parseInt(dd[1], 10) + '월 ' + parseInt(dd[2], 10) + '일</span>' +
+        '<span class="sky-loading" style="padding:0">☀️ 일출·달 계산 중…</span></div>' +
+      '<div class="sky-sum-lbl first">🔭 이날 볼 수 있는 현상</div>' +
+      '<div class="sky-sum-list">' + list.map(skySumRow).join('') + '</div>' +
+    '</div>';
+  }
   async function renderDayInfo(iso) {
     const box = $('skyDayInfo');
     if (!box) return;
     let d = dayCache[iso];
     if (!d) {
-      box.innerHTML = '<div class="sky-loading">이날의 하늘 정보를 불러오는 중…</div>';
+      box.innerHTML = dayInfoShell(iso);         // ① 즉시 부분 렌더(계절 천체)
       try {
-        const raw = await callApi('sky_events',
-          [JSON.stringify(Object.assign({}, observer, { date: iso }))]);
+        const raw = await callApi('sky_events',  // ② fast=행성 API 생략 → 수백 ms 응답
+          [JSON.stringify(Object.assign({}, observer, { date: iso, fast: 1 }))]);
         d = JSON.parse(raw);
         if (!d || d.error) throw new Error(d && d.error);
         dayCache[iso] = d;
-      } catch (e) { box.innerHTML = ''; return; }
+      } catch (e) { return; }                    // 실패해도 부분 카드는 유지
     }
     if (skySelDay !== iso) return;               // 로딩 사이 다른 날짜로 바뀜
+    const box2 = $('skyDayInfo') || box;         // 리스트가 다시 그려졌을 수 있음 — 재조회
     const m = d.moon || {}, s = d.sun || {};
     const list = (d.always || []).concat((d.seasonPool || []).slice(0, 3));
-    box.innerHTML =
+    box2.innerHTML =
       '<div class="sky-dayinfo">' +
         '<div class="sky-today-top">' +
           '<span class="sky-date-badge">' + esc(d.todayLabel) + '</span>' +
