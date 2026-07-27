@@ -41,7 +41,7 @@ from Initialization import *      # DateManager 등 매니저 클래스
   · **은하수**: `Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(1.0, Anim(2))` — ("은하수 켜줘"=이 한 줄. FadeTo·DataManager 절대 금지)
   · **별(전천)**: `Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim)`
   · **별자리·성군**: `Constellation(Constellation.ConstellationName.Ori / ASTERISM_STr).setLinesIntensity(1.0, Anim)`
-  · **성운**: `Nebula(Nebula.NebulaName.HORSEHEAD).setIntensity(1.0, Anim)` (이름 enum)
+  · **성운**: `Nebula(Nebula.NebulaName.HORSEHEAD).setIntensity(1.0, Anim)` — ⚠️ Nebula enum 은 **이름**(HORSEHEAD/CRAB/DUMBBELL/EAGLE/ESKIMO…)이지 **M번호 아님**(`NebulaName.M27`=에러). M번호(M1/M27/M31/M42)는 아래 '성운 여행'의 `data(NebulaType,"M27")` 로. bare `NebulaName` 금지 → 항상 `Nebula.NebulaName.X`.
   → **`FadeTo/GoTo/ConnectTo + DataManager` 는 '가서 크게 보는' 천체(행성·달·태양·왜소행성·혜성·소행성)에만.**
   ⚠️ 그 경우도 **DB 이름 정확히**: 은하수(굳이 DataManager면)="Milky Way"(공백!), 달="Moon", 화성="Mars", 토성="Saturn". "MilkyWay"(붙임)·"ASTERISM_STr" 등은 DB 에 없음.
 

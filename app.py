@@ -102,8 +102,10 @@ def _read_knowledge(name: str) -> str:
     out = "\n## ".join(kept)
     limit = KNOWLEDGE_CHAR_LIMIT.get(name)
     if limit and len(out) > limit:
-        # 섹션 경계에서 자르기(중간 절단 방지) — limit 이전 마지막 "\n## " 기준
-        cut = out.rfind("\n## ", 0, limit)
+        # 경계에서 자르기(문장 중간 절단 방지). ⚠️ 섹션(## )만 기준으로 하면 한 섹션이 한도보다
+        # 길 때 그 섹션 '통째로' 날아감(section 1.5 자주 틀리는 장면이 통으로 사라지는 사고).
+        # → 섹션 헤더 '또는' 최상위 불릿(- ** ) 경계 중 한도 직전 가장 가까운 곳에서 자른다.
+        cut = max(out.rfind("\n## ", 0, limit), out.rfind("\n- **", 0, limit))
         out = (out[:cut] if cut > 0 else out[:limit]) + "\n\n(…이하 생략: 토큰 한도 보호)"
     return out
 
