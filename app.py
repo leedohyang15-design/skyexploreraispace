@@ -983,8 +983,18 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                 "# 무료 티어에 llama-3.3-70b 접근이 없거나, 계정에 결제가 필요합니다.\n"
                 "# ▶ cloud.cerebras.ai → Billing 탭에서 상태를 확인하세요.\n"
                 "# ▶ 또는 무료로 쓸 수 있는 모델이 있으면 HF secret 에 CEREBRAS_MODEL 로 지정하세요.\n"
-                "# ─ 상세: %s" % last_err)
+                "# ─ 계정이 접근 가능한 모델: %s\n"
+                "# ─ 상세: %s" % (_list_models_safe(), last_err))
     return "# Cerebras API 오류: %s" % last_err
+
+
+def _list_models_safe() -> str:
+    """진단용: 이 계정/키가 접근 가능한 모델 id 목록(실패해도 앱 안 죽음)."""
+    try:
+        ids = [m.id for m in _get_client().models.list().data]
+        return ", ".join(sorted(ids)) or "(비어 있음)"
+    except Exception as e:  # noqa: BLE001
+        return "(목록 조회 실패: %s)" % e
 
 
 # ═════════════════════════════════════════════════════════════════
