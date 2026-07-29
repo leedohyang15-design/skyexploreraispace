@@ -27,8 +27,9 @@ HERE = Path(__file__).parent
 # 주력 = gemini-2.5-flash(품질↑), 폴백 = gemini-2.0-flash. GEMINI_MODEL 로 오버라이드 가능.
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 PREFERRED_MODELS = [
-    "gemini-2.5-flash",    # 주력 (품질 좋고 무료 한도 넉넉)
-    "gemini-2.0-flash",    # 폴백
+    "gemini-2.0-flash",       # 주력 (신규 사용자도 무료로 접근 가능)
+    "gemini-flash-latest",    # 폴백 (항상 최신 flash 별칭)
+    "gemini-2.0-flash-001",   # 폴백 (버전 고정)
 ]
 
 # ── 남용/쿼터 보호 상한 (공개 엔드포인트라 서버측에서 강제) ──
@@ -631,9 +632,11 @@ def _is_rate_limit(err) -> bool:
 
 
 def _is_decommissioned(err) -> bool:
-    # 모델 폐기/미존재: 다음 모델로 자동 스킵.
+    # 모델 폐기/미존재/신규유저 미개방(404): 다음 모델로 자동 스킵.
     s = str(err).lower()
-    return "decommissioned" in s or "model_not_found" in s or "does not exist" in s
+    return ("decommissioned" in s or "model_not_found" in s or "does not exist" in s
+            or "not_found" in s or "not found" in s or "no longer available" in s
+            or "is not found" in s or "404" in s)
 
 
 def _is_payment_required(err) -> bool:
