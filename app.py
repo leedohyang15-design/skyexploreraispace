@@ -667,6 +667,13 @@ def _retry_after_seconds(err):
     return None
 
 
+def _is_billing_issue(err) -> bool:
+    # 429 지만 '분당 한도'가 아니라 '크레딧/결제 소진'인 경우 — 기다려도 안 풀린다.
+    s = str(err).lower()
+    return ("prepayment credits" in s or "credits are depleted" in s
+            or "billing" in s or "quota" in s and "exceeded" in s)
+
+
 # ── 씬 플랜 생성 ──────────────────────────────────────────────
 PLAN_SYSTEM = """당신은 Sky Explorer 플라네타리움 쇼의 씬 기획자다.
 사용자의 자연어 요청을 분석해 쇼를 구성하는 씬 계획을 JSON으로 반환한다.
@@ -937,6 +944,14 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
             # too_large 는 for hist 계속(히스토리 뺀 재시도)
 
     _model = None
+    if _is_billing_issue(last_err):
+        return ("# 💳 Gemini 프로젝트의 크레딧/결제 문제입니다 (기다려도 안 풀립니다).\n"
+                "# 이 API 키가 붙은 프로젝트가 '선불(prepay) 결제'로 설정돼 크레딧이 0 입니다.\n"
+                "#\n"
+                "# ▶ 해결(무료로): aistudio.google.com → 'Get API key' → API 키를 '결제 없는 새 프로젝트'\n"
+                "#   에서 새로 발급 → 그 키를 HF secret 의 GEMINI_API_KEY 에 교체하세요. (새 프로젝트=무료 티어)\n"
+                "# ▶ 또는: ai.studio/projects 에서 현재 프로젝트의 결제를 해제하거나 크레딧을 충전하세요.\n"
+                "# ─ 상세: %s" % last_err)
     if hit_rate_limit:
         return ("# ⏳ 분당 토큰 한도(TPM)에 걸렸습니다. (일일 한도가 아니라 '분당' 한도)\n"
                 "# 자동 대기 재시도까지 했지만 아직 여유가 안 났어요.\n"
