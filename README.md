@@ -16,15 +16,15 @@ Sky Explorer SDK 의 **실측 검증된 지식**(레퍼런스 + 함정 + 검증 
 
 ## Space 설정 (필수)
 1. **Settings → Variables and secrets → New secret**
-   - Name: `CEREBRAS_API_KEY` / Value: cloud.cerebras.ai 에서 발급한 키
-2. (선택) `CEREBRAS_MODEL` 변수로 모델 변경 — 기본 `llama-3.3-70b`
-3. (선택) `KNOW_REF_LIMIT` / `KNOW_EX_LIMIT` — 지식 주입 글자수(기본 16000 / 6000).
-   생성이 context/토큰 초과로 실패하면 낮추고, 잘 되면 올려서 지식을 더 넣는다.
+   - Name: `GEMINI_API_KEY` / Value: aistudio.google.com 에서 발급한 무료 키
+2. (선택) `GEMINI_MODEL` 변수로 모델 변경 — 기본 `gemini-2.5-flash`
+3. (선택) `KNOW_REF_LIMIT` / `KNOW_EX_LIMIT` — 지식 주입 글자수(기본 40000/40000 = 전체 주입).
+   Gemini 는 context 100만 토큰이라 지식을 통째로 넣어 규칙이 잘리지 않는다.
 
 ## 파일 구성
 | 파일 | 역할 |
 |---|---|
-| `app.py` | Gradio UI + Cerebras 호출 + 지식팩 조립 |
+| `app.py` | Gradio UI + Gemini 호출(OpenAI 호환) + 지식팩 조립 |
 | `knowledge/reference.md` | 정제 AI 프롬프트 (원본: 레포 `reference/AI_SYSTEM_PROMPT.md` — 전체 클래스 레시피 압축본) |
 | `knowledge/examples.md` | 검증된 자연어→코드 few-shot |
 | `converter/` | 순수 파이썬 SPC→Python 변환기 (레포 `scripts/spc_convert/` 와 동기화) |

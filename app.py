@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
-Sky Explorer AI — 자연어 → Python 스크립트 생성기 (Hugging Face Space + Cerebras)
+Sky Explorer AI — 자연어 → Python 스크립트 생성기 (Hugging Face Space + Google Gemini)
 ====================================================================
 UI: 커스텀 HTML(우주 테마) 전면 + Gradio 는 API 엔진으로 숨김
     사이드바 = 대화 로그(localStorage 저장, 클릭 복원) — Claude/Gemini 스타일
 지식: knowledge/reference.md(정제 AI 프롬프트) + knowledge/examples.md 를 시스템 프롬프트로 주입
-Space 설정: Settings → Variables and secrets → CEREBRAS_API_KEY (필수)
-  · 선택: CEREBRAS_MODEL(기본 llama-3.3-70b) · KNOW_REF_LIMIT/KNOW_EX_LIMIT(지식 주입량)
+Space 설정: Settings → Variables and secrets → GEMINI_API_KEY (필수)
+  · 선택: GEMINI_MODEL(기본 gemini-2.5-flash) · KNOW_REF_LIMIT/KNOW_EX_LIMIT(지식 주입량)
 """
 import datetime as dt
 import json
@@ -18,18 +18,17 @@ import urllib.request
 from pathlib import Path
 
 import gradio as gr
-from cerebras.cloud.sdk import Cerebras
+from openai import OpenAI
 
 HERE = Path(__file__).parent
 
-# 🟢 provider = Cerebras Inference (Groq 에서 이관, 2026-07-27). 같은 llama-3.3-70b 라
-# 지금까지 맞춘 지식/프롬프트가 그대로 먹히고, 무료 티어 한도가 커서 지식을 더 넣을 수 있다.
-# 주력 = llama-3.3-70b, 장애 시 폴백 = llama3.1-8b(빠름). 분당 한도에 걸리면 폴백 대신
-# 자동 대기 재시도(_retry_after_seconds)로 70B 를 다시 노린다.
-# 모델 id 는 CEREBRAS_MODEL 로 오버라이드 가능.
+# 🟢 provider = Google Gemini (2026-07-27, Cerebras/Groq 에서 이관). OpenAI 호환 엔드포인트로 호출.
+# 무료 티어가 넉넉하고(카드 불필요) context 가 100만 토큰 → 지식 잘림 문제 자체가 사라진다.
+# 주력 = gemini-2.5-flash(품질↑), 폴백 = gemini-2.0-flash. GEMINI_MODEL 로 오버라이드 가능.
+GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 PREFERRED_MODELS = [
-    "llama-3.3-70b",       # 주력 (Cerebras)
-    "llama3.1-8b",         # 폴백 (70B 장애/한도 시)
+    "gemini-2.5-flash",    # 주력 (품질 좋고 무료 한도 넉넉)
+    "gemini-2.0-flash",    # 폴백
 ]
 
 # ── 남용/쿼터 보호 상한 (공개 엔드포인트라 서버측에서 강제) ──
@@ -80,12 +79,10 @@ BASE_RULES = """당신은 Sky Explorer 플라네타리움 SDK 의 Python 스크�
 
 DROP_SECTIONS = ("## 실행 방법", "## Hello World")   # 코드 생성에 불필요 → 토큰 절약
 
-# 시스템 프롬프트에 넣는 지식 파일 길이 상한. Cerebras 이관으로 한도가 커져 상향했다.
-# ⚠️ Cerebras 무료 티어 context/TPM 한도가 불확실 → env 로 조절 가능하게 뒀다:
-#    KNOW_REF_LIMIT / KNOW_EX_LIMIT (HF secret 에 숫자만 넣으면 즉시 반영, 코드 수정 불필요).
-# · 생성이 context/토큰 초과로 실패하면 → 값을 낮춘다(예 12500/3000).
-# · 잘 되면 → 전체(reference ~21000 / examples ~13100)까지 올려 지식 통째 주입.
-# 초과분은 불릿(- ** )/섹션(## ) 경계에서 잘려 '자주 틀리는 장면'이 통으로 사라지지 않음.
+# 시스템 프롬프트에 넣는 지식 파일 길이 상한.
+# 🟢 Gemini 는 context 100만 토큰이라 지식을 '통째로' 넣는다(잘림 없음 = 규칙이 안 잘려
+#    별자리/은하수/성운 연쇄 에러의 근본 원인이 사라짐). 기본값을 전체보다 넉넉히 잡았다.
+# 필요 시 env 로 조절: KNOW_REF_LIMIT / KNOW_EX_LIMIT (HF secret 에 숫자만).
 def _int_env(name, default):
     try:
         return int(os.environ.get(name, "").strip() or default)
@@ -94,8 +91,8 @@ def _int_env(name, default):
 
 
 KNOWLEDGE_CHAR_LIMIT = {
-    "reference.md": _int_env("KNOW_REF_LIMIT", 16000),
-    "examples.md":  _int_env("KNOW_EX_LIMIT", 6000),
+    "reference.md": _int_env("KNOW_REF_LIMIT", 40000),   # 전체(~21000) 넉넉히 → 잘림 없음
+    "examples.md":  _int_env("KNOW_EX_LIMIT", 40000),    # 전체(~13100) 넉넉히 → 잘림 없음
 }
 
 
@@ -569,56 +566,26 @@ _model = None
 
 
 def _api_key():
-    # 새 키(CEREBRAS_API_KEY) 우선, 예전 이름도 하위호환으로 허용.
-    return (os.environ.get("CEREBRAS_API_KEY") or os.environ.get("GROQ_API_KEY") or "").strip()
+    # 새 키(GEMINI_API_KEY) 우선, 예전 이름들도 하위호환으로 허용.
+    return (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+            or os.environ.get("CEREBRAS_API_KEY") or os.environ.get("GROQ_API_KEY") or "").strip()
 
 
 def _get_client():
     global _client
     if _client is None:
-        _client = Cerebras(api_key=_api_key())
+        _client = OpenAI(api_key=_api_key(), base_url=GEMINI_BASE_URL)
     return _client
 
 
-def _llama_score(mid: str) -> int:
-    """실제 모델 id 표기가 흔들려도 llama-3.3-70b 를 최우선 선택하기 위한 점수.
-       ⚠️ gemma/qwen 등 '알파벳순 첫 모델'을 잘못 고르는 사고(402 유료모델) 방지."""
-    m = mid.lower()
-    if "llama" in m and "3.3" in m and "70b" in m:
-        return 4
-    if "llama" in m and "70b" in m:
-        return 3
-    if "llama" in m and ("8b" in m or "3.1" in m):
-        return 2
-    if "llama" in m:
-        return 1
-    return 0                       # 비-llama(gemma/qwen 등)는 자동 선택 안 함
-
-
 def _pick_model(client) -> str:
+    # Gemini 는 모델 목록이 gemini-* 로 명확 → 추측 없이 env 또는 PREFERRED[0] 사용.
+    # (models.list() 추측이 엉뚱한 모델을 고르던 사고를 원천 차단.)
     global _model
     if _model:
         return _model
-    env = os.environ.get("CEREBRAS_MODEL", "").strip()
-    if env:
-        _model = env
-        return _model
-    try:
-        available = [m.id for m in client.models.list().data]
-        # 1) PREFERRED 정확 일치 우선
-        for cand in PREFERRED_MODELS:
-            if cand in available:
-                _model = cand
-                return _model
-        # 2) llama 계열만 점수순 선택(70b>8b). gemma/qwen 등으로는 절대 안 빠짐.
-        llamas = sorted((m for m in available if _llama_score(m) > 0),
-                        key=_llama_score, reverse=True)
-        if llamas:
-            _model = llamas[0]
-            return _model
-    except Exception:
-        pass
-    _model = PREFERRED_MODELS[0]     # 목록 못 얻으면 PREFERRED[0](llama-3.3-70b)
+    env = os.environ.get("GEMINI_MODEL", "").strip()
+    _model = env or PREFERRED_MODELS[0]
     return _model
 
 
@@ -637,7 +604,7 @@ def _build_messages(prompt: str, history_json: str) -> list:
         assert isinstance(hist, list)
     except Exception:
         hist = []
-    for m in hist[-3:]:                              # 최근 3턴 (Cerebras 로 여유 ↑)
+    for m in hist[-3:]:                              # 최근 3턴 (Gemini 로 여유 ↑)
         if not isinstance(m, dict):
             continue
         q = str(m.get("q", ""))[:1000]
@@ -902,9 +869,9 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
     if not prompt:
         return "# 요청을 입력해 주세요."
     if not _api_key():
-        return ("# 오류: CEREBRAS_API_KEY 가 설정되지 않았습니다.\n"
+        return ("# 오류: GEMINI_API_KEY 가 설정되지 않았습니다.\n"
                 "# Space Settings → Variables and secrets → New secret 에서\n"
-                "# Name: CEREBRAS_API_KEY / Value: cloud.cerebras.ai 발급 키 를 추가하세요.")
+                "# Name: GEMINI_API_KEY / Value: aistudio.google.com 발급 키 를 추가하세요.")
 
     # 씬 플랜이 있으면 프롬프트에 타이밍 지시문 삽입
     if scenes_json:
@@ -919,7 +886,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
         client = _get_client()
         first_model = _pick_model(client)
     except Exception as e:
-        return "# Cerebras API 오류: %s" % e
+        return "# Gemini API 오류: %s" % e
 
     # 재시도 대상 모델: 현재 모델 우선, 이후 PREFERRED 순서.
     # models.list() 호출은 실패해도 무시하고 PREFERRED 로 폴백(불필요한 API 왕복 방지).
@@ -937,7 +904,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                     resp = client.chat.completions.create(
                         model=model_candidate,
                         temperature=0.2,
-                        max_tokens=1600,          # Cerebras 로 여유가 커져 응답 예약분 복원
+                        max_tokens=1600,          # Gemini 로 여유가 커져 응답 예약분 복원
                         messages=_build_messages(prompt, hist),
                     )
                     _model = model_candidate
@@ -962,7 +929,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                         break           # 폐기/유료전용 모델 → 다음(무료) 모델로
                     # 그 외 에러(모델명·파라미터·서버 오류 등)는 원문을 그대로 보여준다.
                     _model = None
-                    return "# Cerebras API 오류 (%s): %s" % (model_candidate, e)
+                    return "# Gemini API 오류 (%s): %s" % (model_candidate, e)
             # while 를 break 로 빠져나왔을 때:
             #   rate_limit/decommissioned/402 → 다음 모델, too_large → 다음 hist(히스토리 제거)
             if _is_rate_limit(last_err) or _is_decommissioned(last_err) or _is_payment_required(last_err):
@@ -976,16 +943,20 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                 "#\n"
                 "# ▶ 지금: 40초~1분 뒤 다시 눌러 주세요. 잠깐 쉬면 한도가 회복됩니다.\n"
                 "# ▶ 팁: 대화가 길어지면 토큰이 누적됩니다 — '＋ 새 대화'로 시작하면 가벼워져요.\n"
-                "# ▶ 근본 해결: cloud.cerebras.ai 콘솔에서 티어/한도를 확인하거나 상향하세요.\n"
+                "# ▶ 근본 해결: aistudio.google.com 콘솔에서 티어/한도를 확인하거나 상향하세요.\n"
                 "# ─ 상세: %s" % last_err)
     if _is_payment_required(last_err):
-        return ("# 💳 Cerebras 결제/티어 문제입니다 (402 Payment required).\n"
-                "# 무료 티어에 llama-3.3-70b 접근이 없거나, 계정에 결제가 필요합니다.\n"
-                "# ▶ cloud.cerebras.ai → Billing 탭에서 상태를 확인하세요.\n"
-                "# ▶ 또는 무료로 쓸 수 있는 모델이 있으면 HF secret 에 CEREBRAS_MODEL 로 지정하세요.\n"
+        return ("# 💳 결제/티어 문제입니다 (402).\n"
+                "# ▶ aistudio.google.com 에서 API 키/사용량을 확인하세요.\n"
+                "# ▶ 또는 다른 모델을 HF secret 에 GEMINI_MODEL 로 지정하세요(예: gemini-2.0-flash).\n"
                 "# ─ 계정이 접근 가능한 모델: %s\n"
                 "# ─ 상세: %s" % (_list_models_safe(), last_err))
-    return "# Cerebras API 오류: %s" % last_err
+    if _is_decommissioned(last_err):     # model_not_found(404) — 어떤 모델이 되는지 보여줌
+        return ("# ⚠️ 지정한 모델이 이 계정에 없습니다 (404 model_not_found).\n"
+                "# ─ 계정이 접근 가능한 모델: %s\n"
+                "# ▶ 이 중 하나를 HF secret 의 GEMINI_MODEL 에 넣으면 됩니다.\n"
+                "# ─ 상세: %s" % (_list_models_safe(), last_err))
+    return "# Gemini API 오류: %s" % last_err
 
 
 def _list_models_safe() -> str:
@@ -1014,7 +985,7 @@ CUSTOM_HTML = """
     </div>
     <div class="conv-list" id="convList"></div>
     <div class="side-tab" id="tabConv">🔁 SPC → Python 변환 <span class="exp-badge">실험적</span></div>
-    <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Cerebras · Llama 3.3 70B</div>
+    <div class="side-foot">지식: 실측 검증 레퍼런스<br>엔진: Google Gemini 2.5 Flash</div>
   </div>
 
   <main>
@@ -1692,7 +1663,7 @@ CUSTOM_JS = r"""
     block.innerHTML =
       '<div class="msg-user">&gt; ' + esc(q) + '</div>' +
       '<div class="msg-result">' +
-        '<div class="log-ticker">⟳ Cerebras 엔진이 스크립트를 생성하는 중...</div>' +
+        '<div class="log-ticker">⟳ Gemini 엔진이 스크립트를 생성하는 중...</div>' +
         '<div class="code-block" style="display:none">' +
           '<div class="code-tools">' +
             '<button class="tool-btn edit-btn">✎ 수정</button>' +
