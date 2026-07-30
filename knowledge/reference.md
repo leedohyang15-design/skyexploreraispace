@@ -290,8 +290,15 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - 🎯 **행성 접근의 안전한 기본값 = `FadeTo`**(검증된 경로). `StraightGoTo` 는 '즉시 도착'엔 좋지만 그 뒤 카메라 조작은 위 규칙을 지켜야 한다.
 - ⚠️ **[참고] 행성 프레임에서 B(위도)를 내리면 대상이 화면에서 위로 올라간다** (B=90 → 화면 하단 / B=20 → 정가운데=천정, 부적합).
   → **결론: B 는 도킹 기본값 그대로 둔다.** 프레이밍은 Target(고도) 로만. `setPositionB` 는 R 을 보존하므로 꼭 B 를 바꿔야 할 때만 쓸 것.
-- 🛑 **카메라 세터 중 '쓸 필요 없는 것' (2026-07-30 전수 실측 — 중복이거나 무효)**:
-  `setOrientationP`(=setTargetHeight 와 동일) · `setOrientationR`(=방위각과 동일) · `setOrientationXYZ`(5번의 Roll 없는 판) · `setPositionL`(오빗 안 됨, 튐) ·
-  🛑 `setFocusDegree`·`setOrientationD`·`setActiveTarget`(화면 무변화) · `setOrientationHPRD` 의 D(무의미) · `setPositionXYZ`(단위 불명, 위험).
-  ✅ 예외로 쓸 만한 것: **`setTargetAzimuth`**(타겟 기준 시계/반시계 회전, 동작 확인) · **`setTraceMode(True)`**(천체 궤적이 남음 — 단 과하게 남아 쇼용은 신중).
-  → **결론: 카메라는 `setOrientationH`(방위) · `setTargetHeight`(고도) · `setOrientationHPR`(회전) · `setPositionLBR`/`setPositionR`/`setPositionB`(위치) 만으로 충분.**
+- **[비슷한 카메라 명령들의 차이 — 2026-07-30 전수 실측]** ⭐대원칙: **`track` 인자 유무**가 핵심(track 없음=현재 프레임 속성 세터 / track 있음=좌표계 지정 가능, -1=현재).
+  · `setOrientationP` vs `setTargetHeight`: 결과 같음(고도). 차이=**계통**. Target 계통이 HUD·운영표준(30)의 기준 → **`setTargetHeight` 를 쓴다**.
+  · `setOrientationR` vs `setOrientationH`: 기하학적으로 **Roll(시선축) vs Heading(수직축)**. 지상 Target 30 에선 비슷해 보이나 **천정·성운 프레임에선 완전히 다름** → 별밭 스핀은 반드시 Roll(`setOrientationHPR` 셋째값).
+  · `setTargetAzimuth` vs `setOrientationH`: H=**절대 방위**(H=180−천체방위 공식, 조준용) / TargetAzimuth=**타겟 기준 상대 회전**(둘러보기용).
+  · `setOrientationXYZ`(롤 없음, track X) < `setOrientationXYZR`(방향+롤, track O) < **`setOrientationSmoothXYZR`(+부드러운 보간)** → 프레임 전환 정렬은 항상 Smooth 판.
+  · `setOrientationHPR`(track **없음**) vs `setOrientationHPRD`(track **있음**): D 성분은 무변화지만 **특정 좌표계 기준으로 각도를 걸어야 하면 HPRD(D=0, track=포트)** 가 유일한 방법.
+  · `setPositionL`/`setPositionB`(해당 성분만, **R 보존=안전**) vs `setPositionLBR`(셋 다 씀 → **R 되써서 폭발 위험**). B 조정은 `setPositionB`, 줌은 `setPositionR`.
+  · `setPositionXYZ`(직교, 미세하게 작동하나 **단위 불명**) vs `setPositionLBR`(구면, **R=거리라 배율 계산 직관적**) → 위치는 LBR 계열로.
+  · 🛑 **실측 무변화**: `setFocusDegree` · `setOrientationD` · `setActiveTarget` · HPRD 의 D성분.
+  · ⚙️ **돔 하드웨어(건드리지 말 것)**: `setEyeDistance`·`setStereoPosition`·`setStereoRatio`·`setActiveTrackStereo`·`setDomeMeanPixelRatio`·`setResolutionRatioStrength` = 극장 장비 캘리브레이션.
+  · ✅ 특수 용도: **`setTraceMode(True)`**=천체 궤적 남김(과하게 남으니 짧게).
+  → **평상시 조합: `setOrientationH`(방위)+`setTargetHeight`(고도)+`setOrientationHPR`(회전)+`setPositionLBR`/`setPositionR`/`setPositionB`(위치).**
