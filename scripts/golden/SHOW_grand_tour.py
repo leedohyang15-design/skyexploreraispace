@@ -37,18 +37,26 @@ def clamp_dark(sec):
     for _ in range(max(int(sec / 0.2), 1)):
         uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.2)
 
+CAPTION_H = 12          # ★ 자막 기본 높이 (사용자 확정) — 25 는 천체와 겹쳤다. 더 아래로.
+
+
 def make_caption(dist=1.0, height=None):
-    """자막 생성 (지상=distance 1.0 / 행성 프레임=20)
-       ⚠️ 행성 프레임에선 대상이 화면 중앙~아래를 크게 차지 → 자막을 **더 아래(height 10)** 로
-          내려야 행성과 겹치지 않는다(실측 지적)."""
+    """자막 생성/재배치.
+       ⚠️ 이전 자막을 반드시 끈다 — 안 끄면 옛 자막이 그 자리에 남아 '안 내려간 것처럼' 보인다.
+       ⚠️ 행성 프레임은 distance 20 + setSize 금지 / 지상은 distance 1.0 + setSize 0.052."""
     global t1
     if height is None:
-        height = 25 if dist == 1.0 else 10     # 행성 프레임은 낮게
+        height = CAPTION_H
+    if t1 is not None:
+        try: t1.setIntensity(0.0, Anim(0.0))      # ★ 옛 자막 끄기
+        except Exception: pass
     t1 = InsertText(InsertText.InsertTextName(1))
     cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
     t1.setPosition(Vec(0, height, 0))
-    if dist == 1.0: t1.setSize(0.052)          # 행성 프레임에선 setSize 금지
-    t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(dist, Anim(0.0))
+    if dist == 1.0:
+        t1.setSize(0.052)                          # 행성 프레임에선 setSize 금지
+    t1.setColor(Vec(1.0, 1.0, 0.55))
+    t1.setDistance(dist, Anim(0.0))
     t1.setIntensity(0.0, Anim(0.0))
 
 def ground_night_slow(lat=36.64, lon=127.49, alt=200.0,
