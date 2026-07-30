@@ -204,11 +204,14 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 ## 4. 🛑 시도 금지 (이 빌드서 스크립트로 안 됨)
 - **영상(VideoPlayer) / 오디오(Audio·AudioLayer·AudioLite) / DMX조명(Light)**: 별도 호스트 필요, 무반응.
 - **ParameterizationLut**(속성 자동화): enable돼도 화면 무반영. **Place3D**(3D경로선): load돼도 렌더 안 됨. **SkySurvey**(HiPS): 검은화면. **NGC**: 접근 액션 死. **Patch**: 위치 없음.
-- **Lut.setColorPalette**(별 색): 무효. 별 색은 `Stars.setPointSaturation`으로만.
+- **별 색=온도 팔레트 = `Lut.setColorPalette` ✅됨 (2026-07-30 확정)**: 팔레트 PNG 는 반드시 **`studio/starColors/` 폴더**에 있어야 함(옛 실패=경로문제). 레시피:
+  `import os` → `base = Configuration.configuration().localUserFolder` → `folder = base + "/studio/starColors"` → `files=[f for f in os.listdir(folder) if f.endswith(".png")]` →
+  검정(000000) 적은 파일 우선 `path = folder+"/"+min(files, key=lambda f: f.count("000000"))` → `lut = Lut(Lut.LutName.Lut001); lut.setColorPalette(path, -1.5, 6.5)`.
+  `Stars.setPointSaturation(4.5)` 같이 올리면 색 또렷. (setPointSaturation 만으로도 채도는 올라가지만, 실제 온도색 매핑은 이 팔레트라야.)
 - **AdvancedCamera 비행**(zoom/move/takeOff): 스크립트 무효(오퍼레이터 수동).
 - **지상 Sky View에서 setPositionLBR/setZoomFov**: 무효. 지상 클로즈업은 `setScale`(태양·달 등 같은 배율로).
 - **표면 디테일**(강수/암벽/나무 setRockyCliff·setTree·setCloudRaininess): Terrain View 전용, 궤도줌서 안 보임.
-- **setColorPalette·바다윤슬·무지개·대기halo류**: 은근/약함 → 쇼 임팩트용으로 피함.
+- **바다윤슬·무지개·대기halo류**: 은근/약함 → 쇼 임팩트용으로 피함. (setColorPalette 는 위 별색 팔레트로 이관 = 됨)
 
 ## 5. 자주 쓰는 완성 레시피 (요청↔패턴)
 - "청주 밤하늘 별자리" → 골격(A) + Constellation 큐레이션 setLinesIntensity + 자막(B).

@@ -391,11 +391,15 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   ⚠️⚠️ **결정적 증거 = 링(도넛) PNG + spriteScale 18 → 별마다 거대 링이 겹쳐 하늘 전체가 하얗게 탐**(= 확실히 적용됨, 배율 과함).
   ⚠️ **함정: spriteScale 을 크게(>6) 주면 별이 서로 겹쳐 화면이 하얘짐** → 개별 모양 보려면 **작게(1.2~2.5) + setSpriteSizeLimit 낮게(~3)**.
   (v1 의 '십자 스파이크 PNG'가 안 바뀐 것처럼 보인 건 기본 별과 모양이 비슷 + 스파이크가 가늘어서였음. 링처럼 확 다른 모양이어야 판별됨.) 원본은 `lut.spriteTexture` 로 읽어 복귀.
-- 🛑🛑 **`setColorPalette(파일, magMin, magMax)` = 무효 확정 (2026-07-22 사용자 "색깔이 안 바뀌어", 스샷)**:
-  등급→색 매핑 팔레트인데 **극단 초록→빨강 PNG를 가로(256폭)·세로(256높이) 둘 다** mag -1.5~6.5 로 걸어도 **별 색 전혀 안 바뀜**(링 스프라이트가 전부 흰색 유지 = 팔레트 미적용 결정적 확인).
-  스프라이트 텍스처는 되는데 색 팔레트만 안 됨.
-  ✅✅ **원인 발견 = 팔레트 전용 폴더 (2026-07-23 사용자 제보)**: 진짜 별색 팔레트 PNG 는 **`D:\SkyExplorer-Data\user\studio\starColors`** 에 있음(user폴더 루트 아님!).
-  실제 파일 = 가로 그라데이션(왼쪽 뜨거운 청백 → 오른쪽 차가운 적색, 항성 온도/B-V). **내가 실패한 건 파일을 user폴더 루트에 둬서 = 경로 문제로 추정** → `studio/starColors/` 경로로 다시 걸면 될 가능성. (재도전 시 이 폴더에 배치 + 실제 파일 규격 매칭.)
+- ✅✅✅ **`setColorPalette(파일, magMin, magMax)` = 됨! 확정 (2026-07-30 사용자 "색이 좀 뚜렷하긴해", star_color_palette_retry.py)**:
+  과거 실패의 원인은 **파일 경로**였음(user 루트에 뒀음). **팔레트 PNG 는 반드시 `D:/SkyExplorer-Data/user/studio/starColors/` 에** 있어야 하고,
+  거기 실제 파일 3개를 `lut.setColorPalette(그폴더/파일, -1.5, 6.5)` 로 걸면 **별 색이 온도별로 바뀜**(사용자 확인).
+  ⚠️⚠️ **파일명이 팔레트 스펙을 인코딩**: `1_-1_4_c_` 헤더 뒤 `등급_hex` 쌍 반복. 실측 파일 3종:
+  · `..._-0.3_00eeff_...대부분 000000..._4_ff1100.png` = **극단형(대부분 검정, 부적합)**
+  · `..._050dff_2d2db9_5c5cb7_e2e2ee_fbff00_e1bd09_ff5900_ff1100.png` = **파랑→흰→노랑→주황→빨강 = 진짜 온도 그라데이션(추천)**
+  · `..._a3b8ff_a8c5ff_e3e9ff_fef9ff_ffeee3_ffddbe_ffb46b_ff3800.png` = 은은한 실제 별색(B-V)
+  → 레시피: 폴더를 `os.listdir` 로 자동탐색(파일명은 설치마다 다를 수 있음) + **000000(검정) 적은 파일 우선** 선택 → `setColorPalette(path, -1.5, 6.5)`.
+  `Stars.setPointSaturation(4.5)` 를 같이 올리면 색이 더 또렷. 지상 밤 오리온(리겔 청백/베텔게우스 붉음)에서 대비 잘 보임. **(스프라이트 텍스처 setSpriteTexture 는 이미 됐고, 이제 색 팔레트도 됨.)**
 - ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
   개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
   메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·
