@@ -90,6 +90,11 @@ if h is not None:
     cam.setTargetHeight(30.0, Anim(0.0))
     t1.setText("몽블랑 정상 — 4,800m 위의 하늘")
     uni.setGlobalIntensity(1.0, Anim.cubic(1.5)); sleep(2.0)
+    try:                                        # (v2) 산 구간도 좌표 로그 남기기
+        q = Place2D(Place2D.Place2DName(0)).position
+        print("이동 완료: Mont blanc → 위도 %.3f / 경도 %.3f / 고도 %.0fm" % (q.x, q.y, q.z))
+    except Exception:
+        pass
     sleep(6.0)
 
 t1.setText("같은 별, 다른 자리"); sleep(4.0)
