@@ -196,6 +196,8 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **IndividualStar**(태양·별): `IndividualStar(IndividualStar.IndividualStarName.Sun)` `setIntensity` `setPointerIntensity`(별 지목) `setLabelIntensity`(이름표) `setZodiacalLightIntensity`. 태양표면: `setModel(Model.SDO)`+`setMagneticLinesIntensity`+`setCoronaIntensity`. 이름있는별: Sun/Sirius/Vega/Rigel/Betelgeuse/Aldebaran/Polaris 등(흔한이름만).
 - **Constellation**: `Constellation(ConstellationName.Ori)` `setLinesIntensity` `setArtIntensity`(신화그림) `setLabelIntensity` `setLimitsIntensity`(경계선). 성군 프리셋: `ASTERISM_STr`(여름대삼각형)/`ASTERISM_BDr`(북두칠성) 등. IAU 3자약어(Ori/UMa/Sco/Cyg…). 15~20개 큐레이션 권장.
 - **Nebula/Messier**: `Nebula(NebulaName.HORSEHEAD)` 44개 아트. Messier는 `DataManager.database().data(Data.Type.NebulaType,"M42").action(Action.Type.ConnectTo).trigger()` → `setTargetHeight(90)`(성운 프레임 중앙) → 절대타겟 지오메트릭 줌.
+- **NGC(딥스카이) '제자리 ON' ✅됨 (2026-07-30 확정)**: 카메라 접근은 死지만 **Nebula 처럼 하늘에 켜기**는 됨. `NGC(NGC.NGCName.NGC2237).setIntensity(1,Anim)` + `setLabelIntensity(1)` → 지상 밤하늘 그 좌표에 뜸(장미성운=겨울 외뿔소자리). ⚠️ 포인터/scale 없음(setIntensity·setLabelIntensity·id 만). 확대해 보여줄 순 없음(제자리 렌더만). 카탈로그: NGC2237(장미)/NGC253/NGC869_884(이중성단)/NGC2392(에스키모)/NGC4038(안테나).
+- **ParameterizationLut '프리셋 슬롯' ✅됨 (2026-07-30 확정)**: 전 별자리 선/그림/라벨/경계를 **한 방에 슬라이더로 부드럽게 페이드**. `pl=ParameterizationLut(ParameterizationLut.ParameterizationLutName.ParameterizationLut051_AllConstellationLines)` → `pl.setEnabled(True)` → `sleep(1.5)`(프레임대기) → `pl.setInternalValue(0.0,Anim(0)); pl.setInternalValue(1.0,Anim(4.0))`(0→1 페이드인). 슬롯: 051_AllConstellationLines/052_Pictures/053_Labels/054_Boundaries/055~058_Slider*/059_AutoExposure/060_AutoContrast. ⚠️ 061_Rain·062_Snow(날씨)는 死(별도 렌더러). 수동 addTargetAttribute도 死 — 프리셋만.
 - **DwarfPlanet**: Pluto/Ceres/Eris… FadeTo(R=4). `setTerrainModel(TerrainModel.NewHorizons)`=명왕성 하트.
 - **Comet/Asteroid**: 궤도 6요소로 직접 그림. `setEccentricity/setInclination/setSemiMajorAxis/...` 넣고 `sleep(0.3)`. 태양계 조망: `sp=sun.portId(IndividualStar.IndividualStarPort.Ecliptic)`→`cam.setPositionLBR(Vec(0,90,6),Anim,sp)`+`cam.setTargetHeight(30)`.
 - **ShootingStar**(유성우): `setReferential(Referential.RaDec)`+`setRainGradientPoint(Vec2(적경,적위))` 복사점 고정 + `setZenithalHourlyRate`(⚠️ 내부저장=ZHR/60! 볼만함=800~1500) + `setRainSeed(1)`. `setRepresentationType(Model.Gradient)`.
@@ -211,7 +213,7 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 
 ## 4. 🛑 시도 금지 (이 빌드서 스크립트로 안 됨)
 - **영상(VideoPlayer) / 오디오(Audio·AudioLayer·AudioLite) / DMX조명(Light)**: 별도 호스트 필요, 무반응.
-- **ParameterizationLut**(속성 자동화): enable돼도 화면 무반영. **Place3D**(3D경로선): load돼도 렌더 안 됨. **SkySurvey**(HiPS): 검은화면. **NGC**: 접근 액션 死. **Patch**: 위치 없음.
+- **ParameterizationLut 수동타겟**(addTargetAttribute 로 직접): 무반영. (단 '프리셋 슬롯'은 됨 — 아래 3.5 참조.) **날씨(Rain/Snow)**: 별도 렌더러 死. **Place3D**(3D경로선): load돼도 렌더 안 됨. **SkySurvey**(HiPS): 검은화면(최종 死). **NGC 카메라 접근/센터링**: 액션 死(단 '제자리 ON'은 됨 — 3.5 참조). **Patch**: 위치 없음.
 - **별 색=온도 팔레트 = `Lut.setColorPalette` ✅됨 (2026-07-30 확정)**: 팔레트 PNG 는 반드시 **`studio/starColors/` 폴더**에 있어야 함(옛 실패=경로문제). 레시피:
   `import os` → `base = Configuration.configuration().localUserFolder` → `folder = base + "/studio/starColors"` → `files=[f for f in os.listdir(folder) if f.endswith(".png")]` →
   검정(000000) 적은 파일 우선 `path = folder+"/"+min(files, key=lambda f: f.count("000000"))` → `lut = Lut(Lut.LutName.Lut001); lut.setColorPalette(path, -1.5, 6.5)`.

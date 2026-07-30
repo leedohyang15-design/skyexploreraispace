@@ -400,14 +400,15 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · `..._a3b8ff_a8c5ff_e3e9ff_fef9ff_ffeee3_ffddbe_ffb46b_ff3800.png` = 은은한 실제 별색(B-V)
   → 레시피: 폴더를 `os.listdir` 로 자동탐색(파일명은 설치마다 다를 수 있음) + **000000(검정) 적은 파일 우선** 선택 → `setColorPalette(path, -1.5, 6.5)`.
   `Stars.setPointSaturation(4.5)` 를 같이 올리면 색이 더 또렷. 지상 밤 오리온(리겔 청백/베텔게우스 붉음)에서 대비 잘 보임. **(스프라이트 텍스처 setSpriteTexture 는 이미 됐고, 이제 색 팔레트도 됨.)**
-- ⚠️ **자매 `ParameterizationLut` = 설정/활성화는 되나 '가시 piloting 무효' (2026-07-22, parameterization_lut.py v1~v4, 사용자 "안 사라져")**:
-  개체 속성(Intensity/Color/Opacity/LinesColor/Position/AzimuthHeight/ManualIntensity/TrackingIntensity)을 LUT 키로 자동구동하는 엔진.
-  메서드: `addTargetAttribute(int handler, AttributeName)`(⚠️ automatic=True 3인자 오버로드는 **바인딩 실패** — 2인자만) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) ·
-  `setInternalValue(0~1, Anim)`(수동 슬라이더 입력) · `setEnabled(True)` · `setSourceSunHeight()`(태양고도 자동구동) · `restore()`.
-  프리셋 슬롯(051~062): AllConstellationLines/Slider*/StarrySkyAutoExposure/WeatherEffectRain·Snow 등.
-  ✅ **enabled 는 setEnabled(True) 후 ~1초 프레임 대기하면 True 로 붙음**(즉시 읽으면 False — 프레임 필요). ⚠️ pilotedAttributeList/attributeList 는 파이썬 읽기 불가(No to_python converter).
-  🛑 **그러나 실제 구동이 화면에 안 먹힘**: Stars(osgId=1e8) Intensity 를 타겟 걸고 internalValue 1→0(키 0→0/1→1)로 내려도 **별밭이 안 어두워짐**(밀키웨이 끄고 5초 홀드해도 무변화). 프리셋 슬라이더(별자리 선)도 무변화.
-  → **[판정] ParameterizationLut 은 설정·enable 은 되나 스크립트 창에서 렌더 파이프라인에 piloting 이 반영 안 됨 = 쇼엔진/오퍼레이터 소관(미디어류와 동일 부류). 쇼용 부적합.** (Lut 은 자동적용이라 됐지만 ParameterizationLut 은 별개.)
+- ✅✅✅ **[정정 — 큰 수확] `ParameterizationLut` '프리셋 슬롯'은 됨! (2026-07-30 사용자 "별자리선은 잘됐고", retry_1/3/4)**:
+  옛 결론('전면 死')은 **수동으로 타겟을 직접 걸어서**였음(그건 여전히 무효). **미리 배선된 프리셋 슬롯(051~062)** 은 `setInternalValue` 로 구동됨(별자리선 페이드 확인).
+  ⚠️⚠️ **핵심 패턴 = "이미 엔진이 렌더 중인 것"만 파일럿됨**:
+  · ✅ **됨(엔진이 이미 그리는 속성)**: `051_AllConstellationLines` / `052_AllConstellationPictures` / `053_AllConstellationLabels` / `054_AllConstellationBoundaries` / `055~058_Slider*`(별자리선/그림/라벨·별라벨 슬라이더) / `059_StarrySkyAutoExposure` / `060_StarrySkyAutoContrast`.
+  · 🛑 **안 됨(별도 렌더러가 꺼진 것)**: `061_WeatherEffectRain` / `062_WeatherEffectSnow` — 대기 ON 해도 비/눈 안 내림(사용자 "둘다 안돼"). 날씨는 **별도 날씨 렌더러(호스트) 소관** = 미디어와 동일 부류(파일럿할 대상 자체가 script 창에 없음).
+  · 🛑 **수동 타겟도 여전히 死**: `addTargetAttribute(osgId, AttributeName)` + `addKey` + `setInternalValue` 로 Stars Intensity 직접 걸기 = 무반응(별밭 안 어두워짐).
+  **레시피(프리셋 구동)**: `pl = ParameterizationLut(ParameterizationLut.ParameterizationLutName.ParameterizationLut051_AllConstellationLines)` → `pl.setEnabled(True)` → `sleep(1.5)`(프레임 대기, 안 하면 enabled=False) → `pl.setInternalValue(0.0, Anim(0)); pl.setInternalValue(1.0, Anim(4.0))`(0→1 = 부드러운 페이드인). 복귀 `restore()`.
+  → **쓸모**: 별자리 선/그림/라벨/경계를 **전 별자리 한 방에 슬라이더로 부드럽게 페이드**(개별 Constellation 88개 호출 없이). 별하늘 자동노출/대비도 슬라이더로.
+  ✅ 메서드: `addTargetAttribute(int handler, AttributeName)`(2인자만; 3인자 오버로드 바인딩 실패) · `addKey(pos0~1, Vec4, KeyType)`(KeyType=Double/Vec2/Vec3/Vec4) · `setInternalValue(0~1, Anim)` · `setEnabled(True)` · `setSourceSunHeight()`(태양고도 자동구동) · `restore()`. enabled 는 setEnabled 후 ~1.5초 프레임 대기해야 True. pilotedAttributeList/attributeList 는 파이썬 읽기 불가.
 
 ## Mark — 좌표 그리드/눈금 (2026-07-07 v1 프로브 실측)
 - 생성: `Mark(Mark.MarkName.Mark001)` — **MarkName = Mark001~050 + Mark051~053_WelcomeGrid** (69멤버).
@@ -752,8 +753,16 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - 활용 아이디어: 별자리 위에 형상 덧그리기, 화살표/동그라미 주석, 관객 앞 실시간 스케치.
 - SPC(Recording49, family **0x26**=637534208): addChild **4881** / setBrushType **11271**(Pen=1) / setBrushColor **11272** / setBrushSize **11275** / setIntensity **11274** / beginDraw **11265** / setBrushPosition **11270** / endDraw **11266** / clearAll **11267**.
 
-## NGC — `NGC(NGC.NGCName.NGC2237)` 🛑 이 빌드서 '쇼 개체로 사용 불가' 확정 (2026-07-20 실측)
-- NGCName enum = 실제 카탈로그(NGC253 조각가은하/**NGC2237 장미**/NGC869_884 이중성단/NGC2392 에스키모/NGC4038 안테나 …), NGCPort = **Ecliptic / LineOfSightLocal**. API=setIntensity/setScale/setLabelIntensity/setSize/portId/addChild.
+## NGC — `NGC(NGC.NGCName.NGC2237)` ✅ '제자리 ON'은 됨 / 🛑 카메라 접근만 死 (2026-07-30 정정, retry_1_classes.py)
+- NGCName enum = 실제 카탈로그(NGC253 조각가은하/**NGC2237 장미**/NGC869_884 이중성단/NGC2392 에스키모/NGC4038 안테나 …), NGCPort = **Ecliptic / LineOfSightLocal**.
+- ✅✅✅ **[정정 — 큰 수확] NGC 를 '제자리 ON'으로 켜면 하늘에 렌더됨 (2026-07-30 사용자 "ngc는 잘보이고", 장미성운 확인)**:
+  옛 결론('쇼 개체 불가')은 **카메라 접근만 시도**해서 내린 오판이었음. **Nebula 처럼 카메라 안 움직이고 그냥 `setIntensity(1)` 로 켜면** 지상 밤하늘 그 좌표에 딥스카이가 뜬다.
+  · ✅ 동작 API(실측): **`setIntensity(i, Anim)` · `setLabelIntensity(i, Anim)` · `id` · `addChild`**.
+  · ❌ **없는 API(실측)**: `scale`(읽기속성 없음)·`setPointerType`·`setPointerIntensity`(Nebula 와 달리 포인터 없음). setScale/setSize 는 미검증(있어도 위치는 하늘 고정이라 큰 의미 X).
+  · **레시피 = Nebula 제자리 ON 과 동일**: 지상 밤(대기 OFF+지면 OFF) → 대상이 지평선 위인 계절/시각 세팅 → `NGC(NGC.NGCName.NGC2237).setIntensity(1, Anim)` + `setLabelIntensity(1)` → 그 방향 조준(setOrientationH/TH). 장미성운=겨울(1월) 외뿔소자리 근처(H≈30, 고도30 에서 보임 실측).
+  · ⚠️ **접근/센터링은 여전히 死** — 확대해서 보여줄 순 없고 '하늘에 있는 딥스카이'로만. 클로즈업 필요하면 Nebula(44개 아트)/Messier 로.
+  → **딥스카이 레퍼토리 확장**: 이제 Nebula(HORSEHEAD 등 44) + Messier(M##) + **NGC(제자리 ON, 장미성운 등)** 셋 다 밤하늘에 켤 수 있음.
+- ⚠️⚠️ **단 카메라 접근(FadeTo/센터링)은 死 확정 (재확인 2026-07-30): DB 액션 스캔 전멸** — NgcType·MessierType 핸들은 나오나 `FadeTo=None`, NebulaType/DeepSkyObjectType/AsterismType/GalaxyType 은 "Failed to get data". **어떤 타입/이름으로도 접근 액션 없음.** 아래는 옛 접근 실패 기록:
 - ⚠️⚠️ **접근 3경로 전부 실패 (ngc_deepsky.py v1~v3)**:
   ① **클래스 LOS 포트로 카메라 이동**(horsehead 방식 그대로) → **프레임이 깨져 배경 별까지 사라지고 자막(HUD)만 남음**. NGC 의 LineOfSightLocal 은 Nebula 의 그것과 다르게 동작(같은 코드가 Nebula 는 OK).
   ② **DB `NgcType` "NGC 2237"** → 핸들은 나오나 **`.action(ConnectTo/FadeTo/GoTo)` 전부 None(死)** = MessierType 함정과 동일(핸들만 나오고 액션 없음).
@@ -931,10 +940,11 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   ⚠️⚠️ **TSV 컬럼 포맷 미문서 + load 가 4개 후보 포맷(t/x/y/z · x/y/z · t/az/h/r · t/lon/lat/alt) 전부 '에러 없이' 받음**(검증 안 함) → 에러로 포맷 못 좁힘.
   showPath=True/intensity=1/evolution=1 로 세팅돼도 **화면에 곡선 안 뜸**. dir() 에 setParent/addChild 없음 = 프레임 부착 API 없음 → 좌표 프레임/스케일이 안 맞으면 화면 밖.
   → **[판정] 맹탕(포맷·프레임 미상)으로는 못 띄움. 실제 경로 TSV 는 소프트웨어가 export 하는 특정 포맷/프레임 추정 = 스크립트 창 단독 렌더 난망.** 궤적선이 필요하면 검증된 Line/OrbitalPlace/Comet 궤도선 사용.
-- ✅✅ **[정리] '미개척 클래스' 스윕 결론 (2026-07-22)**: 완본 전 클래스 중 안 해본 것들 판별 완료. **렌더/동작 확인 = Lut(별 스프라이트)** 뿐. **나머지는 전부 호스트/오퍼레이터/하드웨어 소관**:
-  🛑 VideoPlayer(ViPlayer 호스트) · 🛑 Audio 4형제(오디오 호스트) · 🛑 ParameterizationLut(enable 은 되나 piloting 무반영) · 🛑 Place3D(load 되나 렌더 안 됨) · 🛑 SkySurvey(HiPS 미렌더) · 🛑 NGC(액션 死) · 🛑 Patch(워핑, 위치 없음) ·
+- ✅✅ **[정리] '미개척 클래스' 스윕 결론 (2026-07-22, 2026-07-30 정정)**: 완본 전 클래스 중 안 해본 것들 판별 완료.
+  ✅ **렌더/동작 확인**: Lut(별 스프라이트) · **Insert2D 애니메이션(setPosition/setSize Anim + 텍스처 flip = 영상 대체)** · **ParameterizationLut '프리셋 슬롯'(별자리선/그림/라벨/경계/슬라이더/자동노출)** · **NGC '제자리 ON'(장미성운 등 딥스카이)** ← 2026-07-30 3개 부활.
+  🛑 **여전히 死(호스트/오퍼레이터/하드웨어 소관)**: VideoPlayer(ViPlayer 호스트) · Audio 4형제(오디오 호스트) · **ParameterizationLut 날씨(Rain/Snow)·수동타겟**(별도 렌더러/무반영) · Place3D(load 되나 렌더 안 됨) · SkySurvey(HiPS 미렌더, 최종) · **NGC 카메라 접근(액션 死 — 단 제자리 ON 은 됨)** · Patch(워핑, 위치 없음) · 지구 표면디테일(절벽/식생/강수 = Terrain View 전용).
   하드웨어/시스템(비검증, 창 무관): Light(DMX 코브) · DMX512 · SoftwareManager · ShowEngineManager · FreeDomeManager · RemoteShow · SlideShowHandler(XML 필요) · Comment(로그 전용) · Body(추상 베이스) · Mat/Mat4x4/Vec3(수학).
-  → **스크립트로 '돔에 뭔가 그리는' 미개척 클래스는 사실상 소진.** 앞으로 새 임팩트는 '검증된 렌더 클래스의 새 조합/현상' 쪽에서 찾을 것(미디어·파라미터화·경로선은 재시도 금지).
+  → **교훈: '死'로 묻었어도 접근 방식(수동 vs 프리셋, 접근 vs 제자리 ON)을 바꾸면 살아나는 게 있음.** 미디어·오디오·날씨·경로선·HiPS 는 재시도 금지(호스트 소관 확정), 그 외는 각도 바꿔볼 여지.
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
