@@ -37,12 +37,16 @@ def clamp_dark(sec):
     for _ in range(max(int(sec / 0.2), 1)):
         uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.2)
 
-def make_caption(dist=1.0):
-    """자막 생성 (지상=distance 1.0 / 행성 프레임=20)"""
+def make_caption(dist=1.0, height=None):
+    """자막 생성 (지상=distance 1.0 / 행성 프레임=20)
+       ⚠️ 행성 프레임에선 대상이 화면 중앙~아래를 크게 차지 → 자막을 **더 아래(height 10)** 로
+          내려야 행성과 겹치지 않는다(실측 지적)."""
     global t1
+    if height is None:
+        height = 25 if dist == 1.0 else 10     # 행성 프레임은 낮게
     t1 = InsertText(InsertText.InsertTextName(1))
     cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
-    t1.setPosition(Vec(0, 25, 0))
+    t1.setPosition(Vec(0, height, 0))
     if dist == 1.0: t1.setSize(0.052)          # 행성 프레임에선 setSize 금지
     t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(dist, Anim(0.0))
     t1.setIntensity(0.0, Anim(0.0))
@@ -107,13 +111,18 @@ def shadows_off(obj):
     obj.setShadowContrast(0.0, Anim(1.0))
     obj.setPlanetShineStrength(1.0, Anim(1.0))
 
-def fly_to_planet(name, caption, zoom=True):
-    """행성 GoTo 비행 → 도착 폴링 → Target 30 → 줌. B 는 손대지 않는다."""
+def fly_to_planet(name, caption, zoom=True, pullback=None):
+    """행성 GoTo 비행 → 도착 폴링 → Target 30 → (풀백) → 줌. B 는 손대지 않는다.
+       pullback: 위성계처럼 넓게 담아야 할 때 R 배수(예 3.5)."""
     say(caption)
     db.data(Data.Type.PlanetType, name).action(Action.Type.GoTo).trigger()
     print("   %s 로 비행" % name)
     wait_arrival(dock_r=100.0)
     cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
+    make_caption(20.0)                          # ★ 행성 프레임 자막(낮은 위치)로 교체
+    if pullback:
+        p = cam.positionLBR
+        cam.setPositionR(p.z * pullback, Anim.cubic(4.0), -1); sleep(4.5)
     if zoom: zoom_in()
 
 # ── 막0 : 지상에서 출발 ──────────────────────────────────────
@@ -142,29 +151,31 @@ hard_reset_to_ground()
 light(1.8)
 jup = Planet(Planet.PlanetName.Jupiter)
 shadows_off(jup)
+# ⚠️ 실측 지적: 도킹 R≈5 에선 위성 궤도가 화면 밖/너무 작아 안 보임
+#    → **풀백(R×3.5)** 으로 궤도를 담고, 위성 **setScale 을 크게(14)** 준다
 fly_to_planet("Jupiter", "두 번째 — 목성. 지구 1,300개가 들어간다",
-              zoom=False)                       # 위성계를 담으려면 줌 없이 넓게
+              zoom=False, pullback=3.5)
 say("가스로만 이루어진 거대 행성", 5.0)
 
 # 갈릴레이 위성 4개 (1610년 갈릴레오가 본 그것)
-for nm, ko in (("Io", "이오"), ("Europa", "유로파"),
-               ("Ganymede", "가니메데"), ("Callisto", "칼리스토")):
+for nm in ("Io", "Europa", "Ganymede", "Callisto"):
     try:
         s = Satellite(getattr(Satellite.SatelliteName, nm))
         s.setIntensity(1.0, Anim(1.0))
-        s.setOrbitIntensity(0.8, Anim(1.0))
+        s.setOrbitIntensity(0.9, Anim(1.0))
         s.setLabelIntensity(1.0, Anim(1.0))
-        s.setScale(7.0, Anim(1.0))
+        s.setScale(14.0, Anim(1.5))              # ★ 크게 (7 은 안 보였음)
     except Exception as ex:
         print("   위성 %s: %s" % (nm, ex))
-sleep(3.0)
+sleep(4.0)
 say("갈릴레오가 1610년에 본 네 개의 점", 5.0)
 say("이 점들이 목성을 돈다는 사실이 — 지동설의 증거가 됐다", 7.0)
 
-# 시간가속으로 위성 공전
-dm.setDateTime(2026, 1, 22, 12, 0, 0, tz, Anim(20.0))
-sleep(21.0)
-say("안쪽일수록 빠르게 — 케플러의 법칙", 5.0)
+# ★ 시간가속: +7일/20초는 너무 빨랐음 → +2일을 36초에 (이오 주기 1.77일 = 약 1바퀴)
+say("시간을 조금 빠르게 감아 보면")
+dm.setDateTime(2026, 1, 17, 12, 0, 0, tz, Anim(36.0))
+sleep(37.0)
+say("안쪽일수록 빠르게 — 케플러의 법칙", 6.0)
 
 # ── 막3 : 토성 (고리는 구도가 8할) ───────────────────────────
 print("\n[막3] 토성")

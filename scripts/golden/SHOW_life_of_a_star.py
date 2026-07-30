@@ -116,6 +116,45 @@ def fly_to_planet(name, caption, zoom=True):
     cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
     if zoom: zoom_in()
 
+def lines_off(*cons):
+    """★ 확대 전엔 별자리 선을 끈다 — 딥스카이에 선이 겹치면 너무 복잡하다"""
+    for c in cons:
+        try:
+            c.setLinesIntensity(0.0, Anim(1.5))
+            c.setLabelIntensity(0.0, Anim(1.5))
+        except Exception:
+            pass
+    sleep(1.8)
+
+
+def travel_nebula(names, caption, zoom=True):
+    """딥스카이(NEBULA 패널) 여행. ⚠️ 이름 후보를 순회해 'GoTo 가 살아있는' 것을 고른다.
+       (M번호가 엉뚱한 개체로 매칭되는 사고 방지 — 실측: 'M1' 이 구상성단으로 갔음)"""
+    picked = None
+    for nm in names:
+        try:
+            h = db.data(Data.Type.NebulaType, nm)
+        except Exception:
+            h = None
+        if h is None:
+            continue
+        try:
+            if h.action(Action.Type.GoTo) is not None:
+                picked = (nm, h); break
+        except Exception:
+            pass
+    if picked is None:
+        print("   ⚠️ 여행 가능한 이름 없음: %s" % (names,)); return False
+    nm, h = picked
+    print("   대상 확정: '%s'" % nm)
+    say(caption)
+    h.action(Action.Type.GoTo).trigger()
+    wait_arrival(max_sec=70, dock_r=None)        # 딥스카이는 dock_r 없이
+    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
+    if zoom: zoom_in()
+    return True
+
+
 # ── 막0 : 겨울 오리온 ─────────────────────────────────────────
 SceneGraph().reset(1); sleep(1.6)
 uni.setGlobalIntensity(0.0, Anim(0.0))
@@ -157,14 +196,8 @@ say("두 번째 질문. 그럼 저 별들은 어디서 왔나?", 5.0)
 say("오리온의 허리 아래, 뿌연 자리 하나")
 sleep(3.0)
 
-h42 = db.data(Data.Type.NebulaType, "M42")
-if h42 is not None:
-    h42.action(Action.Type.GoTo).trigger()      # NEBULA 패널 = 여행 가능
-    print("   오리온 대성운으로 비행")
-    wait_arrival(max_sec=70, dock_r=None)       # 딥스카이는 dock_r 없이
-    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-    say("오리온 대성운 — 별들의 요람")
-    zoom_in()
+lines_off(ori)                                  # ★ 확대 전 별자리 선 OFF (복잡함 방지)
+if travel_nebula(["M42", "NGC 1976"], "오리온 대성운 — 별들의 요람"):
     sleep(3.0)
     say("가스와 먼지가 뭉쳐 스스로 불을 켠다", 6.0)
     say("지금도 이 안에서 새 별이 태어나는 중", 5.0)
@@ -176,14 +209,7 @@ light(2.0)
 say("세 번째 질문. 그럼 별은 어떻게 끝나나?", 5.0)
 say("가벼운 별은 — 조용히", 3.5)
 
-hc = db.data(Data.Type.NebulaType, "NGC 6543")
-if hc is not None:
-    hc.action(Action.Type.GoTo).trigger()
-    print("   고양이눈 성운으로 비행")
-    wait_arrival(max_sec=70, dock_r=None)
-    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-    say("고양이눈 성운")
-    zoom_in()
+if travel_nebula(["NGC 6543"], "고양이눈 성운"):
     sleep(3.0)
     say("바깥 껍질을 벗어던지고, 중심엔 하얀 심장만 남는다", 6.0)
 
@@ -191,15 +217,12 @@ print("\n[막3-b] 별의 죽음 — 폭발")
 hard_reset_to_ground(y=2026, mo=1, d=15, h=12)   # 겨울(황소자리)
 light(2.0)
 say("무거운 별은 — 폭발로", 4.0)
+# (별자리 선은 켜지 않는다 — 딥스카이 확대 시 복잡해짐)
 
-hm1 = db.data(Data.Type.NebulaType, "M1")
-if hm1 is not None:
-    hm1.action(Action.Type.GoTo).trigger()
-    print("   게성운으로 비행")
-    wait_arrival(max_sec=70, dock_r=None)
-    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-    say("게성운 — 서기 1054년의 초신성")
-    zoom_in()
+# ⚠️ 실측 사고: "M1" 로 조회하면 **구상성단으로 이동**했다(엉뚱한 매칭).
+#    UI NEBULA 패널 표기가 'M1 / NGC 1952 (Crab Nebula)' 이므로 **NGC 번호를 우선**으로.
+if travel_nebula(["NGC 1952", "Crab", "Crab Nebula", "M1"],
+                 "게성운 — 서기 1054년의 초신성"):
     sleep(3.0)
     say("송나라 기록에 '낮에도 보이는 별'로 남았다", 6.0)
 

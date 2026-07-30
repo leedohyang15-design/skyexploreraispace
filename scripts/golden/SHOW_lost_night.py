@@ -133,79 +133,56 @@ def wait_place_settle(max_sec=30, settle=2):
     return prev
 
 
-def goto_place(dtype, name, caption):
+def goto_place(dtype, name, caption, during=None, fade=10.0):
+    """관측지 이동. ★ during 을 주면 **이동하는 동안 동시에** 그 변화를 진행시킨다.
+       (실측 지적: 도시에 '도착한 뒤' 별을 끄면 작위적으로 보임 →
+        이동과 감광이 함께 일어나야 '가까워질수록 하늘이 흐려지는' 것처럼 자연스럽다)"""
     h = db.data(getattr(Data.Type, dtype), name)
     if h is None:
         print("   ⚠️ %s '%s' 조회 실패" % (dtype, name)); return False
     say(caption)
     h.action(Action.Type.GoTo).trigger()
+    if during:
+        during(fade)                     # ★ 이동이 진행되는 '동안' 긴 Anim 으로 함께 변화
     pos = wait_place_settle()
     cam.setTargetHeight(30.0, Anim(1.0))
     if pos: print("   → %s: %.3f / %.3f / %.0fm" % ((name,) + pos))
     return True
 
 
-# ── 막0 : 도시의 밤 ──────────────────────────────────────────
+# ── 막0 : 원래의 밤하늘부터 (어두운 곳에서 시작) ─────────────
 SceneGraph().reset(1); sleep(1.6)
 uni.setGlobalIntensity(0.0, Anim(0.0))
-ground_night_slow(y=2026, mo=8, d=1, h=13, mw=0.0)     # 여름밤, 은하수 꺼진 채 시작
+ground_night_slow(y=2026, mo=8, d=1, h=13, mw=0.9)     # 여름밤, 은하수 가득
 make_caption(1.0)
 stars  = Stars(Stars.StarsName.StarrySky)
 galaxy = Galaxy(Galaxy.GalaxyName.MilkyWay)
 earth  = Planet(Planet.PlanetName.Earth)
 
-stars.setIntensity(0.40, Anim(0.0))                    # 대도시 = 밝은 별만
-try: earth.setLightPollutionIntensity(1.0, Anim(0.0))
+stars.setIntensity(1.0, Anim(0.0))
+galaxy.setExposure(1.9, Anim(0.0))
+try: earth.setLightPollutionIntensity(0.0, Anim(0.0))
 except Exception as ex: print("   lightPollution:", ex)
-light(2.5)
+light(3.0)
 
-say("서울, 여름밤 10시", 5.0)
-say("별이 몇 개나 보이나?", 5.0)
-
-# ── 막1 : Q1 — 광공해 단계별로 되감기 ────────────────────────
-print("\n[막1] 광공해 되감기")
-say("도시를 하나씩 지워 보자", 4.0)
-
-say("도시 외곽")
-try: earth.setLightPollutionIntensity(0.6, Anim(3.0))
-except Exception: pass
-stars.setIntensity(0.60, Anim(3.0))
-galaxy.setIntensity(0.10, Anim(3.0))
-sleep(5.0)
-
-say("시골 마을")
-try: earth.setLightPollutionIntensity(0.3, Anim(3.0))
-except Exception: pass
-stars.setIntensity(0.80, Anim(3.0))
-galaxy.setIntensity(0.35, Anim(3.0))
-sleep(5.0)
-
-say("그리고 — 불빛이 하나도 없는 곳")
-try: earth.setLightPollutionIntensity(0.0, Anim(4.0))
-except Exception: pass
-stars.setIntensity(1.0, Anim(4.0))
-galaxy.setIntensity(0.9, Anim(4.0))
-galaxy.setExposure(1.8, Anim(4.0))                     # 은하수 노출 ↑
-sleep(6.0)
-say("이게 원래 밤하늘이다", 6.0)
-
-# ── 막2 : Q2 — 진짜 어두운 곳으로 (관측지 이동) ──────────────
-print("\n[막2] 어두운 곳으로")
-say("두 번째 질문. 지금도 이런 하늘이 남아 있나?", 5.0)
-
-goto_place("MountainType", "Everest", "에베레스트 — 해발 8,800m")
-sleep(7.0)
-say("공기가 얇을수록 별은 또렷해진다", 6.0)
+say("불빛이 없는 곳의 여름밤", 5.0)
+say("이게 — 원래 밤하늘이다", 6.0)
 
 stars.setPointSaturation(4.5, Anim(4.0))               # 별 색이 드러남
-sleep(4.5)
-say("그리고 별에는 — 색이 있다", 6.0)
+sleep(5.0)
+say("자세히 보면 별에는 색이 있다", 6.0)
+say("하늘을 가로지르는 저 띠가 우리 은하 — 은하수", 7.0)
 
-# ── 막3 : Q3 — 잃어버린 것들 ─────────────────────────────────
-print("\n[막3] 은하수와 유성")
-say("우리 은하를 옆에서 본 단면 — 은하수", 6.0)
-galaxy.setExposure(2.2, Anim(3.0))
-sleep(4.0)
+# ── 막1 : Q1 — 에베레스트로 (가장 맑은 하늘) ─────────────────
+print("\n[막1] 가장 맑은 하늘")
+say("질문. 지금도 이런 하늘이 남아 있나?", 5.0)
+goto_place("MountainType", "Everest", "에베레스트 — 해발 8,800m")
+sleep(6.0)
+say("공기가 얇을수록 별은 더 또렷해진다", 6.0)
+galaxy.setExposure(2.2, Anim(3.0)); sleep(4.0)
+
+# ── 막2 : 그 하늘이 주는 것 ──────────────────────────────────
+print("\n[막2] 유성")
 
 # 유성 하나
 try:
@@ -222,15 +199,40 @@ except Exception as ex:
     print("   유성:", ex)
 sleep(2.0)
 
-# ── 막4 : 다시 도시로 (대비) ─────────────────────────────────
-print("\n[막4] 다시 도시로")
-say("이제 다시, 도시로 돌아가 보자", 5.0)
-goto_place("CityType", "Tokyo", "도쿄")
-try: earth.setLightPollutionIntensity(1.0, Anim(4.0))
-except Exception: pass
-stars.setIntensity(0.40, Anim(4.0))
-galaxy.setIntensity(0.0, Anim(4.0))
-sleep(6.0)
+# ── 막3 : Q2 — 도시로 다가가며 하늘이 사라진다 ───────────────
+#    ★ 실측 지적 반영: '도착 후 별 끄기'는 작위적 → **이동하는 동안 함께 흐려지게**
+print("\n[막3] 도시로 — 이동하며 하늘이 사라진다")
+say("두 번째 질문. 그럼 우리 대부분은 어떤 하늘을 보고 있나?", 6.0)
+
+
+def fade_to_suburb(sec):
+    """이동하는 동안 서서히 흐려짐 — 시골 수준"""
+    try: earth.setLightPollutionIntensity(0.35, Anim(sec))
+    except Exception: pass
+    stars.setIntensity(0.80, Anim(sec))
+    galaxy.setIntensity(0.40, Anim(sec))
+    galaxy.setExposure(1.4, Anim(sec))
+
+
+def fade_to_city(sec):
+    """이동하는 동안 더 흐려짐 — 대도시 수준"""
+    try: earth.setLightPollutionIntensity(1.0, Anim(sec))
+    except Exception: pass
+    stars.setIntensity(0.40, Anim(sec))
+    galaxy.setIntensity(0.05, Anim(sec))
+    galaxy.setExposure(1.0, Anim(sec))
+
+
+# 산 → 작은 도시(런던)로 가면서 서서히 흐려짐
+goto_place("CityType", "London", "산을 내려와, 도시 쪽으로",
+           during=fade_to_suburb, fade=12.0)
+sleep(4.0)
+say("도시가 가까워질수록 하늘이 옅어진다", 6.0)
+
+# → 대도시(도쿄)로 가면서 은하수가 완전히 사라짐
+goto_place("CityType", "Tokyo", "그리고 대도시 한복판으로",
+           during=fade_to_city, fade=12.0)
+sleep(4.0)
 
 say("같은 하늘, 같은 시각인데", 5.0)
 say("은하수는 사라졌다", 6.0)
