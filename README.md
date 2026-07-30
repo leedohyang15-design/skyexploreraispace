@@ -17,7 +17,8 @@ Sky Explorer SDK 의 **실측 검증된 지식**(레퍼런스 + 함정 + 검증 
 ## Space 설정 (필수)
 1. **Settings → Variables and secrets → New secret**
    - Name: `GEMINI_API_KEY` / Value: aistudio.google.com 에서 발급한 무료 키
-2. (선택) `GEMINI_MODEL` 변수로 모델 변경 — 기본 `gemini-2.5-flash`
+2. (선택) `GEMINI_MODEL` 변수로 모델 변경 — 기본 `gemini-2.0-flash`
+   (⚠️ `gemini-2.5-flash` 는 신규 사용자에게 404 "no longer available" — 2.0-flash 를 쓴다)
 3. (선택) `KNOW_REF_LIMIT` / `KNOW_EX_LIMIT` — 지식 주입 글자수(기본 40000/40000 = 전체 주입).
    Gemini 는 context 100만 토큰이라 지식을 통째로 넣어 규칙이 잘리지 않는다.
 
