@@ -254,30 +254,33 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setZoomFormula(Camera.ZoomFormula.GreatCircle)`+`setZoomPosition(Vec(0,0,0),track,Anim,Camera.PositionMode.XYZ)`** = 🔒고급 줌락(대상 중앙 자동고정). 성운 근접비행 전용, 행성엔 3번과 차이 미미 → 헷갈리면 3번.
 - **`obj.setScale(orig×배율,Anim)`** = 개체 확대(위치줌 안 되는 지상·성단). orig 먼저 읽고 원본×배율(절대값 금지).
 - **`Action.FadeTo`**=페이드전환(행성R5/성운성단R0) · **`Action.GoTo`**=연속비행(도착후 setTargetHeight(30) 필수) · **`Action.ConnectTo`**=시점(프레임)만 이동→줌(setPositionR)으로 대상 봄.
-- ✅✅ **`Action.StraightGoTo` = '약 24초짜리 비행' (2026-07-30 1초 간격 40초 로깅으로 확정, cam_30)**. 즉시 아님!
-  타임라인(화성 실측): `+1s` 프레임 전환(R=105,609 화성반지름=실제 2.4AU) → `+1~9s` **자세만 회전**(조준 슬루) → `+10s` B=90 북극상공 재배치 → `+11~24s` **R 감소 비행**(105,608→12,448→9.48→5.18→5.00) → `+25s~` R=5.00 도킹 완료.
-  ⚠️⚠️ **[치명적 함정] 비행이 끝나기 전에 줌(`setPositionR`)을 걸면 비행을 가로채 카메라가 태양계 한복판으로 날아간다.**
-  (내 사고: sleep(4)만 주고 p0=105,609 를 읽어 p0/1.35=78,229 로 이동 → 2.6억km 지점 = 태양만 보임.)
-  ✅ **정답 = '도착 폴링' 후 줌**:
+- ✅✅ **[비행 명령 확정 비교] `GoTo` vs `StraightGoTo` (2026-07-30 동일 조건 1초 로깅, cam_30/cam_32)**
+  | | **GoTo** ⭐권장 | **StraightGoTo** |
+  |---|---|---|
+  | 시작 | **지상에서 '이륙'**(+2~5s, R 0→2.14) 후 프레임 전환 | +1s 즉시 프레임 점프(이륙 없음) |
+  | 회전 | **이동과 섞임**(+13~20s 위치·자세 동시) = 자연스러운 비행 | **분리**: 자세만 회전(+1~9s) → 위치만 이동(+11~24s) |
+  | 소요 | **~20초** | ~24초 |
+  | 도착 | **R=4.01**, B=89.99, HPR(180,−90,0) | R=5.00, B=90.00, HPR(−121,−90,0) |
+  → **여행 연출은 GoTo 를 쓴다**(빠르고·가깝고·이륙 구간이 있어 자연스러움). StraightGoTo 는 앞 10초가 '화면만 도는' 구간이라 지루하고 이점이 없음.
+  ⚠️⚠️ **[둘 다 공통 함정] 비행이 끝나기 전에 줌(`setPositionR`)을 걸면 비행을 가로채 카메라가 태양계 한복판으로 날아간다.**
+  (sleep(4) 만 주고 p0=105,609 를 읽어 나눈 게 사고 원인 — 그 시점엔 아직 출발도 안 했음.)
+  ✅ **정답 = 도착 폴링 후 줌**:
   ```python
-  h.action(Action.Type.StraightGoTo).trigger()
+  h.action(Action.Type.GoTo).trigger()
   prev, stable = None, 0
-  for _ in range(60):                       # 최대 60초 대기
+  for _ in range(60):
       sleep(1.0); r = cam.positionLBR.z
       if prev is not None and abs(r - prev) < 0.01: stable += 1
       else: stable = 0
       prev = r
-      if stable >= 3 and r < 100: break     # R 안정 + 도킹권 진입 = 도착
+      if stable >= 3 and r < 100: break      # R 안정 + 도킹권 = 도착
   cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-  p0 = cam.positionLBR.z                    # 이제 p0≈5.0 (도킹 R)
+  p0 = cam.positionLBR.z                     # 이제 p0 ≈ 4~5 (도킹 R)
   for zoom in (1.35, 1.8, 2.3, 2.8, 3.2, 3.6):
       cam.setPositionR(p0 / zoom, Anim(1.4), -1); sleep(1.05)
   ```
-  ⚠️ **`R` 단위는 일관되게 '대상 반지름'** — 읽기/쓰기 단위가 다른 게 아니었다(옛 가설 폐기). 큰 값(105,609)은 '아직 멀리 있다'는 뜻이지 단위 오류가 아님.
-  → **GoTo 도 같은 비행 계열**이므로 동일하게 도착 폴링 후 줌할 것. (FadeTo 는 페이드 순간이동이라 sleep(5) 면 충분.)
-  🛑 **그러나 이 프레임에선 `positionLBR.z` 가 105,609 로 읽히고(HUD 실제 16,981km) 그 값을 `setPositionR` 로 되쓰면 R 이 수천~1만 Gm 으로 폭발**(카메라가 태양계 밖으로 날아감).
-  → **줌·오빗 등 뒤에 카메라 조작이 있으면 반드시 `FadeTo` 를 쓸 것.** FadeTo 프레임은 R 이 '반지름 단위'(≈5.0)로 읽혀 읽기/쓰기가 일치(검증됨).
-  → StraightGoTo 는 **'도착만 하고 카메라 조작 없음'** 인 장면에서만. (안전장치: 줌 전에 `p0 = cam.positionLBR.z` 가 100 이하인지 확인 — 넘으면 프레임이 이상한 것.)
+  ⚠️ `R` 단위는 일관되게 **'대상 반지름'** — 105,609 는 단위 오류가 아니라 '아직 2.4AU 멀다'는 뜻(옛 '읽기≠쓰기 단위' 가설 폐기).
+  (FadeTo 는 페이드 순간이동이라 `sleep(5)` 면 충분 — 폴링 불필요.)
 - ✅ **[행성 접근 확정 레시피 — B 는 손대지 말 것 (2026-07-30 사용자 확정)]**
   **`GoTo`/`StraightGoTo`/`FadeTo` → `cam.setTargetHeight(30)` → 그림자 OFF 3세터 → 줌(`setPositionR`, 절대타겟+선형+겹침).**
   ⚠️⚠️ **도킹이 남긴 B 를 바꾸지 마라**(암석행성 B≈90 / 가스행성 B≈20 이 각각 그 개체의 관람 정위치다).
