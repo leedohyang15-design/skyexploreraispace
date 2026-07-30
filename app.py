@@ -1916,9 +1916,15 @@ CUSTOM_JS = r"""
   }
 
   // 이벤트 → 곧장 스크립트 생성(플랜 패널 경유). 초기화면으로 튕기지 않음
-  function skyGo(prompt) {
+  // dateIso("YYYY-MM-DD")가 있으면 그 날짜를 프롬프트에 실어 → 스크립트가 그 날짜 밤하늘로 생성됨
+  function skyGo(prompt, dateIso) {
     closeSkyDrawer();
     switchTab('chat');
+    if (dateIso && /^\d{4}-\d{2}-\d{2}/.test(dateIso)) {
+      const p = dateIso.slice(0, 10).split('-').map(Number);
+      prompt = prompt + ' (관측 날짜는 ' + p[0] + '년 ' + p[1] + '월 ' + p[2] +
+               '일, 청주 기준 그날 밤하늘로 setDateTime 을 맞춰줘. 임의 날짜 쓰지 말 것.)';
+    }
     run(prompt);
   }
   window.__skyGo = skyGo;                       // inline onclick 에서 접근
@@ -1991,13 +1997,16 @@ CUSTOM_JS = r"""
     }
     const list = real.concat(ongoing).concat(pool.slice(0, 3));
     $('skyTodayList').innerHTML = list.length
-      ? list.map(skySumRow).join('')
+      ? list.map(e => skySumRow(e, todayIso)).join('')
       : '<div class="sky-sum-none">천문 데이터를 불러오는 중…</div>';
   }
 
-  // 공용: '볼 수 있는 현상' 한 줄 (클릭 = 스크립트 생성)
-  function skySumRow(e) {
-    return '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">' +
+  // 공용: '볼 수 있는 현상' 한 줄 (클릭 = 스크립트 생성). dateIso = 그날 날짜(있으면 프롬프트에 실림)
+  function skySumRow(e, dateIso) {
+    // 우선순위: 명시 날짜(달력 선택일) > 이벤트 고유 날짜 > 오늘
+    const iso = dateIso || e._sd || (skyData && skyData.today) || '';
+    const dq = JSON.stringify(iso).replace(/"/g, '&quot;');
+    return '<div class="sky-sum-row" onclick="__skyGo(' + JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ', ' + dq + ')">' +
       '<span class="sky-sum-icon">' + e.icon + '</span>' +
       '<span class="sky-sum-name">' + esc(e.name) + '</span>' +
       '<span class="sky-sum-date">' + esc(e.dateLabel) + '</span>' +
@@ -2015,7 +2024,7 @@ CUSTOM_JS = r"""
         parseInt(dd[1], 10) + '월 ' + parseInt(dd[2], 10) + '일</span>' +
         '<span class="sky-loading" style="padding:0">☀️ 일출·달 계산 중…</span></div>' +
       '<div class="sky-sum-lbl first">🔭 이날 볼 수 있는 현상</div>' +
-      '<div class="sky-sum-list">' + list.map(skySumRow).join('') + '</div>' +
+      '<div class="sky-sum-list">' + list.map(e => skySumRow(e, iso)).join('') + '</div>' +
     '</div>';
   }
   async function renderDayInfo(iso) {
@@ -2049,7 +2058,7 @@ CUSTOM_JS = r"""
             ' · 🌇 일몰 <b>' + (s.set || '—') + '</b></div>' : '') +
         '<div class="sky-sum-lbl first">🔭 이날 볼 수 있는 현상</div>' +
         '<div class="sky-sum-list">' +
-          (list.length ? list.map(skySumRow).join('')
+          (list.length ? list.map(e => skySumRow(e, iso)).join('')
                        : '<div class="sky-sum-none">정보 없음</div>') +
         '</div>' +
       '</div>';
@@ -2142,7 +2151,8 @@ CUSTOM_JS = r"""
         '<div class="sky-ev-desc">' + esc(e.desc) + '</div>' +
         '<div class="sky-ev-tip">👀 ' + esc(e.tip) + '</div>' +
         '<button class="sky-ev-go" onclick="__skyGo(' +
-          JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ')">✨ 스크립트 만들기</button>' +
+          JSON.stringify(e.prompt).replace(/"/g,'&quot;') + ', ' +
+          JSON.stringify(e._sd || '').replace(/"/g,'&quot;') + ')">✨ 스크립트 만들기</button>' +
       '</div>').join('');
     if (skySelDay) renderDayInfo(skySelDay);
   }
