@@ -52,16 +52,25 @@ mars.setPlanetShineStrength(1.0, Anim(1.0))
 sleep(1.5)
 print("③ 그림자 OFF — 표면 전체가 밝게 (반쪽 어두움 제거)")
 
-# ── ④ 줌인: 읽은값 ÷ 배율 (배율 클수록 확대) ────────────────────
-#    ⚠️ positionLBR.z 숫자는 프레임마다 단위가 달라 '절대 거리'로 해석 금지.
-#       비율로만 쓴다.
-for zoom in [1.6, 1.6]:
-    p = cam.positionLBR
-    cam.setPositionR(p.z / zoom, Anim.cubic(3.5), -1)
-    print("④ 줌인 ÷%.1f" % zoom); sleep(4.0)
+# ── ④ 줌인 — ★검증된 2대 원칙 (안 지키면 '하다가 마는' 끊김) ─────
+#   원칙1) 절대타겟: p0 를 '한 번만' 읽고 목표를 p0/배율 로 미리 계산.
+#          (매 스텝 현재값을 다시 읽어 곱하면 스텝이 겹칠 때 덜 줄고 엉킴)
+#   원칙2) 선형 Anim + 짧게 + 겹치기(sleep < anim): Anim.cubic + 긴 대기 = 스텝마다
+#          감속·재가속으로 뚝뚝 끊김. 선형으로 짧게 겹치면 한 번에 쭉 들어가는 느낌.
+p0 = cam.positionLBR.z                     # ★ 한 번만 읽기
+print("④ 줌인 시작 (기준 R=%s → 최종 R=%s, 약 4.5배)" % (round(p0, 3), round(p0 / 3.6, 3)))
+for zoom in (1.35, 1.8, 2.3, 2.8, 3.2, 3.6):     # 절대타겟 = p0/zoom, 점점 깊이
+    cam.setPositionR(p0 / zoom, Anim(1.4), -1)   # 선형 1.4초
+    sleep(1.05)                                  # ★ sleep < anim = 겹침(끊김 방지)
+sleep(1.2)
+print("   줌 완료 (더 깊게 하려면 마지막 배율을 4.5~5 까지 — R 1.0 이하는 행성 내부)")
 
 print("\n완료 — 화성이 화면 중앙에 크게? (StraightGoTo = 가장 빠른 행성 도착)")
 print("  ★암석행성 확정 레시피:")
-print("    StraightGoTo → setPositionLBR(Vec(L, 20, R))[B를 90→20] → setTargetHeight(30)")
-print("    → 그림자 OFF 3세터 → setPositionR(p.z/배율) 줌")
-print("  (가스행성 목성·토성은 도킹이 이미 옆(B=20)이라 B 조정 생략 가능)")
+print("    ① StraightGoTo (즉시 도착)")
+print("    ② setPositionLBR(Vec(L, 20, R))  ← B를 90→20 (북극상공→옆에서 보기) ★프레이밍 핵심")
+print("    ③ setTargetHeight(30)            ← 관람 표준")
+print("    ④ 그림자 OFF 3세터                ← 표면 전체 밝게")
+print("    ⑤ 줌: p0 한 번 읽고 → p0/배율 절대타겟 + 선형 Anim(1.4) + sleep(1.05) 겹치기")
+print("  ⚠️ 줌이 '하다가 마는' 원인 = 매 스텝 현재값 재읽기(엉킴) + Anim.cubic(경계 감속)")
+print("  (가스행성 목성·토성은 도킹이 이미 옆(B=20)이라 ② 생략 가능)")

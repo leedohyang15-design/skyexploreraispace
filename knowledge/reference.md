@@ -199,7 +199,7 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **⭐딥스카이 접근 = '카테고리가 능력을 결정' (2026-07-30 확정). 3단 우선순위로 고를 것:**
   ① **NEBULA 패널 27개**(Nebula 클래스/`NebulaType`) → **GoTo/FadeTo 여행 가능**: `DataManager.database().data(Data.Type.NebulaType,"NGC 6543").action(Action.Type.GoTo).trigger()` → 도착 후 `cam.setTargetHeight(30)` + `setPositionR(p.z/zoom, Anim, -1)`.
     목록: Barnard 33(말머리)·M1(게)·M16(독수리)·HH47·M42(오리온)·A39·HD44179·M27(아령)·M2-9(나비)·M76·M97(올빼미)·Mz3·**NGC2346**·**NGC2392(에스키모)**·NGC3132·NGC3242·NGC3918·NGC6302·NGC6537·**NGC6543(고양이눈)**·NGC6751·NGC6826·NGC7009·NGC7027·**NGC7293(나선)**·OH231.84·SNR0509-67.5.
-  ② **그 외 메시에·은하·성단**(M31 안드로메다, M13, M45 등) → **GoTo 없음** → `ConnectTo` + 절대타겟 지오메트릭 줌(`p0=cam.positionLBR.z; for zoom in (2.5,6,16,40): setPositionR(p0/zoom, Anim.cubic(3), -1)`).
+  ② **그 외 메시에·은하·성단**(M31 안드로메다, M13, M45 등) → **GoTo 없음** → `ConnectTo` + 절대타겟 지오메트릭 줌(`p0=cam.positionLBR.z; for zoom in (2.5,6,16,40): setPositionR(p0/zoom, Anim(1.6), -1); sleep(1.2)` — 선형+겹침, cubic 금지).
   ③ **NGC 패널 개체**(NGC2237 장미 등, `NgcType`) → **이동 액션 아예 없음**. `NGC(NGC.NGCName.NGC2237).setIntensity(1,Anim)`+`setLabelIntensity(1)` 제자리 ON 후, 접근 느낌은 **`LookAt`(조준) + `ScaleUp` 반복 trigger(확대)**. (NGC 엔 scale 속성/setScale 없음 → 액션으로.)
   ⚠️ **같은 'NGC 번호'라도 패널 소속이 능력을 갈라** — NGC2346 은 NEBULA 소속(여행O, `NgcType` 으론 안 찾아짐) / NGC2237 은 NGC 소속(여행X). DB 이름은 **"NGC 6543"**(공백) 형식. 🛑 LOS 포트 카메라 이동은 死.
 - **GlobularCluster(구상성단) — 확대=setScale, 회전=Roll ✅확정**: `GlobularCluster(GlobularCluster.GlobularClusterName.NGC5139_omegaCen)`(오메가센타우리) / `NGC6205_M13`(헤라클레스) 등. DB 접근 = `DataManager.database().data(Data.Type.GlobularClusterType,"Omega Centauri").action(Action.Type.FadeTo).trigger()` → 성단 **중앙에 딱 붙음(R=0)**.
@@ -244,7 +244,10 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setOrientationH(H,Anim)`** = 방위각(천정기준 좌우회전). ①지상 전용. 천체조준 H=180−방위.
 - **`setTargetHeight(t,Anim)`** = 고도/돔틸트. 전프레임. 30관람 / 0전천 / 90천정·성운중앙.
 - **`setPositionLBR(Vec(L,B,R),Anim,track)`** = 대상 기준 좌우(L)·위아래(B) 이동 = **대상 표면 관찰**(행성·말머리). ②③만, 🛑지상금지. track 필수(-1). R=읽은값 기준.
-- **`setPositionR(R,Anim,track)`** = 대상 줌인/아웃. ②만. `p=cam.positionLBR; setPositionR(p.z/2, Anim, -1)`(줌인). 🛑지상·성단 무효.
+- **`setPositionR(R,Anim,track)`** = 대상 줌인/아웃. ②만. 🛑지상·성단 무효.
+  ⚠️⚠️ **[줌이 '하다가 마는/끊기는' 것 방지 — 2대 원칙 필수]** ① **절대타겟**: `p0 = cam.positionLBR.z` 를 **한 번만** 읽고 목표를 `p0/배율`로 계산(매 스텝 현재값 재읽기+곱셈은 스텝 겹칠 때 덜 줄고 엉킴). ② **선형 Anim + 짧게 + 겹치기**: `Anim(1.4)` 걸고 `sleep(1.05)`(anim보다 짧게)로 이어붙임 — `Anim.cubic`+긴 sleep 은 스텝마다 감속·재가속으로 뚝뚝 끊김.
+  `p0 = cam.positionLBR.z` → `for zoom in (1.35,1.8,2.3,2.8,3.2,3.6): cam.setPositionR(p0/zoom, Anim(1.4), -1); sleep(1.05)`
+  ⚠️ 행성은 R 1.0 이하면 내부 → 최종 배율 4.5~5 이하. 딥스카이는 더 깊게(배율 40+) 가능.
 - **`setOrientationSmoothXYZR(Vec4(X,Y,Z,R),Anim,track)`** = ⚙️보조. Vec4 = **(X,Y,Z)=바라볼 방향벡터 + R=Roll각도(도)** (실측 HPR 로그: (1,0,0,90)→봄+X롤90 / (0,0,1,90)→봄+Z(위)롤90 / R=Roll그대로). 쿼터니언 아님. 프레임 전환 정렬은 `(0,0,0,0)`(=기본전방). 각도 조준/회전은 XYZ벡터보다 6번 setOrientationHPR(H,P,R 도)이 직관적.
 - **`setOrientationHPR(Vec(H,P,R),Anim)`** = 관측자 시선축 회전. **Roll=셋째값 R+360** = 성운/성단 팽이스핀. (3번=대상주위 돎 ↔ 6번=내가 제자리서 돎.)
 - **`setZoomFov(fov,Anim)`** = 화각(뷰축) 광학줌. ②우주만, 🛑지상무효.
