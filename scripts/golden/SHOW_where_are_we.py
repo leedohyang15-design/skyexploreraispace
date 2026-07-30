@@ -180,7 +180,7 @@ ground_night()
 
 t1 = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
-t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
+t1.setPosition(Vec(0, 12, 0)); t1.setSize(0.052)
 t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
 t1.setIntensity(0.0, Anim(0.0))
 
@@ -367,7 +367,7 @@ uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.4)
 
 t1 = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
-t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
+t1.setPosition(Vec(0, 12, 0)); t1.setSize(0.052)
 t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
 t1.setIntensity(0.0, Anim(0.0))
 uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.4)

@@ -37,94 +37,28 @@ def clamp_dark(sec):
     for _ in range(max(int(sec / 0.2), 1)):
         uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.2)
 
-def make_caption(dist=1.0):
-    """자막 생성 (지상=distance 1.0 / 행성 프레임=20)"""
+CAPTION_H = 12          # ★ 자막 기본 높이 (사용자 확정) — 25 는 천체와 겹쳤다. 더 아래로.
+
+
+def make_caption(dist=1.0, height=None):
+    """자막 생성/재배치.
+       ⚠️ 이전 자막을 반드시 끈다 — 안 끄면 옛 자막이 그 자리에 남아 '안 내려간 것처럼' 보인다(실측 사고).
+       ⚠️ 행성 프레임은 distance 20 + setSize 금지 / 지상은 distance 1.0 + setSize 0.052."""
     global t1
+    if height is None:
+        height = CAPTION_H
+    if t1 is not None:
+        try: t1.setIntensity(0.0, Anim(0.0))      # ★ 옛 자막 끄기
+        except Exception: pass
     t1 = InsertText(InsertText.InsertTextName(1))
     cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
-    t1.setPosition(Vec(0, 25, 0))
-    if dist == 1.0: t1.setSize(0.052)          # 행성 프레임에선 setSize 금지
-    t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(dist, Anim(0.0))
+    t1.setPosition(Vec(0, height, 0))
+    if dist == 1.0:
+        t1.setSize(0.052)                          # 행성 프레임에선 setSize 금지
+    t1.setColor(Vec(1.0, 1.0, 0.55))
+    t1.setDistance(dist, Anim(0.0))
     t1.setIntensity(0.0, Anim(0.0))
 
-def ground_night_slow(lat=36.64, lon=127.49, alt=200.0,
-                      y=2026, mo=1, d=15, h=12, mi=0, mw=0.55, gap=0.35):
-    """★ 지상 세팅을 나눠서 — 한 프레임에 몰아치면 화면이 뚝뚝 끊긴다.
-       반드시 clamp_dark 로 암전을 유지한 채 호출."""
-    e = Planet(Planet.PlanetName.Earth)
-    e.setIntensity(1.0, Anim(0.0));            uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(gap)
-    e.setAtmosphereIntensity(0.0, Anim(0.0))
-    e.setTerrainIntensity(0.0, Anim(0.0));     uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(gap)
-    Place2D(Place2D.Place2DName(0)).setPosition(Vec(lat, lon, alt))
-    uni.setGlobalIntensity(0.0, Anim(0.0));    sleep(gap)
-    dm.stop(); sleep(0.3)
-    dm.setDateTime(y, mo, d, h, mi, 0, tz, Anim(0.0))     # 날짜 점프(무거움) 단독
-    uni.setGlobalIntensity(0.0, Anim(0.0));    sleep(gap + 0.3)
-    Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
-    uni.setGlobalIntensity(0.0, Anim(0.0));    sleep(gap)
-    Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(mw, Anim(0.0))
-    uni.setGlobalIntensity(0.0, Anim(0.0));    sleep(gap)
-    cam.setOrientationH(0.0, Anim(0.0)); cam.setTargetHeight(30.0, Anim(0.0))
-    uni.setGlobalIntensity(0.0, Anim(0.0));    sleep(gap)
-
-def hard_reset_to_ground(**kw):
-    """★ 행성/딥스카이 → 지상 복귀 (끊김 없이). 암전 클램프로 재세팅을 완전히 숨긴다."""
-    if t1 is not None: t1.setIntensity(0.0, Anim(1.0))
-    sleep(1.0); dark(1.4); clamp_dark(0.8)
-    SceneGraph().reset(1)
-    clamp_dark(2.0)                                        # reset 이 gi 를 되돌리므로 계속 덮기
-    ground_night_slow(**kw)
-    make_caption(1.0)
-    clamp_dark(0.8)
-
-def wait_arrival(max_sec=60, settle=3, dock_r=None):
-    """★ 비행이 끝나기 전에 줌하면 비행을 가로채 카메라가 날아간다.
-       dock_r 은 '행성'에만(R≈4~5). 딥스카이는 도착해도 R 이 거대(1e13) → None."""
-    prev, stable = None, 0
-    for s in range(max_sec):
-        sleep(1.0)
-        try: r = cam.positionLBR.z
-        except Exception: continue
-        if prev is not None:
-            if abs(r - prev) / max(abs(prev), 1.0) < 1e-6: stable += 1
-            else: stable = 0
-        prev = r
-        if stable >= settle and (dock_r is None or r < dock_r):
-            print("   도착 %ds, R=%.4g" % (s + 1, r)); return r
-    print("   ⚠️ 도착 감지 실패(R=%s)" % prev); return None
-
-def zoom_in(steps=(1.35, 1.8, 2.3, 2.8, 3.2)):
-    """★ 절대타겟(p0 한 번만) + 선형 Anim + 겹치기(sleep < anim)"""
-    p0 = cam.positionLBR.z
-    if p0 is None or p0 <= 0.0: return
-    for z in steps:
-        cam.setPositionR(p0 / z, Anim(1.4), -1); sleep(1.05)
-    sleep(0.8)
-
-def shadows_off(obj):
-    """운영 표준: 표면을 보여줄 땐 그림자 3세터 OFF"""
-    obj.setShadowStrength(0.0, Anim(1.0))
-    obj.setShadowContrast(0.0, Anim(1.0))
-    obj.setPlanetShineStrength(1.0, Anim(1.0))
-
-def fly_to_planet(name, caption, zoom=True):
-    """행성 GoTo 비행 → 도착 폴링 → Target 30 → 줌. B 는 손대지 않는다."""
-    say(caption)
-    db.data(Data.Type.PlanetType, name).action(Action.Type.GoTo).trigger()
-    print("   %s 로 비행" % name)
-    wait_arrival(dock_r=100.0)
-    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-    if zoom: zoom_in()
-
-def lines_off(*cons):
-    """★ 확대 전엔 별자리 선을 끈다 — 딥스카이에 선이 겹치면 너무 복잡하다"""
-    for c in cons:
-        try:
-            c.setLinesIntensity(0.0, Anim(1.5))
-            c.setLabelIntensity(0.0, Anim(1.5))
-        except Exception:
-            pass
-    sleep(1.8)
 
 
 def travel_nebula(names, caption, zoom=True):
