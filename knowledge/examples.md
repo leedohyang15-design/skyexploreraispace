@@ -210,9 +210,11 @@ TLE 세터(각 val, Anim): `setMeanMotion`(revs/day)·`setEccentricity`·`setInc
 **"개기월식/블러드문"**: ⚠️ 달이 붉게 물드는 렌더는 **이 빌드에서 미검증**(SDK 확인 안 됨) — 억지로 만들지 말 것.
 검증된 대안을 짧게 제시: **일식**(관측지+시각+`setOrientationH` 자동조준+시간가속+코로나 `setScale`) 또는 **달 위상**(setManualMoonPhase/setMoonAge).
 
-**회전/공전(오빗)** — 검증된 스텝 오빗만: 성운 los 프레임에서 0.5초 스텝으로 L 증가 + 4스텝마다
-`setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, los)` 재조준(중앙 유지). 행성 FadeTo 프레임이면 track=-1 +
-`setTargetHeight(29.9→30)` no-op 재조준. (⛔ 시간가속 자전·orientation 루프·AdvancedCamera.move/roll 은 실측 실패 — 금지.)
+**회전/공전(오빗)** — 검증된 방법만:
+· **성운(LOS 프레임) 스텝 오빗**: 0.5초 스텝으로 L 증가 + 4스텝마다 `setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, los)` 재조준(중앙 유지).
+· **행성 FadeTo 프레임**: track=-1 + `setTargetHeight(29.9→30)` no-op 재조준.
+· **구상성단 내부 회전 = `cam.setOrientationHPR(Vec(H, P, R+360), Anim.cubic(16))` Roll 스핀** (세 번째 값만 회전 = 별밭이 시선축을 돎). ⚠️ 구상성단은 위치/H 로는 안 돎 — Roll(HPR 셋째값)이라야 함. 확대는 `gc.setScale(원본×700, Anim)`(위치 줌 무효).
+(⛔ 시간가속 행성자전·orientation 무한루프·AdvancedCamera.move/roll 은 실측 실패 — 금지.)
 
 ## ⚠️ 렌더 함정 / 한계 (실측 피드백 반영 — AI는 이걸 반드시 지킬 것)
 
