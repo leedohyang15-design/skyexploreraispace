@@ -794,7 +794,7 @@ def plan(prompt: str) -> str:
             resp = client.chat.completions.create(
                 model=model,
                 temperature=0.3,
-                max_tokens=900,
+                max_tokens=2048,          # 씬 플랜 JSON 이 길어도 안 잘리게
                 messages=[
                     {"role": "system", "content": PLAN_SYSTEM},
                     {"role": "user", "content": prompt},
@@ -914,7 +914,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                     resp = client.chat.completions.create(
                         model=model_candidate,
                         temperature=0.2,
-                        max_tokens=1600,          # Gemini 로 여유가 커져 응답 예약분 복원
+                        max_tokens=8192,          # 스크립트가 잘리지 않게 넉넉히(Gemini flash 최대)
                         messages=_build_messages(prompt, hist),
                     )
                     _model = model_candidate
