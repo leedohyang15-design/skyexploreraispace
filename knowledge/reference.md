@@ -290,3 +290,8 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - 🎯 **행성 접근의 안전한 기본값 = `FadeTo`**(검증된 경로). `StraightGoTo` 는 '즉시 도착'엔 좋지만 그 뒤 카메라 조작은 위 규칙을 지켜야 한다.
 - ⚠️ **[참고] 행성 프레임에서 B(위도)를 내리면 대상이 화면에서 위로 올라간다** (B=90 → 화면 하단 / B=20 → 정가운데=천정, 부적합).
   → **결론: B 는 도킹 기본값 그대로 둔다.** 프레이밍은 Target(고도) 로만. `setPositionB` 는 R 을 보존하므로 꼭 B 를 바꿔야 할 때만 쓸 것.
+- 🛑 **카메라 세터 중 '쓸 필요 없는 것' (2026-07-30 전수 실측 — 중복이거나 무효)**:
+  `setOrientationP`(=setTargetHeight 와 동일) · `setOrientationR`(=방위각과 동일) · `setOrientationXYZ`(5번의 Roll 없는 판) · `setPositionL`(오빗 안 됨, 튐) ·
+  🛑 `setFocusDegree`·`setOrientationD`·`setActiveTarget`(화면 무변화) · `setOrientationHPRD` 의 D(무의미) · `setPositionXYZ`(단위 불명, 위험).
+  ✅ 예외로 쓸 만한 것: **`setTargetAzimuth`**(타겟 기준 시계/반시계 회전, 동작 확인) · **`setTraceMode(True)`**(천체 궤적이 남음 — 단 과하게 남아 쇼용은 신중).
+  → **결론: 카메라는 `setOrientationH`(방위) · `setTargetHeight`(고도) · `setOrientationHPR`(회전) · `setPositionLBR`/`setPositionR`/`setPositionB`(위치) 만으로 충분.**
