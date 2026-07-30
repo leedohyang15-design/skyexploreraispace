@@ -234,7 +234,7 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setTargetHeight(t,Anim)`** = 고도/돔틸트. 전프레임. 30관람 / 0전천 / 90천정·성운중앙.
 - **`setPositionLBR(Vec(L,B,R),Anim,track)`** = 대상 기준 좌우(L)·위아래(B) 이동 = **대상 표면 관찰**(행성·말머리). ②③만, 🛑지상금지. track 필수(-1). R=읽은값 기준.
 - **`setPositionR(R,Anim,track)`** = 대상 줌인/아웃. ②만. `p=cam.positionLBR; setPositionR(p.z/2, Anim, -1)`(줌인). 🛑지상·성단 무효.
-- **`setOrientationSmoothXYZR(Vec4(0,0,0,0),Anim,track)`** = ⚙️보조. 프레임(좌표계) 갈아탈 때 시점정렬. setPositionLBR로 새 포트 옮길 때만 짝으로(단독 X).
+- **`setOrientationSmoothXYZR(Vec4(0,0,0,0),Anim,track)`** = ⚙️보조. 프레임(좌표계) 갈아탈 때 시점정렬. setPositionLBR로 새 포트 옮길 때만 짝으로(단독 X). ⚠️ Vec4 는 **쿼터니언(x,y,z,w)** — 각도 아님(실측: R 45/90/180 무변화=정규화). 사람이 각도로 못 씀 → **`(0,0,0,0)` 리셋 전용**. 각도 회전은 무조건 6번 setOrientationHPR.
 - **`setOrientationHPR(Vec(H,P,R),Anim)`** = 관측자 시선축 회전. **Roll=셋째값 R+360** = 성운/성단 팽이스핀. (3번=대상주위 돎 ↔ 6번=내가 제자리서 돎.)
 - **`setZoomFov(fov,Anim)`** = 화각(뷰축) 광학줌. ②우주만, 🛑지상무효.
 - **`setZoomFormula(Camera.ZoomFormula.GreatCircle)`+`setZoomPosition(Vec(0,0,0),track,Anim,Camera.PositionMode.XYZ)`** = 🔒고급 줌락(대상 중앙 자동고정). 성운 근접비행 전용, 행성엔 3번과 차이 미미 → 헷갈리면 3번.
