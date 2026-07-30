@@ -770,7 +770,14 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · **레시피 = Nebula 제자리 ON 과 동일**: 지상 밤(대기 OFF+지면 OFF) → 대상이 지평선 위인 계절/시각 세팅 → `NGC(NGC.NGCName.NGC2237).setIntensity(1, Anim)` + `setLabelIntensity(1)` → 그 방향 조준(setOrientationH/TH). 장미성운=겨울(1월) 외뿔소자리 근처(H≈30, 고도30 에서 보임 실측).
   · ⚠️ **접근/센터링은 여전히 死** — 확대해서 보여줄 순 없고 '하늘에 있는 딥스카이'로만. 클로즈업 필요하면 Nebula(44개 아트)/Messier 로.
   → **딥스카이 레퍼토리 확장**: 이제 Nebula(HORSEHEAD 등 44) + Messier(M##) + **NGC(제자리 ON, 장미성운 등)** 셋 다 밤하늘에 켤 수 있음.
-- ⚠️⚠️ **단 카메라 접근(FadeTo/센터링)은 死 확정 (재확인 2026-07-30): DB 액션 스캔 전멸** — NgcType·MessierType 핸들은 나오나 `FadeTo=None`, NebulaType/DeepSkyObjectType/AsterismType/GalaxyType 은 "Failed to get data". **어떤 타입/이름으로도 접근 액션 없음.** 아래는 옛 접근 실패 기록:
+- ✅✅✅ **[재정정 — 중요] NGC 카메라 접근(여행)은 '개체마다 다르다'. 되는 개체가 있다! (2026-07-30 사용자 UI 스샷 확정)**
+  ⚠️ 내 '死' 판정은 **하필 이동 액션이 없는 NGC2237(장미) 하나만 스캔**해서 일반화한 오판이었음.
+  · 🛑 **NGC2237(장미 — 크고 흐린 발광성운)**: 살아있는 액션 13개 = LabelOn/Off/OnOff · **LookAt** · On/Off/OnOff · Properties · **ScaleUp/ScaleDown/ScaleUpDown** · Tag/Untag.
+    → **이동 계열(GoTo·FadeTo·StraightGoTo·ConnectTo) 없음**(68개 전수 스캔 확정). 이런 개체는 **LookAt(조준) + ScaleUp(확대)** 로 '접근 느낌'을 낸다.
+  · ✅ **NGC2346 / NGC2392 / NGC3132 / NGC6751 등(작고 밀집한 행성상성운)**: UI 우클릭 메뉴에 **Go To / Fade To / Straight Go To / Connect To** 전부 존재(사용자 스샷) = **여행 가능**.
+  → **교훈: NGC 는 개체별로 액션 세트가 다르다.** 쇼 만들기 전에 그 개체의 액션을 스캔할 것(`ngc_travel_v3.py` 가 개체별 스캔표를 뽑음).
+  → 큰 확산성운(장미 등)은 제자리 ON+ScaleUp, 컴팩트 행성상성운은 GoTo/FadeTo 여행.
+- ⚠️ LOS 포트 카메라 이동은 여전히 死 (실측: R 37,156,789 에서 1e15~1e10 다 무시하고 안 변함). 아래는 옛 접근 실패 기록:
 - ⚠️⚠️ **접근 3경로 전부 실패 (ngc_deepsky.py v1~v3)**:
   ① **클래스 LOS 포트로 카메라 이동**(horsehead 방식 그대로) → **프레임이 깨져 배경 별까지 사라지고 자막(HUD)만 남음**. NGC 의 LineOfSightLocal 은 Nebula 의 그것과 다르게 동작(같은 코드가 Nebula 는 OK).
   ② **DB `NgcType` "NGC 2237"** → 핸들은 나오나 **`.action(ConnectTo/FadeTo/GoTo)` 전부 None(死)** = MessierType 함정과 동일(핸들만 나오고 액션 없음).
