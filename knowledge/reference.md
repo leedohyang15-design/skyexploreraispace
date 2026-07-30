@@ -53,6 +53,10 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **세차운동 — 안 도는 것 방지**: `dm.setMotionType(DateManager.MotionType.MotionPrecession)` 만으론 정지 →
   **시간가속이 있어야 세차가 보임**: `dm.stop(); dm.setDateTime(올해+13000, 1, 1, 3, 30, 0, tz, Anim(45))`(수천~1.3만 년 흘림). 지상 대기 OFF + 지면 OFF.
   천구 북극 이동 표시 = `Planet(Earth).setEquatorialPolePointerIntensity(1.0, Anim)` + `setEclipticPolePointerIntensity(1.0, Anim)`(동그라미). 별 포인터/화살표는 끄기(요동).
+  ✅ **'세차 원'(천구북극이 그리는 23.44° 원) = DrawableInsert 로 돔에 직접 그림** (세차 중 황도극이 화면 고정 → 원도 고정 → 청록극이 원 따라 돎):
+  `import math`; `d=DrawableInsert(DrawableInsert.DrawableInsertName.DrawableInsert2D001)`; `cam.addChild(d.id, Camera.CameraPort.FixedForeground)`;
+  `d.setBrushType(DrawableInsert.BrushType.Pen); d.setBrushSize(2.5); d.setIntensity(1,Anim(0))`. 등거리 정원(중심 돔좌표 EP_AZ≈0, EP_H≈58; 반경 R=23.44):
+  `Xc=(90-EP_H)*cos(rad(EP_AZ)); Yc=(90-EP_H)*sin(rad(EP_AZ))` → `d.beginDraw()`; θ 200스텝 `X=Xc+R*cos θ,Y=Yc+R*sin θ; az=deg(atan2(Y,X)); h=90-hypot(X,Y); d.setBrushPosition(Vec(az,h,0))`; `d.endDraw()`. (돔 고정 원 연출 일반에 재사용.)
 
 - **줌/확대 — 배율이 너무 작음 방지**: 행성 클로즈업은 한 번으론 부족 → **3~4단계 반복**(배율↑=더 확대):
   `for _ in range(4): p = cam.positionLBR; cam.setPositionR(p.z / 1.6, Anim.cubic(2.5), -1); sleep(2.6)` (매 스텝 1.6배씩 확대).

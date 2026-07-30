@@ -810,7 +810,14 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - ✅✅✅ **`setMotionType(MotionType.MotionPrecession)` = 세차운동 완성 확정 (2026-07-16 사용자 확인, precession.py + Recording37)**: MotionType enum =
   MotionDiurnal/MotionAnnual/MotionAnalemma/**MotionPrecession**. SPC 해독: MotionPrecession 도 아날렘마처럼 **내부적으로 Earth
   setRotationSpeedScale(cmd 1029)=0 로 자전 정지** + 시간가속 → 세차만 보임. reset = cmd 4891=0 + 1045(자전배율 reset).
-  ⏳ **미완성 숙제(사용자 제안)**: '세차 원'(천구 북극이 그리는 원)을 그려주면 더 좋음 → 문서상 Marks 위젯 소관(Mark로 그려야). 다음에 붙일 것.
+  ✅✅ **세차 원(천구 북극이 그리는 23.44° 원) 완성 확정 (2026-07-30 사용자 "돌아가고 이것도 되네", precession_circle_v1.py)**:
+  Mark 위젯 말고 **DrawableInsert 로 돔에 직접 원을 그림**. 핵심 원리: 세차 중엔 일주운동이 멈춰(MotionPrecession) **황도극이 화면에 고정**
+  → 돔(FixedForeground)에 그린 원도 고정 → 천구 북극(청록)이 그 원을 따라 돎. 레시피:
+  · `d = DrawableInsert(...DrawableInsert2D001)` + `cam.addChild(d.id, FixedForeground)` + `setBrushType(Pen)` + `setBrushSize(2.5)` + `setIntensity(1)`.
+  · **등거리 투영 '정원' 공식**으로 반경 23.44° 원: 중심 돔좌표(EP_AZ, EP_H) → `Xc=(90−EP_H)·cos(EP_AZ)`, `Yc=(90−EP_H)·sin(EP_AZ)`;
+    둘레 θ 돌며 `X=Xc+23.44·cosθ`, `Y=Yc+23.44·sinθ` → `az=atan2(Y,X)`, `h=90−hypot(X,Y)` → `beginDraw()`→`setBrushPosition(Vec(az,h,0))` 반복→`endDraw()`.
+  · 실측 좋은 값: 북쪽 하늘(setOrientationH 180, TH50)에서 **EP_AZ≈0, EP_H≈58** 이면 황도극 근처에 얹힘(뷰 바꾸면 이 중심값 재보정). 선 색은 흰색 고정(Pen).
+  → 결론: **돔에 '고정된 원'을 그려야 하는 연출(세차 원 등)은 DrawableInsert + 등거리 정원 공식**이 정답(Mark 안 써도 됨).
   ✅✅✅ **황도 12궁 쇼 완성 확정 = MotionAnalemma + 대기 OFF (2026-07-16 사용자 확인, zodiac_sun.py v8 + Recording38)**:
   '태양이 1년간 12별자리를 지나감'을 보여주는 정답. ⚠️⚠️ **긴 삽질 끝(v3~v8) — 방법 선택이 핵심**:
   · ❌ **우주(FadeTo Earth) 프레임 + 태양 줌락 = 전면 실패**(v3~v6): 이 프레임서 `setZoomPosition` 줌락이 근본 불안정 —
