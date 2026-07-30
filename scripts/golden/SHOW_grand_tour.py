@@ -119,15 +119,35 @@ def shadows_off(obj):
     obj.setShadowContrast(0.0, Anim(1.0))
     obj.setPlanetShineStrength(1.0, Anim(1.0))
 
-def fly_to_planet(name, caption, zoom=True, pullback=None):
-    """행성 GoTo 비행 → 도착 폴링 → Target 30 → (풀백) → 줌. B 는 손대지 않는다.
-       pullback: 위성계처럼 넓게 담아야 할 때 R 배수(예 3.5)."""
+def to_inertial(planet_obj):
+    """★ 관성 프레임(EquatorialJ2000) 전환 — 위성 공전을 보려면 필수.
+       도킹 프레임(EquatorialSynchronous)은 카메라가 행성 자전을 따라 돌아서
+       시간을 흘려도 '위성이 도는 게 아니라 하늘이 도는 것'처럼 보인다.
+       ⚠️ 전환 자체가 시점 점프로 보이므로 **도착 직후(장면이 아직 안 시작됐을 때)** 해야 한다.
+          위성을 켠 뒤에 하면 화면이 갑자기 바뀌어 흐름이 끊긴다(실측 지적)."""
+    try:
+        ip = planet_obj.portId(Planet.PlanetPort.EquatorialJ2000)
+        q = cam.positionLBR
+        cam.setPositionLBR(Vec(q.x, q.y, q.z), Anim(2.5), ip)      # 위치 유지, 프레임만
+        cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(2.5), ip)   # 시선 정렬 필수
+        sleep(3.0)
+        print("   관성 프레임(EquatorialJ2000) 전환 완료")
+        return True
+    except Exception as ex:
+        print("   관성 프레임 전환 실패:", ex); return False
+
+
+def fly_to_planet(name, caption, zoom=True, pullback=None, inertial_obj=None):
+    """행성 GoTo 비행 → 도착 폴링 → [관성 프레임 전환] → Target 30 → (풀백) → 줌.
+       B 는 손대지 않는다. inertial_obj 를 주면 도착 직후 관성 프레임으로 전환(위성 공전용)."""
     say(caption)
     db.data(Data.Type.PlanetType, name).action(Action.Type.GoTo).trigger()
     print("   %s 로 비행" % name)
     wait_arrival(dock_r=100.0)
+    if inertial_obj is not None:
+        to_inertial(inertial_obj)               # ★ 도착 직후 = 아직 장면이 시작 전이라 티가 덜 남
     cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
-    make_caption(20.0)                          # ★ 행성 프레임 자막(낮은 위치)로 교체
+    make_caption(20.0)                          # 행성 프레임 자막(낮은 위치)로 교체
     if pullback:
         p = cam.positionLBR
         cam.setPositionR(p.z * pullback, Anim.cubic(4.0), -1); sleep(4.5)
@@ -162,7 +182,7 @@ shadows_off(jup)
 # ⚠️ 실측 지적: 도킹 R≈5 에선 위성 궤도가 화면 밖/너무 작아 안 보임
 #    → **풀백(R×3.5)** 으로 궤도를 담고, 위성 **setScale 을 크게(14)** 준다
 fly_to_planet("Jupiter", "두 번째 — 목성. 지구 1,300개가 들어간다",
-              zoom=False, pullback=3.5)
+              zoom=False, pullback=3.5, inertial_obj=jup)   # ★ 도착 직후 관성 전환
 say("가스로만 이루어진 거대 행성", 5.0)
 
 # 갈릴레이 위성 4개 (1610년 갈릴레오가 본 그것)
@@ -179,20 +199,7 @@ sleep(4.0)
 say("갈릴레오가 1610년에 본 네 개의 점", 5.0)
 say("이 점들이 목성을 돈다는 사실이 — 지동설의 증거가 됐다", 7.0)
 
-# ══ ★★ 관성 프레임 전환 (이게 없으면 '공전'이 안 보인다) ══
-#   GoTo/FadeTo 도킹 프레임 = EquatorialSynchronous(동기) → 카메라가 목성 자전을 따라
-#   같이 돌아서, 시간을 흘려도 **위성이 도는 게 아니라 하늘이 도는 것처럼** 보인다.
-#   → 관성 프레임(EquatorialJ2000)으로 갈아타야 위성 공전이 제대로 보인다.
-#   ⚠️ 같은 L/B/R 을 유지해 카메라는 안 움직이고, **시선 정렬을 반드시 같이** 건다.
-try:
-    ip = jup.portId(Planet.PlanetPort.EquatorialJ2000)
-    q = cam.positionLBR
-    cam.setPositionLBR(Vec(q.x, q.y, q.z), Anim(2.0), ip)
-    cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(2.0), ip)
-    sleep(2.5)
-    print("   관성 프레임(EquatorialJ2000) 전환 완료")
-except Exception as ex:
-    print("   관성 프레임 전환 실패:", ex)
+# (관성 프레임 전환은 도착 직후 fly_to_planet 안에서 이미 끝났다 — 여기선 시간만 흘린다)
 
 # ★ 시간가속 범위: 위성 주기는 이오 1.77 / 유로파 3.55 / 가니메데 7.15 / 칼리스토 16.7일
 #   → +2일은 너무 짧아 바깥 위성이 거의 안 움직인다. **+8일을 50초에** = 이오 4.5바퀴,

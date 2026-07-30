@@ -366,6 +366,7 @@ sleep(3.0)   # 1~2초면 관측지가 바뀜(지상 뷰 유지, 우주로 안 �
 - ⚠️⚠️ **[위성 '공전'이 안 보이는 진짜 이유 = 관성 프레임 전환 누락 (2026-07-30 재확인)]**:
   GoTo/FadeTo 도킹 프레임은 **EquatorialSynchronous(동기)** 라 카메라가 행성 자전을 따라 같이 돈다 → **시간을 흘려도 위성이 도는 게 아니라 하늘이 도는 것처럼** 보인다.
   ✅ **반드시 관성 프레임으로 전환**(카메라 위치는 그대로, 시선 정렬 동반):
-  `ip = jup.portId(Planet.PlanetPort.EquatorialJ2000)` → `q=cam.positionLBR; cam.setPositionLBR(Vec(q.x,q.y,q.z), Anim(2), ip)` + `cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(2), ip)`
+  `ip = jup.portId(Planet.PlanetPort.EquatorialJ2000)` → `q=cam.positionLBR; cam.setPositionLBR(Vec(q.x,q.y,q.z), Anim(2.5), ip)` + `cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(2.5), ip)`
+  · ⚠️⚠️ **전환 타이밍이 중요하다 — 반드시 '도착 직후'**(장면이 아직 시작되기 전)에 할 것. **위성을 켜고 자막을 깐 뒤에 전환하면 화면이 갑자기 확 바뀌어** 흐름이 끊긴다(실측 지적).
   · **풀백 필요**: 도킹 R≈5 에선 위성 궤도가 화면 밖 → `setPositionR(p.z*3.5, Anim, -1)` + 위성 `setScale(14)`.
   · **가속 범위**: 갈릴레이 위성 주기 = 이오 1.77 / 유로파 3.55 / 가니메데 7.15 / 칼리스토 16.7일 → **+8일을 50초**가 적당(+2일은 바깥 위성이 안 움직이고, +7일/20초는 너무 빠름).
