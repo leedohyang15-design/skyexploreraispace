@@ -1,0 +1,66 @@
+# -*- coding: utf-8 -*-
+# ═══ [정답 예제 2] 고양이눈 성운 여행 (NEBULA 패널 = GoTo 가능) ═══
+# 대응 프롬프트: "고양이눈 성운으로 여행해줘"
+#
+# 오늘 확정한 '딥스카이 접근 3단 우선순위' 중 ①번 경로:
+#   ① NEBULA 패널 27개(NebulaType) → GoTo/FadeTo 여행 가능   ← 이 예제
+#   ② 그 외 메시에·은하·성단          → GoTo 없음, ConnectTo + 줌
+#   ③ NGC 패널(NgcType)              → 이동 액션 없음, LookAt + ScaleUp
+# ⚠️ NGC6543 은 'NGC 번호'지만 NEBULA 패널 소속이라 NebulaType 으로 찾아야 함
+#    (NgcType 으로 찾으면 안 나옴 — 같은 번호라도 패널 소속이 능력을 가름)
+from skyExplorer import *
+from studio import *
+from Initialization import *
+
+cam = Camera(Camera.CameraName.MainCamera)
+uni = Universe(Universe.UniverseName.MainUniverse)
+dm  = DateManager()
+tz  = DateManager.TimeZone.DefaultTimeZone
+
+# ── 지상 밤하늘 인트로 ────────────────────────────────────────
+SceneGraph().reset(1); sleep(1.5)
+uni.setGlobalIntensity(1.0, Anim(0.0))
+earth = Planet(Planet.PlanetName.Earth)
+earth.setIntensity(1.0, Anim(0.0))
+earth.setAtmosphereIntensity(0.0, Anim(0.0))
+earth.setTerrainIntensity(0.0, Anim(0.0))
+Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.5, Anim(0.0))
+Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
+dm.stop(); sleep(0.3)
+dm.setDateTime(2026, 7, 15, 13, 0, 0, tz, Anim(0.0)); sleep(0.4)   # 여름밤 22시
+cam.setOrientationH(180.0, Anim(0.0))       # 북쪽(용자리 방향)
+cam.setTargetHeight(30.0, Anim(0.0))
+sleep(2.0)
+
+t1 = InsertText(InsertText.InsertTextName(1))
+cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
+t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
+t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
+t1.setText("용자리의 고양이눈 성운 (NGC 6543)"); t1.setIntensity(1.0, Anim(1.0))
+sleep(3.5)
+
+# ── 핸들 선확보 (⚠️ NebulaType! NgcType 아님) ────────────────
+h = DataManager.database().data(Data.Type.NebulaType, "NGC 6543")
+
+# ── 암전 속에서 여행 (전환 슬루 숨기기) ──────────────────────
+t1.setIntensity(0.0, Anim(0.8)); sleep(1.0)
+uni.setGlobalIntensity(0.0, Anim(1.2)); sleep(1.5)
+
+h.action(Action.Type.GoTo).trigger()
+sleep(20.0)                                  # GoTo = 연속 비행(시간 걸림)
+
+cam.setTargetHeight(30.0, Anim(1.0))         # ★ GoTo 도착 후 Target 30 필수
+sleep(1.5)
+uni.setGlobalIntensity(1.0, Anim.cubic(2.5)); sleep(3.0)
+
+# ── 도착 후 줌 (절대타겟 + 선형 + 겹치기) ────────────────────
+p0 = cam.positionLBR.z
+for zoom in (1.5, 2.2, 3.0, 3.8, 4.5):
+    cam.setPositionR(p0 / zoom, Anim(1.5), -1)
+    sleep(1.15)
+sleep(2.0)
+
+t1.setText("죽어가는 별이 내뿜은 가스 껍질"); t1.setIntensity(1.0, Anim(1.0))
+sleep(5.0)
+t1.setIntensity(0.0, Anim(1.5)); sleep(2.0)

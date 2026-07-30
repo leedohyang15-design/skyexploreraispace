@@ -1,0 +1,79 @@
+# -*- coding: utf-8 -*-
+# ═══ [정답 예제 4] 전 별자리 선/그림/라벨 슬라이더 페이드 ═══
+# 대응 프롬프트: "밤하늘의 모든 별자리 선을 부드럽게 켜줘"
+#
+# 오늘 부활시킨 ParameterizationLut '프리셋 슬롯' 활용:
+#   ⚠️ 수동 타겟(addTargetAttribute)은 여전히 死. **미리 배선된 프리셋 슬롯만 동작**.
+#   · 051_AllConstellationLines / 052_Pictures / 053_Labels / 054_Boundaries
+#   · 055~058_Slider* / 059_AutoExposure / 060_AutoContrast
+#   🛑 061_WeatherEffectRain / 062_Snow = 별도 날씨 렌더러 소관이라 死(쓰지 말 것)
+#   ★ 핵심: setEnabled(True) 후 **sleep(1.5) 프레임 대기** 없으면 enabled 가 False 로 남음
+#   → 88개 별자리를 개별 호출할 필요 없이 한 번에 부드럽게 페이드
+from skyExplorer import *
+from studio import *
+from Initialization import *
+
+cam = Camera(Camera.CameraName.MainCamera)
+dm  = DateManager()
+tz  = DateManager.TimeZone.DefaultTimeZone
+
+# ── 지상 밤하늘 ──────────────────────────────────────────────
+SceneGraph().reset(1); sleep(1.5)
+Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim(0.0))
+earth = Planet(Planet.PlanetName.Earth)
+earth.setIntensity(1.0, Anim(0.0))
+earth.setAtmosphereIntensity(0.0, Anim(0.0))
+earth.setTerrainIntensity(0.0, Anim(0.0))
+Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.6, Anim(0.0))
+Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
+dm.stop(); sleep(0.3)
+dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)
+cam.setOrientationH(0.0, Anim(0.0))
+cam.setTargetHeight(30.0, Anim(0.0))
+sleep(2.0)
+
+t1 = InsertText(InsertText.InsertTextName(1))
+cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
+t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
+t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
+t1.setText("별들을 이어 보면"); t1.setIntensity(1.0, Anim(1.0))
+sleep(3.0)
+
+# ── ① 별자리 '선' 전체를 슬라이더로 페이드인 ─────────────────
+lines = ParameterizationLut(
+    ParameterizationLut.ParameterizationLutName.ParameterizationLut051_AllConstellationLines)
+lines.setEnabled(True)
+sleep(1.5)                                   # ★ 프레임 대기 필수
+lines.setInternalValue(0.0, Anim(0.0)); sleep(0.5)
+lines.setInternalValue(1.0, Anim(4.0))       # 0→1 = 부드럽게 전부 켜짐
+sleep(5.0)
+
+t1.setText("88개 별자리, 하나의 슬라이더로"); sleep(3.0)
+
+# ── ② 별자리 '이름표'도 페이드인 ─────────────────────────────
+labels = ParameterizationLut(
+    ParameterizationLut.ParameterizationLutName.ParameterizationLut053_AllConstellationLabels)
+labels.setEnabled(True)
+sleep(1.5)
+labels.setInternalValue(0.0, Anim(0.0)); sleep(0.5)
+labels.setInternalValue(1.0, Anim(3.0))
+sleep(4.0)
+
+t1.setText("신화의 그림까지"); sleep(2.0)
+
+# ── ③ 신화 그림(art) 페이드인 ────────────────────────────────
+art = ParameterizationLut(
+    ParameterizationLut.ParameterizationLutName.ParameterizationLut052_AllConstellationPictures)
+art.setEnabled(True)
+sleep(1.5)
+art.setInternalValue(0.0, Anim(0.0)); sleep(0.5)
+art.setInternalValue(1.0, Anim(5.0))
+sleep(6.0)
+
+t1.setText("하늘 가득한 이야기"); sleep(4.0)
+
+# ── ④ 정리: 그림만 끄고 선은 남기기 ──────────────────────────
+art.setInternalValue(0.0, Anim(3.0)); sleep(3.5)
+t1.setIntensity(0.0, Anim(1.5)); sleep(2.0)
+lines.restore(); labels.restore(); art.restore()
