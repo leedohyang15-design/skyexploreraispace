@@ -251,6 +251,13 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setZoomFormula(Camera.ZoomFormula.GreatCircle)`+`setZoomPosition(Vec(0,0,0),track,Anim,Camera.PositionMode.XYZ)`** = 🔒고급 줌락(대상 중앙 자동고정). 성운 근접비행 전용, 행성엔 3번과 차이 미미 → 헷갈리면 3번.
 - **`obj.setScale(orig×배율,Anim)`** = 개체 확대(위치줌 안 되는 지상·성단). orig 먼저 읽고 원본×배율(절대값 금지).
 - **`Action.FadeTo`**=페이드전환(행성R5/성운성단R0) · **`Action.GoTo`**=연속비행(도착후 setTargetHeight(30) 필수) · **`Action.ConnectTo`**=시점(프레임)만 이동→줌(setPositionR)으로 대상 봄.
+- ✅ **`Action.StraightGoTo` = '즉시 도착' (2026-07-30 실측)**: GoTo 와 **똑같은 도킹 위치**(암석행성 R≈5 반지름·북극상공 B=90)로 **비행/페이드 없이 순간이동**. 화성 실측 R=16,981km=5.0 화성반지름.
+  ⚠️ GoTo 처럼 **Target 이 0 으로 남아 대상이 화면 아래 가장자리에 걸림 → 도착 직후 `cam.setTargetHeight(30, Anim)` 필수.** 빠른 장면 전환에 GoTo(20초 비행)보다 유리.
+- ⚠️⚠️ **액션 세트는 '데이터 타입마다 다름' (실측)** — 쓰기 전 `h.action(Action.Type.X) is not None` 확인:
+  · **행성(PlanetType)**: GoTo/FadeTo/ConnectTo/**StraightGoTo** ✅ / **LookAt·ScaleUp 없음**.
+  · **NGC(NgcType)**: **LookAt(조준)·ScaleUp/ScaleDown(확대)** ✅ / **이동 계열 전무**.
+  · 🛑 **GoToPlace·FadeToPlace·FadeToObservation·FadeToParent = 행성·NGC 둘 다 死** → 쓰지 말 것.
+- ⚠️ **`cam.positionLBR.z` 숫자는 프레임마다 단위가 달라 해석하지 말 것** (화성 프레임서 105,609 로 읽혔지만 실제는 16,981km=5반지름). **줌은 항상 '읽은값 ÷ 배율'로만** 쓰고 절대 거리로 해석 금지.
 - ⚠️ 하늘/천체 '회전'은 카메라가 아니라 **시간가속**(`dm.setDateTime(목표,tz,Anim(초))`)으로.
 
 ## 5. 자주 쓰는 완성 레시피 (요청↔패턴)
