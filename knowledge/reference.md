@@ -254,7 +254,10 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setZoomFormula(Camera.ZoomFormula.GreatCircle)`+`setZoomPosition(Vec(0,0,0),track,Anim,Camera.PositionMode.XYZ)`** = 🔒고급 줌락(대상 중앙 자동고정). 성운 근접비행 전용, 행성엔 3번과 차이 미미 → 헷갈리면 3번.
 - **`obj.setScale(orig×배율,Anim)`** = 개체 확대(위치줌 안 되는 지상·성단). orig 먼저 읽고 원본×배율(절대값 금지).
 - **`Action.FadeTo`**=페이드전환(행성R5/성운성단R0) · **`Action.GoTo`**=연속비행(도착후 setTargetHeight(30) 필수) · **`Action.ConnectTo`**=시점(프레임)만 이동→줌(setPositionR)으로 대상 봄.
-- ✅ **`Action.StraightGoTo` = '즉시 도착' (2026-07-30 실측)**: GoTo 와 **똑같은 도킹 위치**(암석행성 R≈5 반지름·북극상공 B=90)로 **비행/페이드 없이 순간이동**. 화성 실측 R=16,981km=5.0 화성반지름. 빠른 전환에 GoTo(20초 비행)보다 유리.
+- ⚠️⚠️ **`Action.StraightGoTo` = '즉시 도착'이지만 그 뒤 줌은 금지 (2026-07-30 실측 확정)**: 도킹 위치는 GoTo 와 같음(암석행성 R≈5 반지름·북극상공 B=90, 화성 HUD 16,981km).
+  🛑 **그러나 이 프레임에선 `positionLBR.z` 가 105,609 로 읽히고(HUD 실제 16,981km) 그 값을 `setPositionR` 로 되쓰면 R 이 수천~1만 Gm 으로 폭발**(카메라가 태양계 밖으로 날아감).
+  → **줌·오빗 등 뒤에 카메라 조작이 있으면 반드시 `FadeTo` 를 쓸 것.** FadeTo 프레임은 R 이 '반지름 단위'(≈5.0)로 읽혀 읽기/쓰기가 일치(검증됨).
+  → StraightGoTo 는 **'도착만 하고 카메라 조작 없음'** 인 장면에서만. (안전장치: 줌 전에 `p0 = cam.positionLBR.z` 가 100 이하인지 확인 — 넘으면 프레임이 이상한 것.)
 - ✅ **[행성 접근 확정 레시피 — B 는 손대지 말 것 (2026-07-30 사용자 확정)]**
   **`GoTo`/`StraightGoTo`/`FadeTo` → `cam.setTargetHeight(30)` → 그림자 OFF 3세터 → 줌(`setPositionR`, 절대타겟+선형+겹침).**
   ⚠️⚠️ **도킹이 남긴 B 를 바꾸지 마라**(암석행성 B≈90 / 가스행성 B≈20 이 각각 그 개체의 관람 정위치다).
