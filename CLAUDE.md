@@ -182,11 +182,17 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · ✅ **천왕성 '본체' `setIntensity` 를 올리면 고리도 같이 밝아짐** (고리가 본체 intensity 에 묶여있음 = 노트 일치!) —
     단 **~2 이상이면 원반이 새하얗게 타 백열전구처럼 보임**("이게 맞냐 ㅋㅋ"). → **본체 intensity ~1.5 전후가 균형**
     (고리 살짝 또렷 + 원반 색 유지). 그 이상은 과함. + 근접(R≈3)·고리면 개방(B≈38)·배경 검정(Stars 0) 필수.
-  → 천왕성 고리 = '은은하게' 가 한계(어두운 에셋+밝기 세터 없음). 본체 intensity 로만 미세 조절.
-- ⚠️⚠️ **토성 고리 `setRingModel(Planet.RingModel)` = 전환은 되나 화면 차이 '미미' (2026-07-15 사용자 3회 확인, saturn_rings.py)**:
-  RingModel enum = **DefaultRing / BasicRing / Asteroids / Asteroids_3_0** (4종, SPC 값 0/2/13/28). 하드컷·6초홀드·
-  고리면 근접(B=80, R 바짝)·DefaultRing↔BasicRing A/B 까지 해도 **구별이 어려움**(카시니 간극 유무가 안 드러남).
-  → 쇼용 '고리 룩 변경' 연출로는 부적합. `setRingIntensity` 는 아예 없음(고리는 본체 intensity 에 포함).
+  ✅✅ **[승격 확정] 천왕성 고리 = 이 레시피면 쇼에 쓸 만함 (2026-07-30 사용자 "다 잘보여", retry_2_weak_and_D.py)**:
+  **확정 세트 = FadeTo Uranus → 그림자 OFF 3세터 → `setPositionLBR(Vec(L, 38, 3.2), Anim, -1)`(근접 R3.2 + 고리면 개방 B38)
+  → `setTargetHeight(30)` → 배경 검정(Stars 0) → `setIntensity(1.5)`**. intensity 1.0→1.5 A/B 하면 고리가 또렷해지는 게 보임(1.8+ 는 원반이 탐).
+  → 옛 결론('은은하게가 한계')은 **구도+intensity 를 안 맞춘 것**. 토성과 같은 교훈: **고리는 '구도(B 개방·근접)'가 8할.**
+- ✅✅ **[정정] 토성 고리 = '구도'를 잡으면 잘 보인다 (2026-07-30 사용자 "다 잘보여", retry_2_weak_and_D.py)**:
+  옛 결론('미미')은 **구도가 나빴던 것**(멀거나 고리면이 닫힘). ✅ **확정 레시피**: FadeTo Saturn → 그림자 OFF 3세터
+  (`setShadowStrength(0)`+`setShadowContrast(0)`+`setPlanetShineStrength(1)`) → **`setPositionLBR(Vec(L, 75, max(3.2, 읽은R×0.7)), Anim, -1)`**
+  = **고리면 크게 개방(B=75) + 근접(R≥3.2)** → `setTargetHeight(30)` + 배경 검정(`Stars.setIntensity(0)`).
+  ⚠️ **R<3 은 고리 바깥지름(4.6 토성반지름)이 화면 밖** → R 3 이상 유지. B 20(도킹 기본)은 고리가 선으로 보여 나쁨 → 55~75 로 열 것.
+  ⚠️ 단 **`setRingModel` A/B(모델 교체) 자체는 여전히 차이 미미** — 카시니 간극 유무는 안 드러남. RingModel enum = DefaultRing/BasicRing/Asteroids/Asteroids_3_0(SPC 0/2/13/28).
+  → **'고리를 보여주는' 쇼는 ✅됨(구도로 승부), '고리 룩을 바꾸는' 연출은 ❌부적합.** `setRingIntensity` 는 없음(고리는 본체 intensity 에 포함).
   ✅ 같이 확인된 미사용 Planet 렌더: `setScatteringIntensity`(대기 산란)·`setPointSaturation`(색 채도)·
   `setCloudDirection`(가스 띠 방향, Anim 없는 단일 float) — 호출 성공(효과는 미세). SPC cmd(Recording22):
   setRingModel **1186**(enum), setScatteringIntensity **1061**, setPointSaturation **1034**, setCloudDirection **1168**.
@@ -287,10 +293,12 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   ⚠️ **청주(위도 36)는 오로라 벨트 밖** → 이 쇼는 관측지를 고위도로: `Place2D.setPosition(Vec(69.65, 18.96, 100))`(트롬쇠, 노르웨이).
   1월 극야라 종일 어둠 = 언제든 밤하늘. 대기 OFF + 지면 OFF + 북쪽(H180)/TH40. SPC(Recording41, family Earth 301989891):
   setAuroraIntensity **1051** / setMagnetosphereIntensity **1048**(보조, 효과 미미). Stars setPointSaturation 515/setContrast 514.
-- ⚠️ **무지개 `setRainbowIntensity` = 렌더는 되나 '원래 흐릿'함 (2026-07-16 실측, rainbow.py)**: 대낮(대기 ON) 태양 반대편(대일점)에
-  옅은 아치가 뜸(사용자 "잘 모르겠다"). **노브는 setRainbowIntensity 하나뿐**(전체 덤프 — 색/굵기/선명도 세터 없음, 이미 최대).
-  ⚠️ 해를 너무 낮추면(황혼) 노을에 오히려 묻힘 → 밝은 낮 하늘(태양 고도 ~20°)이 그나마 나음. 카메라는 '태양 반대 방위'(H=180-태양방위) 조준.
-  → 쇼용으로는 임팩트 약함(SDK 한계). 대기광학은 이 정도가 끝. (setAtmosphereHaloIntensity=태양 주변 무리도 있으나 미검증.)
+- ✅✅ **[승격 확정] 무지개 `setRainbowIntensity` = 'OFF↔ON A/B'로 보여주면 잘 보인다 (2026-07-30 사용자 "다 잘보여", retry_2_weak_and_D.py)**:
+  옛 결론('흐릿·임팩트 약함')은 **비교 대상이 없어서** 알아채기 어려웠던 것. ✅ **확정 레시피**:
+  **대기 ON**(`setAtmosphereIntensity(1)`, 무지개는 낮 전용) + 지면 OFF + 태양 저각(이른 아침/늦은 오후 — 아치가 높이 솟음)
+  + `setRainbowIntensity(0)` 로 **먼저 6초 홀드(기준 화면)** → `setRainbowIntensity(1, Anim(2))` **6초 홀드** = OFF↔ON 대비로 아치가 뚜렷히 인지됨.
+  ⚠️ **노브는 setRainbowIntensity 하나뿐**(색/굵기 세터 없음, 1.0이 최대). 카메라는 태양 반대 방위(H=180−태양방위) 조준. 너무 황혼이면 노을에 묻힘.
+  → 쇼에 쓸 수 있음. 단 '가만히 켜두면' 놓치기 쉬우니 **반드시 OFF→ON 연출**로. SPC(Recording42): setRainbowIntensity **1147**.
   ✅ **해 낮춘 v2 는 사용자 "좀 잘되네" 인정** — 아치가 더 높이 솟음. SPC(Recording42): setRainbowIntensity **1147**(family Earth 301989891).
 - ✅✅✅ **'살아있는 지구 — 구름과 날씨' 완성 (2026-07-16 사용자 확인, clouds_weather.py v3 + Recording43)**: 안 쓴 구름 상세 클러스터.
   ⚠️⚠️ **하이라이트 = `setCloudModel` A/B (사용자 "모델 달라질 때 확 달라진다")**: CloudModel enum 값 = **DefaultCloud=0 / Volumetric=54(입체!) / VolumetricLowRes=55** /
@@ -941,10 +949,14 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   showPath=True/intensity=1/evolution=1 로 세팅돼도 **화면에 곡선 안 뜸**. dir() 에 setParent/addChild 없음 = 프레임 부착 API 없음 → 좌표 프레임/스케일이 안 맞으면 화면 밖.
   → **[판정] 맹탕(포맷·프레임 미상)으로는 못 띄움. 실제 경로 TSV 는 소프트웨어가 export 하는 특정 포맷/프레임 추정 = 스크립트 창 단독 렌더 난망.** 궤적선이 필요하면 검증된 Line/OrbitalPlace/Comet 궤도선 사용.
 - ✅✅ **[정리] '미개척 클래스' 스윕 결론 (2026-07-22, 2026-07-30 정정)**: 완본 전 클래스 중 안 해본 것들 판별 완료.
-  ✅ **렌더/동작 확인**: Lut(별 스프라이트) · **Insert2D 애니메이션(setPosition/setSize Anim + 텍스처 flip = 영상 대체)** · **ParameterizationLut '프리셋 슬롯'(별자리선/그림/라벨/경계/슬라이더/자동노출)** · **NGC '제자리 ON'(장미성운 등 딥스카이)** ← 2026-07-30 3개 부활.
+  ✅ **렌더/동작 확인**: Lut(별 스프라이트) · **Insert2D 애니메이션(setPosition/setSize Anim + 텍스처 flip = 영상 대체)** · **ParameterizationLut '프리셋 슬롯'(별자리선/그림/라벨/경계/슬라이더/자동노출)** · **NGC '제자리 ON'(장미성운 등 딥스카이)**.
+  ✅✅ **[2026-07-30 하루 부활 총 8개]** ① Lut.setColorPalette(별색 온도 팔레트, 경로=studio/starColors) ② 세차 원(DrawableInsert 등거리 정원) ③ Insert2D 애니메이션(영상 대체) ④ NGC 제자리 ON ⑤ ParameterizationLut 프리셋 ⑥ **무지개**(OFF→ON A/B) ⑦ **토성 고리**(B75 개방+근접) ⑧ **천왕성 고리**(B38+R3.2+intensity 1.5).
+  → ⑥⑦⑧ 은 '死'가 아니라 **'구도/대비를 안 잡아서 약해 보였던 것'** — 아래 F 교훈 참조.
   🛑 **여전히 死(호스트/오퍼레이터/하드웨어 소관)**: VideoPlayer(ViPlayer 호스트) · Audio 4형제(오디오 호스트) · **ParameterizationLut 날씨(Rain/Snow)·수동타겟**(별도 렌더러/무반영) · Place3D(load 되나 렌더 안 됨) · SkySurvey(HiPS 미렌더, 최종) · **NGC 카메라 접근(액션 死 — 단 제자리 ON 은 됨)** · Patch(워핑, 위치 없음) · 지구 표면디테일(절벽/식생/강수 = Terrain View 전용).
   하드웨어/시스템(비검증, 창 무관): Light(DMX 코브) · DMX512 · SoftwareManager · ShowEngineManager · FreeDomeManager · RemoteShow · SlideShowHandler(XML 필요) · Comment(로그 전용) · Body(추상 베이스) · Mat/Mat4x4/Vec3(수학).
-  → **교훈: '死'로 묻었어도 접근 방식(수동 vs 프리셋, 접근 vs 제자리 ON)을 바꾸면 살아나는 게 있음.** 미디어·오디오·날씨·경로선·HiPS 는 재시도 금지(호스트 소관 확정), 그 외는 각도 바꿔볼 여지.
+  → **교훈 ①: '死'로 묻었어도 접근 방식(수동 vs 프리셋, 접근 vs 제자리 ON)을 바꾸면 살아나는 게 있음.** 미디어·오디오·날씨·경로선·HiPS 는 재시도 금지(호스트 소관 확정), 그 외는 각도 바꿔볼 여지.
+  → **교훈 ②(더 중요): '임팩트 약함'으로 접은 것들은 대부분 死가 아니라 연출 실패였다.** 무지개·토성고리·천왕성고리 셋 다 **구도(B 개방·근접)** 와 **대비(OFF→ON A/B, intensity 스윕)** 를 잡으니 잘 보임(사용자 확인).
+  → **다음에 '효과가 약하다' 싶으면 세터를 의심하기 전에 ⓐ구도(각도·거리) ⓑ대비(기준화면 홀드→변경) ⓒ배경 정리(Stars/그림자 OFF) 를 먼저 점검할 것.**
 
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금

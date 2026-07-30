@@ -226,7 +226,13 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **AdvancedCamera 비행**(zoom/move/takeOff): 스크립트 무효(오퍼레이터 수동).
 - **지상 Sky View에서 setPositionLBR/setZoomFov**: 무효. 지상 클로즈업은 `setScale`(태양·달 등 같은 배율로).
 - **표면 디테일**(강수/암벽/나무 setRockyCliff·setTree·setCloudRaininess): Terrain View 전용, 궤도줌서 안 보임.
-- **바다윤슬·무지개·대기halo류**: 은근/약함 → 쇼 임팩트용으로 피함. (setColorPalette 는 위 별색 팔레트로 이관 = 됨)
+- **바다윤슬(setWaterSpecularIntensity)**: 우주뷰서 안 보임(Terrain View 전용 추정). (무지개·고리류는 2026-07-30 승격 = 아래 4.6 참조.)
+
+## 4.6 '약하다고 접었던 것' 승격 — 구도/대비를 잡으면 잘 보임 (2026-07-30 사용자 확인)
+- **무지개 ✅**: 대기 ON(낮 전용)+지면 OFF+태양 저각(이른아침/늦은오후) → **`earth.setRainbowIntensity(0,Anim(0))` 6초 홀드(기준) → `setRainbowIntensity(1,Anim(2))` 6초** = OFF↔ON 대비로 아치 뚜렷. 노브는 이거 하나뿐(1.0=최대). 카메라 H=180−태양방위.
+- **토성 고리 ✅**: FadeTo Saturn → 그림자 OFF 3세터 → **`cam.setPositionLBR(Vec(L, 75, max(3.2, 읽은R*0.7)), Anim, -1)`**(고리면 개방 B75 + 근접 R≥3.2) → `setTargetHeight(30)` + Stars 0. ⚠️ R<3 이면 고리 바깥지름이 화면 밖. (⚠️ setRingModel 모델교체 A/B 는 여전히 차이 미미 = 룩 변경 연출 X.)
+- **천왕성 고리 ✅**: FadeTo Uranus → 그림자 OFF → **`setPositionLBR(Vec(L, 38, 3.2), Anim, -1)`**(근접+고리면 개방) → Stars 0 → **`ur.setIntensity(1.5, Anim)`**(1.0→1.5 A/B 로 고리 또렷, 1.8+ 는 원반이 하얗게 탐).
+- 🎯 **교훈: 고리·대기광학은 '구도(B 개방·근접)'와 '대비(OFF→ON A/B)'가 8할.** 그냥 켜두면 안 보여서 死로 오판했던 것.
 
 ## 4.5 카메라 명령어 개념 (사용자 확정 모델 2026-07-30 — 프레임별로 되고 안 됨)
 프레임 3종: ①지상 SkyView(reset기본) / ②행성·우주(FadeTo/GoTo/ConnectTo 후) / ③성운·성단 진입 후.
