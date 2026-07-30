@@ -325,3 +325,16 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
   · ⚙️ **돔 하드웨어(건드리지 말 것)**: `setEyeDistance`·`setStereoPosition`·`setStereoRatio`·`setActiveTrackStereo`·`setDomeMeanPixelRatio`·`setResolutionRatioStrength` = 극장 장비 캘리브레이션.
   · ✅ 특수 용도: **`setTraceMode(True)`**=천체 궤적 남김(과하게 남으니 짧게).
   → **평상시 조합: `setOrientationH`(방위)+`setTargetHeight`(고도)+`setOrientationHPR`(회전)+`setPositionLBR`/`setPositionR`/`setPositionB`(위치).**
+
+## 4.8 ✅✅ 관측지 이동 = 도시/산 '이름'으로 (2026-07-30 실측 확정)
+좌표 하드코딩(`Place2D.setPosition`) 대신 **이름으로 관측지를 옮길 수 있다**(고도까지 자동):
+```python
+DataManager.database().data(Data.Type.CityType, "Paris").action(Action.Type.GoTo).trigger()
+sleep(3.0)   # 1~2초면 관측지가 바뀜(지상 뷰 유지, 우주로 안 나감)
+```
+- **살아있는 타입/액션**: `CityType`(Seoul/Paris/New York/London/Tokyo 확인) · `MountainType`(Mont blanc/Everest) · `VolcanoType`(Etna) → 각각 **`GoTo`·`FadeTo`** 보유.
+- 실측: 청주(36.64,127.49,200m) → **서울(37.599,126.978,100m)** 로 정확히 이동. `camR=0.0` 유지 = 지상 시점 유지.
+- 🛑 `GoToPlace`·`FadeToPlace` 는 **어느 타입에도 없음**(행성·NGC·Place 전부) = 死 확정. 관측지 이동은 **일반 `GoTo`** 로 한다.
+- ⚠️ `PlaceType`·`GenericPlaceType`·`CraterType` 은 위 이름들로 조회 실패(다른 이름 체계 추정).
+- 🎯 **쓸모**: "파리에서 본 밤하늘", "에베레스트에서 보는 은하수", "세계 도시 하늘 비교" 같은 연출을 좌표 없이.
+  ⚠️ 관측지가 바뀌면 **하늘(별 배치·지평선)도 그 위치 기준으로 바뀐다** → 시각(UTC)은 별도로 맞출 것.

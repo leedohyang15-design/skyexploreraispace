@@ -974,6 +974,15 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   → **교훈 ②(더 중요): '임팩트 약함'으로 접은 것들은 대부분 死가 아니라 연출 실패였다.** 무지개·토성고리·천왕성고리 셋 다 **구도(B 개방·근접)** 와 **대비(OFF→ON A/B, intensity 스윕)** 를 잡으니 잘 보임(사용자 확인).
   → **다음에 '효과가 약하다' 싶으면 세터를 의심하기 전에 ⓐ구도(각도·거리) ⓑ대비(기준화면 홀드→변경) ⓒ배경 정리(Stars/그림자 OFF) 를 먼저 점검할 것.**
 
+## Place 이동 (관측지) — ✅✅ 도시·산 '이름'으로 옮긴다 (2026-07-30 실측 확정, cam_31)
+- **좌표 하드코딩 불필요**: `DataManager.database().data(Data.Type.CityType, "Paris").action(Action.Type.GoTo).trigger()` → 1~2초에 관측지 전환(고도까지 자동).
+  실측: 청주(36.64, 127.49, 200m) → **서울(37.599, 126.978, 100m)** 정확 이동. `camR=0.0` 유지 = **지상 시점 유지**(우주로 안 나감).
+- **살아있는 타입/액션**: **`CityType`**(Seoul·Paris·New York·London·Tokyo 확인) · **`MountainType`**(Mont blanc·Everest) · **`VolcanoType`**(Etna) → 각각 **`GoTo`·`FadeTo`**.
+- 🛑 **`GoToPlace`·`FadeToPlace` 는 어느 타입에도 없음 = 死 확정**(행성·NGC·Place 전부 스캔). 관측지 이동은 **일반 `GoTo`** 로.
+- ⚠️ `PlaceType`·`GenericPlaceType`·`CraterType` 은 위 이름들로 조회 실패 → 다른 이름 체계 추정(미확인).
+- 🎯 활용: "파리에서 본 밤하늘"·"에베레스트의 은하수"·"세계 도시 하늘 비교"(위도별 별자리 높이 차이). 예제 `scripts/golden/g8_world_sky_tour.py`.
+- ⚠️ 관측지가 바뀌면 하늘(별 배치·지평선)이 그 위치 기준으로 바뀜 → 시각(UTC)은 별도로 맞출 것.
+
 ## SceneGraph — `SceneGraph()`
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
 
