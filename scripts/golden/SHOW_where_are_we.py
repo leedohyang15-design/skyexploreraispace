@@ -49,6 +49,38 @@ def light(sec=2.0):
     uni.setGlobalIntensity(1.0, Anim.cubic(1.5)); sleep(sec)
 
 
+def clamp_dark(sec):
+    """★ 암전 '유지' 클램프 — reset()/FadeTo 는 GlobalIntensity 를 1.0 으로 되돌린다.
+       한 번 setGlobalIntensity(0) 해두는 걸론 부족해서, 그 구간 내내 0 을 다시 찍어 눌러야
+       재세팅 과정(별·은하수·날짜점프)이 화면에 안 보인다. (프로젝트 노트의 '클램프 루프')"""
+    n = int(sec / 0.2)
+    for _ in range(max(n, 1)):
+        uni.setGlobalIntensity(0.0, Anim(0.0))
+        sleep(0.2)
+
+
+def ground_night_slow(lat=36.64, lon=127.49, alt=200.0,
+                      y=2026, mo=1, d=15, h=12, mi=0, gap=0.35):
+    """지상 세팅을 '나눠서' 건다 — 한 프레임에 몰아치면 엔진이 버벅여 화면이 뚝뚝 끊긴다.
+       ⚠️ 반드시 clamp_dark 로 암전을 유지한 채 호출할 것."""
+    e = Planet(Planet.PlanetName.Earth)
+    e.setIntensity(1.0, Anim(0.0));                       uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(gap)
+    e.setAtmosphereIntensity(0.0, Anim(0.0))
+    e.setTerrainIntensity(0.0, Anim(0.0));                uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(gap)
+    Place2D(Place2D.Place2DName(0)).setPosition(Vec(lat, lon, alt))
+    uni.setGlobalIntensity(0.0, Anim(0.0));               sleep(gap)
+    dm.stop();                                            sleep(0.3)
+    dm.setDateTime(y, mo, d, h, mi, 0, tz, Anim(0.0))     # 날짜 점프(무거움) — 단독으로
+    uni.setGlobalIntensity(0.0, Anim(0.0));               sleep(gap + 0.3)
+    Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0));               sleep(gap)
+    Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.55, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0));               sleep(gap)
+    cam.setOrientationH(0.0, Anim(0.0))
+    cam.setTargetHeight(30.0, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0));               sleep(gap)
+
+
 def ground_night(lat=36.64, lon=127.49, alt=200.0,
                  y=2026, mo=1, d=15, h=12, mi=0):
     """지상 밤하늘 표준 세팅 (대기 OFF + 지면 OFF)"""
@@ -260,11 +292,14 @@ if hc is not None:
 #         → 행성 비행(GoTo + 폴링 + 줌) → 토성 고리(구도)
 # ══════════════════════════════════════════════════════════════
 print("\n[막4] Q4 — 우리 가까이엔 (행성)")
-# 딥스카이 프레임 → 지상 프레임은 reset 이 필요 → 이때만 암전(짧게)
-dark(1.0)
-SceneGraph().reset(1); sleep(1.6)
-ground_night()
-light(1.5)
+# 딥스카이 프레임 → 지상 프레임은 reset 이 필요 → 암전 클램프로 재세팅을 숨긴다
+dark(1.2)
+clamp_dark(0.6)                     # reset 직전까지 0 유지
+SceneGraph().reset(1)
+clamp_dark(1.4)                     # ★ reset 이 gi 를 1.0 으로 되돌리므로 계속 눌러준다
+ground_night_slow()                 # 나눠서 세팅(버벅임 방지) + 내부에서도 계속 클램프
+clamp_dark(0.4)
+light(2.0)
 say("네 번째 질문. 그렇게 먼 곳 말고, 우리 '가까이'엔?", 5.0)
 
 # 화성 — GoTo 비행 (이륙 구간이 있어 '지구를 떠나는' 느낌)
@@ -314,21 +349,31 @@ sleep(2.0)
 #  막 5 — A. 다시 지구로
 # ══════════════════════════════════════════════════════════════
 print("\n[막5] 귀환")
-# ⚠️ 행성 프레임 → 지상 복귀는 reset 이 필수 = 순간이동/끊김이 불가피.
-#    → **암전을 넉넉히 깔고 그 안에서 전부 세팅한 뒤** 한 번에 페이드인 (끊김을 숨긴다)
+# ⚠️⚠️ 여기가 '화면 뚝뚝뚝'의 본진이었다. 원인 2가지:
+#   ① `SceneGraph().reset(1)` 이 **GlobalIntensity 를 1.0 으로 되돌린다** →
+#      암전을 미리 걸어놔도 reset 순간 화면이 밝아져 재세팅 과정이 그대로 노출됨
+#   ② 재세팅(별·은하수·날짜점프·별자리·자막)을 **한 프레임에 몰아쳐** 엔진이 버벅임
+# → 해결: **클램프 루프로 암전을 계속 눌러 유지** + **세팅을 잘게 나눠서** 실행
 t1.setIntensity(0.0, Anim(1.0)); sleep(1.2)
-dark(2.0)
-SceneGraph().reset(1); sleep(2.0)
-ground_night()
+dark(1.6)
+clamp_dark(0.8)                              # reset 직전까지 0 을 계속 찍어 누름
+SceneGraph().reset(1)
+clamp_dark(2.0)                              # ★ reset 이 gi 를 되돌리므로 그 위를 계속 덮는다
+ground_night_slow()                          # 나눠서 세팅 (내부에서도 클램프 유지)
+
 ori = Constellation(Constellation.ConstellationName.Ori)
-ori.setLinesIntensity(0.5, Anim(0.0))        # 암전 중에 미리 켜둠(순간이동 안 보이게)
+ori.setLinesIntensity(0.5, Anim(0.0))
+uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.4)
+
 t1 = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
 t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
 t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
 t1.setIntensity(0.0, Anim(0.0))
-sleep(2.0)                                   # 세팅이 전부 앉을 때까지 암전 유지
-light(3.0)                                   # 천천히 밝아짐 = 부드러운 복귀
+uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.4)
+
+clamp_dark(1.0)                              # 모든 세팅이 앉을 때까지 암전 유지
+light(3.5)                                   # 천천히 밝아짐 = 부드러운 복귀
 
 say("그리고 다시, 청주의 1월 밤", 5.0)
 say("같은 하늘인데 — 이제 조금 다르게 보인다", 6.0)
