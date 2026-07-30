@@ -251,8 +251,12 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **`setZoomFormula(Camera.ZoomFormula.GreatCircle)`+`setZoomPosition(Vec(0,0,0),track,Anim,Camera.PositionMode.XYZ)`** = 🔒고급 줌락(대상 중앙 자동고정). 성운 근접비행 전용, 행성엔 3번과 차이 미미 → 헷갈리면 3번.
 - **`obj.setScale(orig×배율,Anim)`** = 개체 확대(위치줌 안 되는 지상·성단). orig 먼저 읽고 원본×배율(절대값 금지).
 - **`Action.FadeTo`**=페이드전환(행성R5/성운성단R0) · **`Action.GoTo`**=연속비행(도착후 setTargetHeight(30) 필수) · **`Action.ConnectTo`**=시점(프레임)만 이동→줌(setPositionR)으로 대상 봄.
-- ✅ **`Action.StraightGoTo` = '즉시 도착' (2026-07-30 실측)**: GoTo 와 **똑같은 도킹 위치**(암석행성 R≈5 반지름·북극상공 B=90)로 **비행/페이드 없이 순간이동**. 화성 실측 R=16,981km=5.0 화성반지름.
-  ⚠️ GoTo 처럼 **Target 이 0 으로 남아 대상이 화면 아래 가장자리에 걸림 → 도착 직후 `cam.setTargetHeight(30, Anim)` 필수.** 빠른 장면 전환에 GoTo(20초 비행)보다 유리.
+- ✅ **`Action.StraightGoTo` = '즉시 도착' (2026-07-30 실측)**: GoTo 와 **똑같은 도킹 위치**(암석행성 R≈5 반지름·북극상공 B=90)로 **비행/페이드 없이 순간이동**. 화성 실측 R=16,981km=5.0 화성반지름. 빠른 전환에 GoTo(20초 비행)보다 유리.
+- ⚠️⚠️ **[암석행성 프레이밍 함정] 도킹이 '북극 상공 B=90' 이라 Target 30 이어도 행성이 화면 아래 가장자리에 걸린다 (2026-07-30 사용자 실측)**:
+  카메라가 행성 **위**에 떠서 내려다보는 자세라 행성이 '발밑'에 있음. **Target 값 문제가 아님**(Target 30 이어도 그럼).
+  → **해결: `p=cam.positionLBR; cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(4), -1)` 로 B 를 90→20 으로 내려 '옆에서 보는' 자세로.** 그 다음 `setTargetHeight(30)`.
+  → **암석행성(지구·화성) 확정 레시피: GoTo/StraightGoTo/FadeTo → B 90→20 → Target 30 → 그림자 OFF 3세터 → `setPositionR(p.z/배율)` 줌.**
+  (가스행성 목성·토성은 도킹이 이미 옆 B=20 이라 B 조정 불필요 — 이게 '가스행성은 바로 잘 보이는데 화성은 아래 깔린다'의 이유.)
 - ⚠️⚠️ **액션 세트는 '데이터 타입마다 다름' (실측)** — 쓰기 전 `h.action(Action.Type.X) is not None` 확인:
   · **행성(PlanetType)**: GoTo/FadeTo/ConnectTo/**StraightGoTo** ✅ / **LookAt·ScaleUp 없음**.
   · **NGC(NgcType)**: **LookAt(조준)·ScaleUp/ScaleDown(확대)** ✅ / **이동 계열 전무**.
