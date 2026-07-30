@@ -65,8 +65,10 @@ def ground_night(lat=36.64, lon=127.49, alt=200.0,
     cam.setTargetHeight(30.0, Anim(0.0))
 
 
-def wait_arrival(max_sec=60, settle=3, dock_r=100.0):
-    """★ 비행(GoTo)이 끝날 때까지 대기. 이걸 안 하면 비행을 가로채 태양계로 날아간다."""
+def wait_arrival(max_sec=60, settle=3, dock_r=None):
+    """★ 비행(GoTo)이 끝날 때까지 대기. 안 하면 비행을 가로채 카메라가 날아간다.
+       ⚠️ dock_r 는 '행성'에만 쓴다(R≈4~5). **딥스카이는 도착해도 R 이 거대**(1e13 등)라
+          dock_r 를 걸면 영영 도착 판정이 안 난다 → None(=상대변화율로만 판정)."""
     prev, stable = None, 0
     for s in range(max_sec):
         sleep(1.0)
@@ -74,45 +76,66 @@ def wait_arrival(max_sec=60, settle=3, dock_r=100.0):
             r = cam.positionLBR.z
         except Exception:
             continue
-        if prev is not None and abs(r - prev) < 0.01:
-            stable += 1
-        else:
-            stable = 0
+        if prev is not None:
+            scale = max(abs(prev), 1.0)                 # 상대 변화율(스케일 무관)
+            if abs(r - prev) / scale < 1e-6:
+                stable += 1
+            else:
+                stable = 0
         prev = r
-        if stable >= settle and r < dock_r:
-            print("   도착 %d초, R=%.2f" % (s + 1, r))
+        ok = (stable >= settle) and (dock_r is None or r < dock_r)
+        if ok:
+            print("   도착 %d초, R=%.4g" % (s + 1, r))
             return r
     print("   ⚠️ 도착 감지 실패(R=%s)" % prev)
     return None
 
 
 def zoom_in(steps=(1.35, 1.8, 2.3, 2.8, 3.2)):
-    """★ 줌 2대 원칙: 절대타겟(p0 한 번만) + 선형 Anim + 겹치기(sleep < anim)"""
+    """★ 줌 2대 원칙: 절대타겟(p0 한 번만) + 선형 Anim + 겹치기(sleep < anim)
+       ⚠️ R 의 절대 크기로 정상/비정상을 판단하지 말 것 — 딥스카이는 원래 R 이 거대하다."""
     p0 = cam.positionLBR.z
-    if p0 > 100.0 or p0 <= 0.0:
-        print("   ⚠️ R=%s 비정상 → 줌 생략" % p0); return
+    if p0 is None or p0 <= 0.0:
+        print("   ⚠️ R=%s → 줌 생략" % p0); return
+    print("   줌 시작 (p0=%.4g)" % p0)
     for z in steps:
         cam.setPositionR(p0 / z, Anim(1.4), -1)
         sleep(1.05)
     sleep(0.8)
 
 
+def wait_place_settle(max_sec=30, settle=2):
+    """★ 관측지 이동도 '애니메이션'이다 — 좌표가 멈출 때까지 기다린다.
+       (안 기다리면 중간 좌표가 찍힘: 파리를 40.49/88.07 로 읽는 사고)"""
+    prev, stable = None, 0
+    for s in range(max_sec):
+        sleep(1.0)
+        try:
+            q = Place2D(Place2D.Place2DName(0)).position
+            cur = (round(q.x, 3), round(q.y, 3), round(q.z, 1))
+        except Exception:
+            continue
+        if prev is not None and cur == prev:
+            stable += 1
+        else:
+            stable = 0
+        prev = cur
+        if stable >= settle:
+            return cur
+    return prev
+
+
 def goto_place(dtype, name, caption):
-    """관측지를 '이름'으로 이동 (좌표 하드코딩 불필요)"""
+    """관측지를 '이름'으로 이동. ⚠️ 암전 없이 — 이동 자체가 부드러우니 끊지 않는다."""
     h = db.data(getattr(Data.Type, dtype), name)
     if h is None:
         print("   ⚠️ %s '%s' 조회 실패" % (dtype, name)); return False
-    dark()
+    say(caption)                                  # 자막 먼저 → 이동 → 그대로 이어짐
     h.action(Action.Type.GoTo).trigger()
-    sleep(3.0)
-    cam.setTargetHeight(30.0, Anim(0.0))
-    say(caption)
-    light()
-    try:
-        p = Place2D(Place2D.Place2DName(0)).position
-        print("   → %s: 위도 %.3f / 경도 %.3f / 고도 %.0fm" % (name, p.x, p.y, p.z))
-    except Exception:
-        pass
+    pos = wait_place_settle()                     # ★ 좌표가 멈출 때까지
+    cam.setTargetHeight(30.0, Anim(1.0))
+    if pos:
+        print("   → %s: 위도 %.3f / 경도 %.3f / 고도 %.0fm" % ((name,) + pos))
     return True
 
 
@@ -153,11 +176,10 @@ sleep(6.0)
 
 say("서 있는 곳이 바뀌면 하늘도 바뀐다", 5.0)
 
-# ── 다시 청주로 (이야기의 집) ──
-dark()
-ground_night()
+# ── 다시 청주로 (같은 지상 프레임이라 암전 불필요 — 조용히 되돌린다) ──
+Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
+cam.setTargetHeight(30.0, Anim(1.0))
 say("다시, 청주")
-light()
 sleep(4.0)
 
 # ══════════════════════════════════════════════════════════════
@@ -221,15 +243,14 @@ if hr is not None:
 
 # ① NEBULA 패널 = GoTo 여행 가능
 say("그리고 별이 죽는 자리도 있다", 4.0)
-dark()
 hc = db.data(Data.Type.NebulaType, "NGC 6543")
 if hc is not None:
+    say("고양이눈 성운으로")                      # 암전 없이 — 비행 자체가 볼거리
     hc.action(Action.Type.GoTo).trigger()
     print("   고양이눈 성운으로 비행")
-    wait_arrival()                               # ★ 도착 폴링(비행 중 줌 금지)
-    cam.setTargetHeight(30.0, Anim(1.0)); sleep(1.5)
+    wait_arrival(max_sec=70, dock_r=None)        # ★ 딥스카이는 R 이 거대 → dock_r 걸지 않는다
+    cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)
     say("고양이눈 성운")
-    light()
     zoom_in()                                    # 도착 후에만 줌
     sleep(3.0)
     say("죽어가는 별이 벗어던진 껍질", 6.0)
@@ -239,10 +260,11 @@ if hc is not None:
 #         → 행성 비행(GoTo + 폴링 + 줌) → 토성 고리(구도)
 # ══════════════════════════════════════════════════════════════
 print("\n[막4] Q4 — 우리 가까이엔 (행성)")
-dark()
+# 딥스카이 프레임 → 지상 프레임은 reset 이 필요 → 이때만 암전(짧게)
+dark(1.0)
 SceneGraph().reset(1); sleep(1.6)
 ground_night()
-light()
+light(1.5)
 say("네 번째 질문. 그렇게 먼 곳 말고, 우리 '가까이'엔?", 5.0)
 
 # 화성 — GoTo 비행 (이륙 구간이 있어 '지구를 떠나는' 느낌)
@@ -254,7 +276,7 @@ mars.setPlanetShineStrength(1.0, Anim(0.0))
 say("2억 3천만 km. 지금 출발한다")
 db.data(Data.Type.PlanetType, "Mars").action(Action.Type.GoTo).trigger()
 print("   화성으로 비행")
-wait_arrival()                                # ★ 도착까지 대기
+wait_arrival(dock_r=100.0)                    # ★ 행성은 R≈4~5 로 수렴하니 dock_r 사용
 cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)   # B 는 손대지 않는다
 say("화성 궤도")
 sleep(2.0)
@@ -263,11 +285,11 @@ mars.setTerrainModel(Planet.TerrainModel.Viking)
 sleep(2.0)
 say("붉은 사막. 물이 흐른 흔적이 남아 있다", 6.0)
 
-# 토성 — 고리는 '구도'가 8할
-dark()
-Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))    # 배경 검정 = 대비
+# 토성 — 고리는 '구도'가 8할. FadeTo 는 자체 페이드가 있으니 암전 불필요
+say("더 멀리, 고리를 가진 행성")
+Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(1.5))    # 배경 검정 = 대비
 db.data(Data.Type.PlanetType, "Saturn").action(Action.Type.FadeTo).trigger()
-sleep(5.0)
+sleep(5.5)
 sat = Planet(Planet.PlanetName.Saturn)
 sat.setShadowStrength(0.0, Anim(0.5))
 sat.setShadowContrast(0.0, Anim(0.5))
@@ -277,9 +299,7 @@ cam.setPositionLBR(Vec(p.x, 75.0, max(3.2, p.z * 0.7)), Anim.cubic(5.0), -1)  # 
 sleep(5.5)
 cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
 t1.setDistance(20.0, Anim(0.0))              # 행성 프레임 자막 규칙
-say("토성")
-light()
-sleep(4.0)
+say("토성", 4.0)
 say("고리는 얼음과 바위 — 가장 큰 조각도 집 한 채 크기", 6.0)
 
 # 천천히 한 바퀴
@@ -294,17 +314,21 @@ sleep(2.0)
 #  막 5 — A. 다시 지구로
 # ══════════════════════════════════════════════════════════════
 print("\n[막5] 귀환")
-dark(1.6)
-SceneGraph().reset(1); sleep(1.6)
+# ⚠️ 행성 프레임 → 지상 복귀는 reset 이 필수 = 순간이동/끊김이 불가피.
+#    → **암전을 넉넉히 깔고 그 안에서 전부 세팅한 뒤** 한 번에 페이드인 (끊김을 숨긴다)
+t1.setIntensity(0.0, Anim(1.0)); sleep(1.2)
+dark(2.0)
+SceneGraph().reset(1); sleep(2.0)
 ground_night()
+ori = Constellation(Constellation.ConstellationName.Ori)
+ori.setLinesIntensity(0.5, Anim(0.0))        # 암전 중에 미리 켜둠(순간이동 안 보이게)
 t1 = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
 t1.setPosition(Vec(0, 25, 0)); t1.setSize(0.052)
 t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(1.0, Anim(0.0))
 t1.setIntensity(0.0, Anim(0.0))
-ori = Constellation(Constellation.ConstellationName.Ori)
-ori.setLinesIntensity(0.5, Anim(0.0))
-light(2.5)
+sleep(2.0)                                   # 세팅이 전부 앉을 때까지 암전 유지
+light(3.0)                                   # 천천히 밝아짐 = 부드러운 복귀
 
 say("그리고 다시, 청주의 1월 밤", 5.0)
 say("같은 하늘인데 — 이제 조금 다르게 보인다", 6.0)
