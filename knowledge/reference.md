@@ -201,6 +201,10 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **ShootingStar**(유성우): `setReferential(Referential.RaDec)`+`setRainGradientPoint(Vec2(적경,적위))` 복사점 고정 + `setZenithalHourlyRate`(⚠️ 내부저장=ZHR/60! 볼만함=800~1500) + `setRainSeed(1)`. `setRepresentationType(Model.Gradient)`.
 - **Bolide**(화구): `setModel(ModelID.ColoredFireball,"")`+`setElement(Element.Sodium,Vec3(0,0,0),Anim)`+`set(시작az,h,고도,끝az,h,고도,1.0)`+`play(12~18)`.
 - **HUD 위젯**(전부 `cam.addChild(obj.id, Camera.CameraPort.FixedForeground)`): InsertText(자막,한글OK) / Insert2D(로컬이미지,`setTexture`) / Clock(`setModelset(Clock.Modelset.SystemClock001)`, 문자판=setForegroundTexture) / Chart2D(값0~1,라벨영문만,`setCategoryCount` 먼저) / DrawableInsert(`setBrushType(Pen)`+beginDraw/setBrushPosition/endDraw).
+- **움직이는 오버레이/영상 대체 = Insert2D 애니메이션 ✅됨 (2026-07-30 확정)**: 영상 파일은 못 넣지만 Insert2D 는 `setPosition`/`setSize` 가 Anim 을 받아 이미지 한 장을 부드럽게 움직임. "우주선 접근/천체 플라이바이/로켓" 연출은 이걸로.
+  · 접근: `ins.setSize(0.05,Anim(0)); ins.setPosition(Vec(0,8,0),Anim(0))` → `ins.setSize(0.6,Anim.cubic(5)); ins.setPosition(Vec(0,45,0),Anim.cubic(5))`(작은점→커지며위로).
+  · 플라이바이: `ins.setPosition(Vec(-60,45,0),Anim(0))` → `ins.setPosition(Vec(60,45,0),Anim.cubic(4))`(좌→우).
+  · 프레임 flip(저프레임 영상): PNG 시퀀스를 `for p in frames: ins.setTexture(p); sleep(0.25)` 로 갈아끼움.
 - **DateManager**: `setDateTime(y,m,d,h,mi,s,tz,Anim)` `stop()`(setDateTime '앞'에) `julianDate`(읽기) `setMotionType(MotionType.MotionAnalemma/MotionPrecession)`(아날렘마/세차). 시간가속=목표시각+Anim(초).
 - **DataManager/Action**: `DataManager.database().data(Data.Type.타입,"이름").action(Action.Type.FadeTo).trigger()`. FadeTo=페이드전환(비행아님) / GoTo=연속비행 / ConnectTo=프레임만전환. 이름: 은하수="Milky Way", 달="Moon", 화성="Mars"(PlanetType). action이 None이면 미지원.
 - **로컬 파일 경로**: `Configuration.configuration().localUserFolder`(=`D:/SkyExplorer-Data/user`). 이미지/텍스처는 여기 두고 절대경로 or 파일명.

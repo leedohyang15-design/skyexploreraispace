@@ -895,6 +895,13 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   `setTexture(경로)` + `setPosition(Vec(0,45,0))`+`setSize(0.6)`+`setIntensity(1)` → 돔에 이미지 렌더(과녁 테스트 이미지 확인).
   ⚠️ 이 뷰에선 FixedForeground 오버레이가 **좌우 반전(미러)**돼 보임(자막 InsertText 도 같이 반전 = 뷰/설정 의존, Insert2D 탓 아님).
   SPC(Recording62, family **0x01**=16777217): addChild **4881** / setPosition **1794** / setDistance **1795** / setSize **1798** / setIntensity **1802** / **setTexture 1796**.
+- ✅✅✅ **Insert2D '애니메이션' = 영상의 진짜 대체 확정 (2026-07-30 사용자 "다됐어", insert2d_motion.py)**: 미디어 호스트가 죽어(VideoPlayer/Audio 死) 포기했던 '움직이는 콘텐츠'를 Insert2D 로 구현.
+  ⚠️⚠️ **핵심 = `setPosition`/`setSize` 가 Anim 을 받음** → 이미지 한 장을 돔에서 부드럽게 움직임/확대. 3방식 전부 실측 동작:
+  · **접근(우주선/천체 다가옴)** = `setSize(0.05→0.6, Anim.cubic(5))` + `setPosition(Vec(0,8→45,0), Anim.cubic(5))`(작은 점→커지며 위로).
+  · **가로지르기(플라이바이)** = `setPosition(Vec(-60,45,0)→Vec(60,45,0), Anim.cubic(4))`(좌→우 쓸고 지나감).
+  · **프레임 flip(저프레임 영상)** = `setTexture(경로)` 를 `sleep(0.25)` 간격으로 갈아끼움 → 12장 교체가 매끄럽게 '움직임'(사용자 확인).
+  → **"우주선 접근 / 천체 플라이바이 / 로켓 발사 / 짧은 애니 시퀀스" = Insert2D 애니로.** (영상 파일 못 넣으니 이게 유일한 동영상형 연출.)
+  ⚠️ flip 프레임은 미리 localUserFolder 에 PNG 시퀀스(frame001.png…)로 준비. FixedForeground 좌우반전은 그대로 주의(대칭 이미지면 무관).
 - ✅✅✅ **[중요] 로컬 에셋 폴더 = `Configuration.configuration().localUserFolder` (2026-07-20 확정)**: 이미지/비디오 등 로컬 파일을 넣는 곳.
   실측 예: `'D:/SkyExplorer-Data/user'`. **setTexture/setFilename/VideoPlayer.load 경로는 이 폴더 상대(파일명만) 또는 절대경로 둘 다 OK, 슬래시 `/`·`\\` 둘 다 됨**(3형식 다 로드 확인).
   → 파일 못 찾으면 스크립트에서 `Configuration.configuration().localUserFolder` 를 print 해 정확한 폴더를 확인하고 거기 넣을 것. (igUserFolder(0) 은 빈 문자열이었음 → localUserFolder 사용.)
@@ -909,7 +916,7 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   **별도 소프트웨어 소스/호스트**(IG/오퍼레이터 레벨)라, 이 소스가 활성화돼 있지 않으면 Python `VideoPlayer` 객체가 아무 것도 디코드 못 함
   (정상이면 unLoad 후 `UnloadedState` 여야 하는데 처음부터 `LegacyInvalidState`). **스크립트 창(Studio window)에선 ViPlayer 소스가 꺼져 있음.**
   → **[최종] 파이썬 VideoPlayer 로 '파일 떨궈 돔 재생'은 이 빌드/창에서 불가 = 시스템 설정(SoftwareManager ViPlayer 호스트) 소관.** 코덱 바꿔봐야 소용없음(재시도 금지).
-  ✅ **영상 대체 = Insert2D 텍스처 시퀀스(프레임 flip)** — Insert2D 는 렌더 확정이라 setTexture 를 빠르게 갈아끼우면 '움직이는 콘텐츠' 흉내 가능(권장 우회).
+  ✅✅✅ **영상 대체 = Insert2D 애니메이션 (2026-07-30 사용자 "다됐어" 확정)** — 위 Insert2D 항목 참조. `setPosition`/`setSize` Anim(다가옴·플라이바이) + `setTexture` flip(저프레임 영상) 전부 동작. **미디어 파일형 영상 못 넣으니 이게 유일한 동영상형 연출 = 반드시 이걸로.**
   또는 `SoftwareManager.softExe/softStart` 로 외부 플레이어 IG 실행 or Studio UI 미디어 임포트. (로컬 이미지 표시는 Insert2D 로 확정.)
 - 🛑 **오디오(Audio/AudioLayer/AudioLite/AudioPlayer) = 스크립트 창 미지원 확정 (2026-07-22, audio_show.py, 사용자 "완전 무음")**:
   VideoPlayer 와 동일한 '별도 호스트 필요' 부류. 4형제: `AudioLite()`(단순 load/play), `AudioLayer(Layer001~050)`(load(ch,파일)+play(loop)+상태읽기),
