@@ -281,3 +281,10 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - `setDateTime(...,Anim(0.0))` instant는 위성이 순간이동 → 위성 켜기 전 암전에서 미리 고정.
 - 카메라 R 단위는 트랙 대상 반지름(km 아님). 줌은 읽은값×배율, 절대값 금지.
 - FadeTo/ConnectTo 진입 순간의 자세슬루가 보임 → 암전(GlobalIntensity 0)에서 전환 후 페이드인.
+
+## 4.7 ⚠️⚠️ [치명적 함정] `positionLBR` 읽은 값을 R 로 '되써넣지' 말 것 (2026-07-30 실측 사고)
+- **StraightGoTo 로 화성 도착 후** `p=cam.positionLBR`(z=105609 로 읽힘) → `setPositionLBR(Vec(p.x, 20, p.z), Anim, -1)` 로 되써넣으니
+  **R 이 16,981km → 99.63 Gm(0.66 AU)로 폭발**, 화성이 사라지고 빈 별밭만 남음. **그 프레임에서 읽기 단위 ≠ 쓰기 단위**(약 5,900배 차이).
+- ✅ **안전 규칙**: ① **R 은 `setPositionR` 로만** 다룬다(그것도 `읽은값 / 배율` 비율로). ② **B(위도)만 바꿀 땐 `cam.setPositionB(값, Anim, -1)`**
+  — `setPositionLBR` 로 세 값을 한꺼번에 쓰면 R 을 되써넣게 되어 사고 남. ③ **FadeTo 프레임(토성 등)에서는 읽기/쓰기가 일치**해서 `setPositionLBR(Vec(x,y,z*0.5))` 이 정상 동작(검증됨) — 즉 **프레임마다 다르다.**
+- 🎯 **행성 접근의 안전한 기본값 = `FadeTo`**(검증된 경로). `StraightGoTo` 는 '즉시 도착'엔 좋지만 그 뒤 카메라 조작은 위 규칙을 지켜야 한다.
