@@ -385,13 +385,19 @@ sleep(3.0)   # 1~2초면 관측지가 바뀜(지상 뷰 유지, 우주로 안 �
   ```python
   mp = obj.portId(<그 개체의 도킹 포트>)        # 위성/행성 = EquatorialSynchronous (HUD 에 표시됨)
   def reaim(a=1.0):
-      cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(a), mp)   # ← 이 한 줄이 전부
-      cam.setTargetHeight(29.9, Anim(0.5)); cam.setTargetHeight(30.0, Anim(0.5))  # TH 지글(같은 값=no-op 우회)
-  cam.setPositionLBR(Vec(L, 20.0, R), Anim.cubic(6), mp); sleep(5.5); reaim(1.5)   # ① 옆 자세 + 즉시 재조준
+      cam.setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(a), mp)   # ← 재조준은 '이 한 줄만'
+  def tilt30():                                                  # 🎯 틸트는 자세 변경 직후 '한 번만'
+      cam.setTargetHeight(29.9, Anim(0.5)); cam.setTargetHeight(30.0, Anim(0.5))  # 지글(같은 값=no-op 우회)
+  cam.setPositionLBR(Vec(L, 20.0, R), Anim.cubic(6), mp); sleep(5.5); reaim(1.5); tilt30()   # ① 옆 자세
+  r0 = cam.positionLBR.z; cam.setPositionR(r0*1.8, Anim.cubic(3), mp); sleep(3.2); reaim()   # ★ 공전 전 풀백
   for i in range(1, 25):                                          # ② 15°×24 = 360°
       cam.setPositionLBR(Vec(L + 15.0*i, 20.0, R), Anim(0.7), mp); sleep(0.55)
-      if i % 3 == 0: reaim(0.6)
+      if i % 3 == 0: reaim(0.6)                                   # ⚠️ 여기서 TargetHeight 를 부르지 말 것
   ```
+  · ⚠️⚠️ **`setTargetHeight` 가 곧 '돔 틸트'다 — 재조준 함수 안에 넣지 말 것 (2026-08-03 실측 지적)**:
+    공전 중 3스텝마다 TH 지글을 같이 걸었더니 **돔이 그때마다 까딱거려** "달 도는 건 좋은데 틸트를 안 할 수 없냐"는 지적.
+    → **틸트는 자세를 바꾼 직후 한 번만**, 공전 루프 안에서는 **시선 재조준(`setOrientationSmoothXYZR`)만**.
+  · ⚠️ **공전 전에 살짝 풀백**(`setPositionR(r0*1.8, …)`) — 줌인한 상태 그대로 돌면 대상이 화면을 다 먹는다.
   · **큰 각도(90°)를 몇 번 크게 점프하지 말 것** — 작은 스텝(15°)이 매끄럽고 재조준 간격도 촘촘해진다.
   · **자세를 바꾼 직후(B 변경·프레임 전환)에도 반드시 재조준**. 위치만 바꾸고 놔두면 그 순간부터 구도가 무너진다.
   · 🎯 재조준 끝에는 **항상 Target 30** — 대상을 돔 중앙에 두지 않는다(관객이 목을 꺾는다).

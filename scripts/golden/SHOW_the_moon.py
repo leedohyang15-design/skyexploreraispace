@@ -276,11 +276,15 @@ try:
     mp = moon.portId(Satellite.SatellitePort.EquatorialSynchronous)
 
     def reaim(a=1.0):
-        """★★ 말머리 공전 레시피의 '② 재조준'. 이게 빠지면 카메라만 돌고 시선이 안 따라가
-           대상이 화면에서 흘러나가 **돔 한가운데로 밀리고 이상하게 구른다**(실측 사고 2회)."""
+        """★★ 말머리 레시피의 '② 재조준'. 빠지면 카메라만 돌고 시선이 안 따라가
+           대상이 화면에서 흘러나가 **돔 한가운데로 밀리고 이상하게 구른다**(실측 사고 2회).
+           ⚠️⚠️ 여기에 `setTargetHeight` 를 같이 넣지 말 것 — **TargetHeight 가 곧 돔 틸트**라
+           공전 중에 반복하면 3스텝마다 돔이 까딱거린다(실측 지적). 틸트는 '한 번만'."""
         cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(a), mp)
-        cam.setTargetHeight(29.9, Anim(0.5))      # TH 지글 — 같은 값 재호출은 no-op 이라 우회
-        cam.setTargetHeight(30.0, Anim(0.5))      # 🎯 관람 정위치 30 (돔 중앙 금지)
+
+    def tilt30():
+        """🎯 관람 정위치 30 — 자세를 바꾼 직후 '한 번만'. 같은 값 재호출은 no-op 이라 지글로 우회."""
+        cam.setTargetHeight(29.9, Anim(0.5)); cam.setTargetHeight(30.0, Anim(0.5))
 
     p = cam.positionLBR
     print("   현재 L=%.1f B=%.1f R=%.3f" % (p.x, p.y, p.z))
@@ -288,11 +292,16 @@ try:
     say("달의 옆으로 돌아가 보자")
     cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(6.0), mp)   # ① 극 위 → 적도 옆
     sleep(5.5)
-    reaim(1.5); sleep(1.8)                                          # ★ 자세 바꾼 직후에도 재조준
-    q = cam.positionLBR
-    print("   옆도킹+재조준 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
+    reaim(1.5); tilt30(); sleep(1.8)                                # 자세 바꾼 직후 재조준 + 틸트 1회
 
-    # ② 스텝 오빗 — 작은 L 스텝(15°) + 3스텝마다 재조준 (말머리에서 검증된 형태)
+    # ★ 공전 전 살짝 풀백 — 너무 붙어 있으면 도는 동안 달이 화면을 다 먹는다(실측 지적).
+    r0 = cam.positionLBR.z
+    cam.setPositionR(r0 * 1.8, Anim.cubic(3.0), mp); sleep(3.2)
+    reaim(1.0); sleep(1.2)
+    q = cam.positionLBR
+    print("   공전 준비 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
+
+    # ② 스텝 오빗 — 15° 스텝 + 3스텝마다 '시선만' 재조준. 틸트는 건드리지 않는다.
     say("이제 달을 한 바퀴 돌아 뒷면으로")
     for i in range(1, 25):                                          # 24 × 15° = 360°
         cam.setPositionLBR(Vec(q.x + 15.0 * i, 20.0, q.z), Anim(0.7), mp)
