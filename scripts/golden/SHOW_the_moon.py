@@ -271,21 +271,37 @@ say("세 번째 질문. 우리는 왜 늘 달의 '같은 면'만 볼까?", 7.0)
 #   ✅ v3 정답 = **두 단계**. ① 먼저 B 를 90→20 으로 내려 '가스행성 옆도킹'과 같은 자세를 만든 뒤
 #      ② 그 자세에서 L 스윕 = 옆에서 한 바퀴 도는 진짜 공전. (토성/목성에서 L 스윕이 되는 조건이 바로 B≈20.)
 try:
+    # ★ 프레임 = 달의 EquatorialSynchronous (HUD 가 "Moon, Equatorial Sync" 로 확인해 준 그 프레임).
+    #   위치·재조준을 같은 포트로 통일해야 프레임 점프가 없다.
+    mp = moon.portId(Satellite.SatellitePort.EquatorialSynchronous)
+
+    def reaim(a=1.0):
+        """★★ 말머리 공전 레시피의 '② 재조준'. 이게 빠지면 카메라만 돌고 시선이 안 따라가
+           대상이 화면에서 흘러나가 **돔 한가운데로 밀리고 이상하게 구른다**(실측 사고 2회)."""
+        cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(a), mp)
+        cam.setTargetHeight(29.9, Anim(0.5))      # TH 지글 — 같은 값 재호출은 no-op 이라 우회
+        cam.setTargetHeight(30.0, Anim(0.5))      # 🎯 관람 정위치 30 (돔 중앙 금지)
+
     p = cam.positionLBR
     print("   현재 L=%.1f B=%.1f R=%.3f" % (p.x, p.y, p.z))
-    say("달의 옆으로 돌아가 보자")
-    cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(6.0), -1)   # ① 극 위 → 적도 옆
-    sleep(6.5)
-    cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
-    q = cam.positionLBR
-    print("   옆도킹 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
 
+    say("달의 옆으로 돌아가 보자")
+    cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(6.0), mp)   # ① 극 위 → 적도 옆
+    sleep(5.5)
+    reaim(1.5); sleep(1.8)                                          # ★ 자세 바꾼 직후에도 재조준
+    q = cam.positionLBR
+    print("   옆도킹+재조준 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
+
+    # ② 스텝 오빗 — 작은 L 스텝(15°) + 3스텝마다 재조준 (말머리에서 검증된 형태)
     say("이제 달을 한 바퀴 돌아 뒷면으로")
-    for i in range(1, 5):                                          # ② 옆에서 L 스윕 = 공전
-        cam.setPositionLBR(Vec(q.x + 90.0 * i, 20.0, q.z), Anim(5.0), -1)
-        sleep(4.2)                                                 # sleep < anim = 겹쳐서 매끄럽게
-        r = cam.positionLBR
-        print("   공전 %d/4  L=%.1f (B=%.1f R=%.3f)" % (i, r.x, r.y, r.z))
+    for i in range(1, 25):                                          # 24 × 15° = 360°
+        cam.setPositionLBR(Vec(q.x + 15.0 * i, 20.0, q.z), Anim(0.7), mp)
+        sleep(0.55)                                                 # sleep < anim = 겹쳐서 매끄럽게
+        if i % 3 == 0:
+            reaim(0.6)
+            r = cam.positionLBR
+            print("   공전 %3.0f°  L=%.1f B=%.1f R=%.3f" % (15.0 * i, r.x, r.y, r.z))
+    reaim(1.5); sleep(1.5)
 except Exception as ex:
     print("   공전 예외(무시하고 진행):", ex)
 
