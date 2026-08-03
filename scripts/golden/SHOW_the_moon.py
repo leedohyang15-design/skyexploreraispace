@@ -210,38 +210,41 @@ sleep(2.5)
 
 h = db.data(Data.Type.SatelliteType, "Moon")
 if h is not None:
-    h.action(Action.Type.FadeTo).trigger()
-    sleep(5.5)
-    # 표면을 보여주는 장면 = 그림자 OFF 3세터 (운영 표준)
-    moon.setShadowStrength(0.0, Anim(1.5))
-    moon.setShadowContrast(0.0, Anim(1.5))
-    moon.setPlanetShineStrength(1.0, Anim(1.5))
-    cam.setTargetHeight(30.0, Anim(1.5))
-    sleep(2.0)
-    make_caption(20.0)                 # 행성 프레임 자막
-    say("달 표면")
-    zoom_in()                          # 절대타겟 + 선형 + 겹치기
-    sleep(2.0)
+  try:
+      h.action(Action.Type.FadeTo).trigger()
+      sleep(5.5)
+      # 표면을 보여주는 장면 = 그림자 OFF 3세터 (운영 표준)
+      moon.setShadowStrength(0.0, Anim(1.5))
+      moon.setShadowContrast(0.0, Anim(1.5))
+      moon.setPlanetShineStrength(1.0, Anim(1.5))
+      cam.setTargetHeight(30.0, Anim(1.5))
+      sleep(2.0)
+      make_caption(20.0)                 # 행성 프레임 자막
+      say("달 표면")
+      zoom_in()                          # 절대타겟 + 선형 + 겹치기
+      sleep(2.0)
 
-    say("어두운 부분은 '바다' — 물이 아니라 굳은 용암", 7.0)
-    say("밝은 부분은 고지대. 크레이터가 빽빽하다", 6.5)
+      say("어두운 부분은 '바다' — 물이 아니라 굳은 용암", 7.0)
+      say("밝은 부분은 고지대. 크레이터가 빽빽하다", 6.5)
 
-    # 탐사선별 지도 교체 (검증된 TerrainModel)
-    for mdl, cap in (("Clementine", "클레멘타인 탐사선의 지도"),
-                     ("LROC", "LRO 정찰위성의 고해상도 지도")):
-        try:
-            moon.setTerrainModel(getattr(Satellite.TerrainModel, mdl))
-            say(cap)
-            sleep(6.0)
-        except Exception as ex:
-            print("   지도 %s: %s" % (mdl, ex))
+      # 탐사선별 지도 교체 (검증된 TerrainModel)
+      for mdl, cap in (("Clementine", "클레멘타인 탐사선의 지도"),
+                       ("LROC", "LRO 정찰위성의 고해상도 지도")):
+          try:
+              moon.setTerrainModel(getattr(Satellite.TerrainModel, mdl))
+              say(cap)
+              sleep(6.0)
+          except Exception as ex:
+              print("   지도 %s: %s" % (mdl, ex))
 
-    # 크레이터 기복 강조
-    try:
-        moon.setElevationScale(6.0, Anim(3.0))
-        say("높이를 과장해 보면 — 충돌의 흔적", 6.0)
-    except Exception as ex:
-        print("   elevationScale:", ex)
+      # 크레이터 기복 강조
+      try:
+          moon.setElevationScale(6.0, Anim(3.0))
+          say("높이를 과장해 보면 — 충돌의 흔적", 6.0)
+      except Exception as ex:
+          print("   elevationScale:", ex)
+  except Exception as ex:
+    print("   막2 예외(무시하고 진행):", ex)
 
 # ══════════════════════════════════════════════════════════════
 #  막 3 — Q3. 왜 늘 같은 면만 보이나? (동주기 자전)
@@ -249,13 +252,20 @@ if h is not None:
 print("\n[막3] Q3 — 동주기 자전")
 say("세 번째 질문. 우리는 왜 늘 달의 '같은 면'만 볼까?", 7.0)
 
-# 표면을 옆으로 돌아 본다 (FadeTo 프레임에서 L 스윕 — 토성 고리 스윕과 같은 방식)
-base_l = cam.positionLBR.x
-for d in (60.0, 120.0, 180.0):
-    q = cam.positionLBR
-    cam.setPositionLBR(Vec(base_l + d, q.y, q.z), Anim(5.0), -1)
-    sleep(4.2)                          # sleep < anim = 겹쳐서 매끄럽게
-sleep(1.5)
+# ⚠️⚠️ v1 사고: 여기서 **L 스윕**을 썼다가 쇼가 통째로 죽었다(막4 도달 못 함).
+#   원인 = 달은 **북극 상공 도킹(B≈90)** 이라(스샷 확인) **L 공전 = 극축 제자리 스핀** 으로
+#   우리 노트에 '불가'로 적혀 있던 케이스. 토성(B=20 옆도킹)에서 되던 걸 그대로 가져다 쓴 실수.
+#   ✅ 대안 = **B 굴림**(`setPositionB` = R 을 보존하므로 안전, 노트상 '자연스러운 굴림').
+#   그리고 이 구간 전체를 예외로 보호해 한 줄 실패가 쇼를 끝내지 않게 한다.
+try:
+    for b in (65.0, 40.0, 15.0):
+        cam.setPositionB(b, Anim(4.0), -1)
+        sleep(3.4)                       # sleep < anim = 겹쳐서 매끄럽게
+        print("   B 굴림 → %.0f (R 보존 확인: %.1f)" % (b, cam.positionLBR.z))
+    sleep(1.0)
+    cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
+except Exception as ex:
+    print("   B 굴림 예외(무시하고 진행):", ex)
 
 say("달은 자전을 한다 — 다만 공전과 주기가 똑같다", 7.0)
 say("한 바퀴 도는 데 27.3일, 지구를 도는 데도 27.3일", 7.0)
