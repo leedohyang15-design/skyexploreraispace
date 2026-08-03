@@ -219,30 +219,43 @@ if h is not None:
       moon.setPlanetShineStrength(1.0, Anim(1.5))
       cam.setTargetHeight(30.0, Anim(1.5))
       sleep(2.0)
-      make_caption(20.0)                 # 행성 프레임 자막
+      make_caption(20.0)                 # 도킹 직후(R≈4)에는 distance 20 이 맞다
       say("달 표면")
-      zoom_in()                          # 절대타겟 + 선형 + 겹치기
-      sleep(2.0)
 
-      say("어두운 부분은 '바다' — 물이 아니라 굳은 용암", 7.0)
-      say("밝은 부분은 고지대. 크레이터가 빽빽하다", 6.5)
+      # ⚠️⚠️ 줌은 '얕게'. 깊게 당기면(R<2) distance 20 자막이 달 뒤로 넘어가 사라진다.
+      zoom_in((1.4, 1.9, 2.4))           # R ≈ 4/2.4 ≈ 1.7
+      sleep(1.5)
 
-      # 탐사선별 지도 교체 (검증된 TerrainModel)
-      for mdl, cap in (("Clementine", "클레멘타인 탐사선의 지도"),
-                       ("LROC", "LRO 정찰위성의 고해상도 지도")):
-          try:
-              moon.setTerrainModel(getattr(Satellite.TerrainModel, mdl))
-              say(cap)
-              sleep(6.0)
-          except Exception as ex:
-              print("   지도 %s: %s" % (mdl, ex))
+      # ★★ 줌 뒤에는 자막을 카메라 쪽으로 되돌린다(dist 1.0 + size 0.052).
+      #    실측 사고: 줌 후에도 distance 20 을 유지했더니 자막이 달 반대편에 놓여
+      #    막2 후반부터 막3 전체가 '자막 없는 화면'이 됐다.
+      make_caption(1.0)
+      say("어두운 부분은 '바다' — 물이 아니라 굳은 용암", 6.0)
+      say("밝은 부분은 고지대. 크레이터가 빽빽하다", 5.5)
 
-      # 크레이터 기복 강조
+      # 탐사선 지도 — ⚠️ 타일 로딩이 느리다. 2장 돌리면 '무변화 15초'가 된다 → 1장만.
       try:
-          moon.setElevationScale(6.0, Anim(3.0))
-          say("높이를 과장해 보면 — 충돌의 흔적", 6.0)
+          say("LRO 정찰위성이 찍은 고해상도 지도로 바꿔 본다")
+          moon.setTerrainModel(Satellite.TerrainModel.LROC)
+          sleep(5.0)
       except Exception as ex:
-          print("   elevationScale:", ex)
+          print("   지도 LROC:", ex)
+
+      # ★ 지루함의 해법 = 대비(OFF→ON). 그림자를 잠깐 켜면 크레이터 그림자가 확 진다.
+      try:
+          say("햇빛을 비스듬히 들여보면")
+          moon.setShadowStrength(1.0, Anim(2.5))
+          moon.setShadowContrast(1.0, Anim(2.5))
+          moon.setPlanetShineStrength(0.1, Anim(2.5))
+          sleep(3.5)
+          say("크레이터 하나하나가 그림자를 드리운다", 5.0)
+          say("전부 충돌의 흔적 — 대기가 없어 지워지지 않는다", 6.0)
+          moon.setShadowStrength(0.0, Anim(2.0))      # 다시 전면 밝게(운영 표준)
+          moon.setShadowContrast(0.0, Anim(2.0))
+          moon.setPlanetShineStrength(1.0, Anim(2.0))
+          sleep(2.5)
+      except Exception as ex:
+          print("   그림자 A/B:", ex)
   except Exception as ex:
     print("   막2 예외(무시하고 진행):", ex)
 
@@ -252,21 +265,31 @@ if h is not None:
 print("\n[막3] Q3 — 동주기 자전")
 say("세 번째 질문. 우리는 왜 늘 달의 '같은 면'만 볼까?", 7.0)
 
-# ⚠️⚠️ v1 사고: 여기서 **L 스윕**을 썼다가 쇼가 통째로 죽었다(막4 도달 못 함).
-#   원인 = 달은 **북극 상공 도킹(B≈90)** 이라(스샷 확인) **L 공전 = 극축 제자리 스핀** 으로
-#   우리 노트에 '불가'로 적혀 있던 케이스. 토성(B=20 옆도킹)에서 되던 걸 그대로 가져다 쓴 실수.
-#   ✅ 대안 = **B 굴림**(`setPositionB` = R 을 보존하므로 안전, 노트상 '자연스러운 굴림').
-#   그리고 이 구간 전체를 예외로 보호해 한 줄 실패가 쇼를 끝내지 않게 한다.
+# ⚠️⚠️ 여기서 두 번 실패했다. 기록:
+#   v1: L 스윕 단독 → 달은 **북극 상공 도킹(B≈90)** 이라 L 공전이 '극축 제자리 스핀' = 노트상 불가 케이스.
+#   v2: B 굴림 단독(`setPositionB`) → 죽진 않지만 **고도만 위아래로 오르내려** 공전으로 안 보인다(사용자 지적).
+#   ✅ v3 정답 = **두 단계**. ① 먼저 B 를 90→20 으로 내려 '가스행성 옆도킹'과 같은 자세를 만든 뒤
+#      ② 그 자세에서 L 스윕 = 옆에서 한 바퀴 도는 진짜 공전. (토성/목성에서 L 스윕이 되는 조건이 바로 B≈20.)
 try:
-    for b in (65.0, 40.0, 15.0):
-        cam.setPositionB(b, Anim(4.0), -1)
-        sleep(3.4)                       # sleep < anim = 겹쳐서 매끄럽게
-        print("   B 굴림 → %.0f (R 보존 확인: %.1f)" % (b, cam.positionLBR.z))
-    sleep(1.0)
+    p = cam.positionLBR
+    print("   현재 L=%.1f B=%.1f R=%.3f" % (p.x, p.y, p.z))
+    say("달의 옆으로 돌아가 보자")
+    cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(6.0), -1)   # ① 극 위 → 적도 옆
+    sleep(6.5)
     cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
-except Exception as ex:
-    print("   B 굴림 예외(무시하고 진행):", ex)
+    q = cam.positionLBR
+    print("   옆도킹 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
 
+    say("이제 달을 한 바퀴 돌아 뒷면으로")
+    for i in range(1, 5):                                          # ② 옆에서 L 스윕 = 공전
+        cam.setPositionLBR(Vec(q.x + 90.0 * i, 20.0, q.z), Anim(5.0), -1)
+        sleep(4.2)                                                 # sleep < anim = 겹쳐서 매끄럽게
+        r = cam.positionLBR
+        print("   공전 %d/4  L=%.1f (B=%.1f R=%.3f)" % (i, r.x, r.y, r.z))
+except Exception as ex:
+    print("   공전 예외(무시하고 진행):", ex)
+
+say("지구에서는 절대 볼 수 없는 면 — 달의 뒷면이다", 6.5)
 say("달은 자전을 한다 — 다만 공전과 주기가 똑같다", 7.0)
 say("한 바퀴 도는 데 27.3일, 지구를 도는 데도 27.3일", 7.0)
 say("그래서 지구에서는 늘 같은 얼굴만 보인다", 7.0)
