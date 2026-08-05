@@ -1349,6 +1349,41 @@ button.run:disabled { opacity:.5; cursor:wait; }
   :root { --sw: 0px; }
   .sidebar { display:none; }
 }
+@media (max-width: 1000px) and (min-width: 721px) {
+  :root { --sw: 210px; }        /* 좁아지면 사이드바만 줄이고 본문 폭 확보 */
+}
+
+/* ══ 작은 창(특히 '높이'가 낮을 때) 대응 ═══════════════════════════
+   ⚠️ HF Space 는 iframe 이라 세로가 짧다. 웰컴 블록 크기가 vw/고정px 뿐이면
+   높이가 줄어도 안 줄어들어 입력창·칩이 화면 밖(아래)으로 밀린다.
+   → 높이(vh)도 같이 물려 화면에 맞춰 축소 + 항상 세로 중앙 정렬. */
+.welcome {
+  padding: clamp(14px, 4vh, 40px) 24px clamp(16px, 5vh, 60px);
+  justify-content: safe center;          /* 넘칠 땐 위부터(잘림 방지), 여유 있으면 정중앙 */
+}
+.welcome h1 {
+  font-size: clamp(20px, min(4.5vw, 5.4vh), 46px);
+  margin: 0 0 clamp(12px, 3.4vh, 32px);
+}
+.chips { margin-top: clamp(8px, 1.8vh, 14px); }
+
+@media (max-height: 700px) {
+  .welcome h1 { font-size: clamp(18px, 3.6vh, 30px); margin-bottom: 14px; }
+  .chips { gap: 6px; }
+  .chip { padding: 6px 11px; font-size: 11.5px; }
+  .shell textarea { min-height: 44px; padding: 11px 13px; font-size: 14px; }
+  button.run { padding: 12px 16px; font-size: 12.5px; }
+  .onboard-hint { display: none; }       /* 짧은 화면에선 안내문 생략 */
+}
+@media (max-height: 520px) {
+  .welcome { padding: 10px 16px 12px; }
+  .welcome h1 { font-size: clamp(16px, 4vh, 22px); margin-bottom: 10px; }
+  .chips { max-height: 4.6em; overflow-y: auto; }   /* 칩은 두 줄까지만, 나머지는 스크롤 */
+  .brand-logo { display: none; }
+}
+
+/* 모바일 브라우저 주소창 대응 — 100vh 는 실제 화면보다 클 수 있다 */
+.sidebar { height: 100%; }
 
 /* ══ 천문 달력 탭 ══════════════════════════════════════════ */
 .sky-view { position:absolute; inset:0; overflow-y:auto; padding:34px 26px 60px; }
