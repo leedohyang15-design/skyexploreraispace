@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" font-family="'Pretendard','Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1226"/>
+      <stop offset="0.55" stop-color="#050a18"/>
+      <stop offset="1" stop-color="#02040a"/>
+    </linearGradient>
+    <radialGradient id="limb" cx="50%" cy="120%" r="62%">
+      <stop offset="0" stop-color="#2f66b0" stop-opacity="0.45"/>
+      <stop offset="0.6" stop-color="#1c3f78" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#02040a" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1920" height="1080" fill="url(#bg)"/>
+  <rect width="1920" height="1080" fill="url(#limb)"/>
+  <!-- 배경 별 -->
+  <g fill="#ffffff" opacity="0.5">
+    <circle cx="215" cy="92" r="1.6"/><circle cx="430" cy="196" r="1.2"/><circle cx="742" cy="118" r="1.7"/>
+    <circle cx="1088" cy="88" r="1.3"/><circle cx="1364" cy="176" r="1.5"/><circle cx="1672" cy="112" r="1.8"/>
+    <circle cx="1795" cy="238" r="1.2"/><circle cx="96" cy="330" r="1.4"/><circle cx="1855" cy="470" r="1.5"/>
+    <circle cx="60" cy="620" r="1.2"/><circle cx="1880" cy="700" r="1.3"/><circle cx="330" cy="1020" r="1.4"/>
+    <circle cx="1590" cy="1040" r="1.2"/><circle cx="960" cy="60" r="1.3"/>
+  </g>
+
+  <!-- 제목 -->
+  <text x="130" y="122" font-size="62" font-weight="700" fill="#eef1fa" letter-spacing="-1">말 한 줄이면, 돔 콘텐츠가 됩니다</text>
+  <text x="130" y="174" font-size="27" fill="#8a94aa">Sky Explorer AI · 작동 방식</text>
+  <text x="1790" y="120" font-size="24" fill="#7a8499" text-anchor="end">무설치 · 웹 브라우저</text>
+  <text x="1790" y="166" font-size="24" fill="#7a8499" text-anchor="end">Sky Explorer 전용</text>
+  <line x1="130" y1="200" x2="1790" y2="200" stroke="#ffffff" stroke-opacity="0.09"/>
+
+  <!-- ══ STEP 1 ══ -->
+  <g>
+    <rect x="130" y="238" width="500" height="430" rx="22" fill="#0a0e1a" fill-opacity="0.86" stroke="#ffffff" stroke-opacity="0.10"/>
+    <rect x="166" y="272" width="118" height="38" rx="19" fill="#5ee6c4" fill-opacity="0.14" stroke="#5ee6c4" stroke-opacity="0.5"/>
+    <text x="225" y="298" font-size="20" font-weight="700" fill="#5ee6c4" text-anchor="middle">STEP 1</text>
+    <text x="166" y="368" font-size="46" font-weight="700" fill="#eef1fa">말한다</text>
+    <line x1="166" y1="394" x2="594" y2="394" stroke="#ffffff" stroke-opacity="0.08"/>
+
+    <!-- 말풍선 -->
+    <path d="M166 424 h428 a14 14 0 0 1 14 14 v92 a14 14 0 0 1 -14 14 h-380 l-28 30 v-30 h-20 a14 14 0 0 1 -14 -14 v-92 a14 14 0 0 1 14 -14 z"
+          fill="#5ee6c4" fill-opacity="0.09" stroke="#5ee6c4" stroke-opacity="0.35"/>
+    <text x="192" y="470" font-size="25" fill="#d9f5ee">“청주에서 본 8월 페르세우스</text>
+    <text x="192" y="508" font-size="25" fill="#d9f5ee">유성우를 3분짜리로 보여줘”</text>
+
+    <text x="166" y="606" font-size="25" fill="#b9c2d6">하고 싶은 장면을 한국어로 한 줄.</text>
+    <text x="166" y="640" font-size="25" fill="#b9c2d6">전문 지식도, 프로그래밍도 필요 없습니다.</text>
+  </g>
+
+  <!-- 화살표 1 -->
+  <g stroke="#ffb84d" stroke-opacity="0.75" fill="#ffb84d" fill-opacity="0.75">
+    <line x1="646" y1="453" x2="686" y2="453" stroke-width="3"/>
+    <polygon points="686,443 710,453 686,463"/>
+  </g>
+
+  <!-- ══ STEP 2 (핵심) ══ -->
+  <g>
+    <rect x="710" y="238" width="500" height="430" rx="22" fill="#12101c" fill-opacity="0.9" stroke="#ffb84d" stroke-opacity="0.55" stroke-width="2"/>
+    <rect x="746" y="272" width="118" height="38" rx="19" fill="#ffb84d" fill-opacity="0.16" stroke="#ffb84d" stroke-opacity="0.6"/>
+    <text x="805" y="298" font-size="20" font-weight="700" fill="#ffb84d" text-anchor="middle">STEP 2</text>
+    <text x="746" y="368" font-size="46" font-weight="700" fill="#eef1fa">AI가 만든다</text>
+    <line x1="746" y1="394" x2="1174" y2="394" stroke="#ffffff" stroke-opacity="0.08"/>
+
+    <!-- 두 재료 -->
+    <rect x="746" y="416" width="204" height="62" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.14"/>
+    <text x="848" y="445" font-size="21" fill="#eef1fa" text-anchor="middle">검증된 현장 지식</text>
+    <text x="848" y="468" font-size="17" fill="#8a94aa" text-anchor="middle">실장비에서 확인한 규칙</text>
+
+    <rect x="970" y="416" width="204" height="62" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.14"/>
+    <text x="1072" y="445" font-size="21" fill="#eef1fa" text-anchor="middle">생성 AI</text>
+    <text x="1072" y="468" font-size="17" fill="#8a94aa" text-anchor="middle">문장 이해 · 장면 구성</text>
+
+    <!-- 수렴 -->
+    <g stroke="#ffb84d" stroke-opacity="0.6" stroke-width="2.5" fill="none">
+      <path d="M848 484 L848 500 Q848 512 862 512 L946 512"/>
+      <path d="M1072 484 L1072 500 Q1072 512 1058 512 L974 512"/>
+    </g>
+    <polygon points="960,506 960,530 984,518" fill="#ffb84d" fill-opacity="0.7"/>
+
+    <rect x="746" y="540" width="428" height="66" rx="14" fill="#ffb84d" fill-opacity="0.13" stroke="#ffb84d" stroke-opacity="0.5"/>
+    <text x="960" y="572" font-size="24" font-weight="700" fill="#ffd79a" text-anchor="middle">실행 가능한 Python 스크립트</text>
+    <text x="960" y="596" font-size="19" fill="#c9b58c" text-anchor="middle">카메라 · 시각 · 천체 설정 · 자막까지 자동</text>
+
+    <text x="960" y="642" font-size="24" fill="#b9c2d6" text-anchor="middle">여기까지 걸리는 시간, 수 분.</text>
+  </g>
+
+  <!-- 화살표 2 -->
+  <g stroke="#ffb84d" stroke-opacity="0.75" fill="#ffb84d" fill-opacity="0.75">
+    <line x1="1226" y1="453" x2="1266" y2="453" stroke-width="3"/>
+    <polygon points="1266,443 1290,453 1266,463"/>
+  </g>
+
+  <!-- ══ STEP 3 ══ -->
+  <g>
+    <rect x="1290" y="238" width="500" height="430" rx="22" fill="#0a0e1a" fill-opacity="0.86" stroke="#ffffff" stroke-opacity="0.10"/>
+    <rect x="1326" y="272" width="118" height="38" rx="19" fill="#5ee6c4" fill-opacity="0.14" stroke="#5ee6c4" stroke-opacity="0.5"/>
+    <text x="1385" y="298" font-size="20" font-weight="700" fill="#5ee6c4" text-anchor="middle">STEP 3</text>
+    <text x="1326" y="368" font-size="46" font-weight="700" fill="#eef1fa">재생한다</text>
+    <line x1="1326" y1="394" x2="1754" y2="394" stroke="#ffffff" stroke-opacity="0.08"/>
+
+    <!-- .py 파일 -->
+    <rect x="1326" y="432" width="132" height="92" rx="12" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.16"/>
+    <text x="1392" y="472" font-size="24" font-weight="700" fill="#eef1fa" text-anchor="middle">.py</text>
+    <text x="1392" y="500" font-size="17" fill="#8a94aa" text-anchor="middle">스크립트</text>
+    <g stroke="#5ee6c4" stroke-opacity="0.7" fill="#5ee6c4" fill-opacity="0.7">
+      <line x1="1476" y1="478" x2="1508" y2="478" stroke-width="3"/>
+      <polygon points="1508,468 1530,478 1508,488"/>
+    </g>
+
+    <!-- 돔 -->
+    <path d="M1560 528 a92 92 0 0 1 184 0 z" fill="#ffb84d" fill-opacity="0.10" stroke="#ffb84d" stroke-opacity="0.55" stroke-width="2"/>
+    <line x1="1546" y1="528" x2="1758" y2="528" stroke="#ffb84d" stroke-opacity="0.55" stroke-width="3"/>
+    <g fill="#ffffff" opacity="0.75">
+      <circle cx="1610" cy="492" r="2.4"/><circle cx="1652" cy="466" r="3"/><circle cx="1694" cy="498" r="2.2"/>
+      <circle cx="1668" cy="512" r="1.8"/><circle cx="1624" cy="470" r="1.8"/>
+    </g>
+    <text x="1652" y="562" font-size="19" fill="#8a94aa" text-anchor="middle">Studio 에서 재생</text>
+
+    <text x="1326" y="606" font-size="25" fill="#b9c2d6">받은 스크립트를 넣고 재생 버튼.</text>
+    <text x="1326" y="640" font-size="25" fill="#b9c2d6">그대로 우리 관의 돔 프로그램이 됩니다.</text>
+  </g>
+
+  <!-- ══ 역할 구분 ══ -->
+  <g>
+    <rect x="272" y="696" width="216" height="46" rx="23" fill="#5ee6c4" fill-opacity="0.12" stroke="#5ee6c4" stroke-opacity="0.45"/>
+    <text x="380" y="726" font-size="22" font-weight="700" fill="#5ee6c4" text-anchor="middle">사람이 하는 일</text>
+
+    <rect x="852" y="696" width="216" height="46" rx="23" fill="#ffb84d" fill-opacity="0.14" stroke="#ffb84d" stroke-opacity="0.5"/>
+    <text x="960" y="726" font-size="22" font-weight="700" fill="#ffb84d" text-anchor="middle">AI가 하는 일</text>
+
+    <rect x="1432" y="696" width="216" height="46" rx="23" fill="#5ee6c4" fill-opacity="0.12" stroke="#5ee6c4" stroke-opacity="0.45"/>
+    <text x="1540" y="726" font-size="22" font-weight="700" fill="#5ee6c4" text-anchor="middle">사람이 하는 일</text>
+  </g>
+
+  <text x="960" y="796" font-size="31" font-weight="700" fill="#eef1fa" text-anchor="middle">사람이 하는 일은 <tspan fill="#5ee6c4">문장 한 줄</tspan>과 <tspan fill="#5ee6c4">재생 버튼</tspan>, 나머지는 전부 AI가 합니다.</text>
+
+  <!-- ══ 편의성 비교 ══ -->
+  <rect x="130" y="838" width="1660" height="164" rx="18" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.09"/>
+  <line x1="683" y1="866" x2="683" y2="974" stroke="#ffffff" stroke-opacity="0.08"/>
+  <line x1="1236" y1="866" x2="1236" y2="974" stroke="#ffffff" stroke-opacity="0.08"/>
+
+  <g text-anchor="middle">
+    <text x="406" y="890" font-size="22" fill="#8a94aa">제작 시간</text>
+    <text x="406" y="945" font-size="27"><tspan fill="#6d768c" text-decoration="line-through">수일 ~ 수주</tspan><tspan fill="#6d768c">　→　</tspan><tspan font-size="34" font-weight="700" fill="#ffb84d">수 분</tspan></text>
+
+    <text x="959" y="890" font-size="22" fill="#8a94aa">필요 역량</text>
+    <text x="959" y="945" font-size="27"><tspan fill="#6d768c" text-decoration="line-through">스크립트 API 숙련</tspan><tspan fill="#6d768c">　→　</tspan><tspan font-size="34" font-weight="700" fill="#ffb84d">한국어 문장</tspan></text>
+
+    <text x="1512" y="890" font-size="22" fill="#8a94aa">제작 주체</text>
+    <text x="1512" y="945" font-size="27"><tspan fill="#6d768c" text-decoration="line-through">외주 발주</tspan><tspan fill="#6d768c">　→　</tspan><tspan font-size="34" font-weight="700" fill="#ffb84d">관 담당자</tspan></text>
+  </g>
+
+  <text x="130" y="1046" font-size="20" fill="#5b6377">Sky Explorer AI — 자연어 → 돔 스크립트 생성</text>
+  <text x="1790" y="1046" font-size="20" fill="#5b6377" text-anchor="end">기존 SPC 쇼 변환 · 천문 달력 연동 포함</text>
+</svg>
