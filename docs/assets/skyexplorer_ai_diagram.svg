@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1740" height="610" viewBox="0 0 1740 610" font-family="'Pretendard','Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',sans-serif">
+  <rect width="1740" height="610" fill="#ffffff"/>
+
+  <g transform="translate(-90,-198)">
+
+    <!-- ══ STEP 1 ══ -->
+    <rect x="130" y="238" width="500" height="430" rx="20" fill="#f7f9fc" stroke="#d9dfe8" stroke-width="1.5"/>
+    <rect x="166" y="272" width="118" height="38" rx="19" fill="#e6f7f2" stroke="#0f9b7e" stroke-opacity="0.55"/>
+    <text x="225" y="298" font-size="20" font-weight="700" fill="#0b7d65" text-anchor="middle">STEP 1</text>
+    <text x="166" y="368" font-size="46" font-weight="700" fill="#111827">말한다</text>
+    <line x1="166" y1="394" x2="594" y2="394" stroke="#e5e9f0" stroke-width="1.5"/>
+
+    <path d="M166 424 h428 a14 14 0 0 1 14 14 v92 a14 14 0 0 1 -14 14 h-380 l-28 30 v-30 h-20 a14 14 0 0 1 -14 -14 v-92 a14 14 0 0 1 14 -14 z"
+          fill="#edf9f5" stroke="#0f9b7e" stroke-opacity="0.45"/>
+    <text x="192" y="470" font-size="25" fill="#0f5f4f">“청주에서 본 8월 페르세우스</text>
+    <text x="192" y="508" font-size="25" fill="#0f5f4f">유성우를 3분짜리로 보여줘”</text>
+
+    <text x="166" y="606" font-size="25" fill="#4b5563">하고 싶은 장면을 한국어로 한 줄.</text>
+    <text x="166" y="640" font-size="25" fill="#4b5563">전문 지식도, 프로그래밍도 필요 없습니다.</text>
+
+    <!-- 화살표 1 -->
+    <g stroke="#d9820a" fill="#d9820a">
+      <line x1="646" y1="453" x2="686" y2="453" stroke-width="3.5"/>
+      <polygon points="686,442 712,453 686,464"/>
+    </g>
+
+    <!-- ══ STEP 2 ══ -->
+    <rect x="710" y="238" width="500" height="430" rx="20" fill="#fffdf7" stroke="#e8931f" stroke-width="2.5"/>
+    <rect x="746" y="272" width="118" height="38" rx="19" fill="#fdf0d9" stroke="#e8931f" stroke-opacity="0.7"/>
+    <text x="805" y="298" font-size="20" font-weight="700" fill="#b56a05" text-anchor="middle">STEP 2</text>
+    <text x="746" y="368" font-size="46" font-weight="700" fill="#111827">AI가 만든다</text>
+    <line x1="746" y1="394" x2="1174" y2="394" stroke="#efe3cd" stroke-width="1.5"/>
+
+    <rect x="746" y="416" width="204" height="62" rx="12" fill="#f4f6fa" stroke="#dde3ec" stroke-width="1.5"/>
+    <text x="848" y="445" font-size="21" fill="#111827" text-anchor="middle">검증된 현장 지식</text>
+    <text x="848" y="468" font-size="17" fill="#7b8494" text-anchor="middle">실장비에서 확인한 규칙</text>
+
+    <rect x="970" y="416" width="204" height="62" rx="12" fill="#f4f6fa" stroke="#dde3ec" stroke-width="1.5"/>
+    <text x="1072" y="445" font-size="21" fill="#111827" text-anchor="middle">생성 AI</text>
+    <text x="1072" y="468" font-size="17" fill="#7b8494" text-anchor="middle">문장 이해 · 장면 구성</text>
+
+    <g stroke="#d9820a" stroke-width="2.5" fill="none">
+      <path d="M848 484 L848 500 Q848 512 862 512 L946 512"/>
+      <path d="M1072 484 L1072 500 Q1072 512 1058 512 L974 512"/>
+    </g>
+    <polygon points="958,505 958,531 984,518" fill="#d9820a"/>
+
+    <rect x="746" y="540" width="428" height="66" rx="14" fill="#fdf0d9" stroke="#e8931f" stroke-opacity="0.75"/>
+    <text x="960" y="572" font-size="24" font-weight="700" fill="#8a5a04" text-anchor="middle">실행 가능한 Python 스크립트</text>
+    <text x="960" y="596" font-size="19" fill="#a07d3f" text-anchor="middle">카메라 · 시각 · 천체 설정 · 자막까지 자동</text>
+
+    <text x="960" y="642" font-size="24" fill="#4b5563" text-anchor="middle">여기까지 걸리는 시간, 수 분.</text>
+
+    <!-- 화살표 2 -->
+    <g stroke="#d9820a" fill="#d9820a">
+      <line x1="1226" y1="453" x2="1266" y2="453" stroke-width="3.5"/>
+      <polygon points="1266,442 1292,453 1266,464"/>
+    </g>
+
+    <!-- ══ STEP 3 ══ -->
+    <rect x="1290" y="238" width="500" height="430" rx="20" fill="#f7f9fc" stroke="#d9dfe8" stroke-width="1.5"/>
+    <rect x="1326" y="272" width="118" height="38" rx="19" fill="#e6f7f2" stroke="#0f9b7e" stroke-opacity="0.55"/>
+    <text x="1385" y="298" font-size="20" font-weight="700" fill="#0b7d65" text-anchor="middle">STEP 3</text>
+    <text x="1326" y="368" font-size="46" font-weight="700" fill="#111827">재생한다</text>
+    <line x1="1326" y1="394" x2="1754" y2="394" stroke="#e5e9f0" stroke-width="1.5"/>
+
+    <rect x="1326" y="432" width="132" height="92" rx="12" fill="#f4f6fa" stroke="#dde3ec" stroke-width="1.5"/>
+    <text x="1392" y="472" font-size="24" font-weight="700" fill="#111827" text-anchor="middle">.py</text>
+    <text x="1392" y="500" font-size="17" fill="#7b8494" text-anchor="middle">스크립트</text>
+    <g stroke="#0f9b7e" fill="#0f9b7e">
+      <line x1="1476" y1="478" x2="1506" y2="478" stroke-width="3.5"/>
+      <polygon points="1506,468 1530,478 1506,488"/>
+    </g>
+
+    <path d="M1560 528 a92 92 0 0 1 184 0 z" fill="#fdf3e2" stroke="#d9820a" stroke-width="2.5"/>
+    <line x1="1546" y1="528" x2="1758" y2="528" stroke="#d9820a" stroke-width="3.5"/>
+    <g fill="#8a6a3a">
+      <circle cx="1610" cy="492" r="2.6"/><circle cx="1652" cy="466" r="3.2"/><circle cx="1694" cy="498" r="2.4"/>
+      <circle cx="1668" cy="512" r="2"/><circle cx="1624" cy="470" r="2"/>
+    </g>
+    <text x="1652" y="562" font-size="19" fill="#7b8494" text-anchor="middle">Studio 에서 재생</text>
+
+    <text x="1326" y="606" font-size="25" fill="#4b5563">받은 스크립트를 넣고 재생 버튼.</text>
+    <text x="1326" y="640" font-size="25" fill="#4b5563">그대로 우리 관의 돔 프로그램이 됩니다.</text>
+
+    <!-- ══ 역할 구분 ══ -->
+    <rect x="272" y="696" width="216" height="46" rx="23" fill="#e6f7f2" stroke="#0f9b7e" stroke-opacity="0.55"/>
+    <text x="380" y="726" font-size="22" font-weight="700" fill="#0b7d65" text-anchor="middle">사람이 하는 일</text>
+
+    <rect x="852" y="696" width="216" height="46" rx="23" fill="#fdf0d9" stroke="#e8931f" stroke-opacity="0.7"/>
+    <text x="960" y="726" font-size="22" font-weight="700" fill="#b56a05" text-anchor="middle">AI가 하는 일</text>
+
+    <rect x="1432" y="696" width="216" height="46" rx="23" fill="#e6f7f2" stroke="#0f9b7e" stroke-opacity="0.55"/>
+    <text x="1540" y="726" font-size="22" font-weight="700" fill="#0b7d65" text-anchor="middle">사람이 하는 일</text>
+
+  </g>
+</svg>
