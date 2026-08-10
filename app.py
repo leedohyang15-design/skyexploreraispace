@@ -1006,6 +1006,29 @@ def _lint_script(code: str, user_prompt: str) -> list:
         if issues and issues[-1].startswith("`setOrientationH"):
             break                               # 같은 지적 반복 금지
 
+    # ⚠️⚠️ '시작하자마자 화면이 한 바퀴 돈다'(2026-08-10 사용자 실측, 목성 위성계)는
+    #   ① FadeTo 내부 방향정렬 슬루가 끝나기 전에 페이드인 ② 프레임 전환을 불 켠 뒤에 수행 — 둘 다 원인이다.
+    #   ⚠️ 이 둘은 **정적 검사로 판정 불가**라 린터에서 뺐다(실측: 검증된 골든 6개가 오탐으로 걸림):
+    #     · 대기 시간은 클램프 루프(sleep(0.2) 반복)·도착 폴링으로 쪼개져 있어 '다음 sleep' 스캔이 무의미.
+    #     · CityType GoTo 는 1~2초면 끝나 4초 요구가 틀림(대상 종류마다 다름).
+    #     · 페이드인 순서는 light() 헬퍼가 앞쪽에 정의되면 텍스트 순서가 실행 순서와 어긋남.
+    #   → 규칙은 reference.md 쪽에 두고, 여기서는 검사하지 않는다.
+
+    # 날짜/시간 세팅 검사
+    for m in re.finditer(r"setDateTime\s*\(\s*(\d{4})\s*,\s*(\d+)\s*,\s*(\d+)", code):
+        mm, dd = int(m.group(2)), int(m.group(3))
+        if not (1 <= mm <= 12) or not (1 <= dd <= 31):
+            issues.append(
+                "`setDateTime(..., %d, %d, ...)` 의 날짜가 실제로 없는 날이다(월 1~12 / 일 1~31). "
+                "달을 넘기려면 다음 달 1일처럼 **유효한 날짜**로 써라." % (mm, dd)
+            )
+            break
+    if "setDateTime" in code and not re.search(r"\.stop\s*\(\s*\)", code):
+        issues.append(
+            "`setDateTime` 앞에 `dm.stop()` 이 없다 — 시간이 흐르는 상태에서 날짜를 걸면 그동안 누적된 "
+            "만큼 함께 튄다. **순서: `dm.stop()` → `sleep(0.2)` → `setDateTime(...)`**."
+        )
+
     # 공전 루프 검사 — AST 로 for 블록 안의 호출을 본다(들여쓰기 파싱보다 견고).
     try:
         tree = ast.parse(code)
