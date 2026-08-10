@@ -941,6 +941,31 @@ def _lint_script(code: str, user_prompt: str) -> list:
                 )
                 break
 
+    # 방위 조준 검사 — "북동쪽" 이라 써놓고 H=-45(=남서)를 넣는 부호 뒤집기 사고를 잡는다.
+    #   (2026-08-10 실측: 유성우 쇼에서 복사점이 등 뒤로 가 유성이 화면에 안 잡혔다.)
+    #   긴 이름부터 매칭해야 '북동'이 '북'으로 먼저 잡히지 않는다.
+    for m in re.finditer(r"setOrientationH\s*\(\s*(-?\d+(?:\.\d+)?)", code):
+        line_start = code.rfind("\n", 0, m.start()) + 1
+        ctx = code[max(0, code.rfind("\n", 0, line_start - 1) - 200):
+                   code.find("\n", m.end()) if code.find("\n", m.end()) != -1 else len(code)]
+        ctx = ctx[-300:]                        # 호출 앞 주석 2줄 + 같은 줄
+        for word, expected in (("북동", 135.0), ("남동", 45.0), ("남서", -45.0), ("북서", -135.0),
+                               ("북", 180.0), ("동", 90.0), ("남", 0.0), ("서", -90.0)):
+            if word not in ctx:
+                continue
+            actual = float(m.group(1))
+            diff = abs((actual - expected + 180.0) % 360.0 - 180.0)
+            if diff > 67.5:                     # 1.5 옥탄트 이상 어긋남 = 부호/방향 착오
+                issues.append(
+                    "`setOrientationH(%g)` 가 '%s쪽'을 보라는 설명과 어긋난다. "
+                    "환산은 **H = 180 − 나침반방위** 이고 %s = **H %g** 다. "
+                    "(북 180 / 북동 135 / 동 90 / 남동 45 / 남 0 / 남서 −45 / 서 −90 / 북서 −135. "
+                    "음수 H 는 서쪽 절반이다.)" % (actual, word, word, expected)
+                )
+            break
+        if issues and issues[-1].startswith("`setOrientationH"):
+            break                               # 같은 지적 반복 금지
+
     # 공전 루프 검사 — AST 로 for 블록 안의 호출을 본다(들여쓰기 파싱보다 견고).
     try:
         tree = ast.parse(code)
