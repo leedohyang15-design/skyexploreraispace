@@ -948,16 +948,27 @@ def _lint_script(code: str, user_prompt: str) -> list:
         if not re.search(r"from\s+%s\s+import" % name, code):
             issues.append("import 3종 중 `from %s import *` 가 빠졌다. 셋 다 넣어라." % name)
 
-    if ring:
-        # ⚠️ 장편(태양계 대여행 등)은 화성·목성 장면에서 정상적으로 줌한다.
-        #   파일 전체를 보면 그걸 '고리 쇼 줌'으로 오판한다(검증된 골든 2개가 걸렸음).
-        #   → 토성/천왕성 도킹 이후 ~ 다음 도킹/리셋 전까지의 '그 장면'만 본다.
+    # ⚠️⚠️ 고리 줌 검사는 **토성 전용**이다(2026-08-10 정정).
+    #   천왕성은 반대로 '근접 R3.2' 가 확정 레시피 — 같이 묶었더니 옳은 천왕성 쇼가 위반으로 걸렸다.
+    #   또 **풀백(R 을 키우는 것)은 줌이 아니다** — 위성계를 담으려 뒤로 빼는 건 정상.
+    if ring and re.search(r"토성|saturn", user_prompt, re.I):
+        # 장편은 화성·목성 장면에서 정상적으로 줌한다 → 토성 도킹 이후 '그 장면'만 본다.
         scene = code
-        m = re.search(r"data\(\s*Data\.Type\.PlanetType\s*,\s*[\"'](?:Saturn|Uranus)[\"']", code)
+        m = re.search(r"data\(\s*Data\.Type\.PlanetType\s*,\s*[\"']Saturn[\"']", code)
         if m:
             nxt = re.search(r"data\(\s*Data\.Type\.\w+\s*,|SceneGraph\(\)\.reset", code[m.end():])
             scene = code[m.end(): m.end() + nxt.start()] if nxt else code[m.end():]
-        if re.search(r"\.setPositionR\s*\(", scene) or re.search(r"positionLBR\.z\s*[/*]", scene):
+
+        shrink = False
+        for mm in re.finditer(r"setPositionR\s*\(\s*([^,]+)", scene):
+            arg = mm.group(1).strip()
+            if re.fullmatch(r"[\d.]+", arg):
+                shrink = shrink or float(arg) < 5.0          # 절대값이 도킹 R 보다 작다 = 줌인
+            elif re.search(r"\*\s*0\.\d+", arg) or re.search(r"/\s*[\d.]+", arg):
+                shrink = True                                # 읽은 R 을 줄이는 식
+        if re.search(r"positionLBR\.z\s*\*\s*0\.\d+", scene) or re.search(r"positionLBR\.z\s*/\s*[\d.]+", scene):
+            shrink = True
+        if shrink:
             issues.append(
                 "고리 쇼인데 줌(`setPositionR` 또는 R 을 나누고 곱하는 코드)이 들어갔다. "
                 "**줌 장면을 통째로 삭제**하고 FadeTo 도킹 R(≈5)을 그대로 유지하라. "
