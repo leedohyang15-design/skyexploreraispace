@@ -92,8 +92,8 @@ def _int_env(name, default):
 
 
 KNOWLEDGE_CHAR_LIMIT = {
-    "reference.md": _int_env("KNOW_REF_LIMIT", 40000),   # 전체(~21000) 넉넉히 → 잘림 없음
-    "examples.md":  _int_env("KNOW_EX_LIMIT", 40000),    # 전체(~13100) 넉넉히 → 잘림 없음
+    "reference.md": _int_env("KNOW_REF_LIMIT", 200000),  # ⚠️ 파일이 커지면 조용히 잘린다 — 실제로 40000 에서 683자 잘림(2026-08-03). 넉넉히.
+    "examples.md":  _int_env("KNOW_EX_LIMIT", 200000),   # 동일 이유로 넉넉히
 }
 
 
