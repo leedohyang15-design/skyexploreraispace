@@ -948,17 +948,32 @@ def _lint_script(code: str, user_prompt: str) -> list:
         issues.append("스크립트에 문법 오류가 있다. 실행 가능한 코드로 고쳐라.")
         return issues
 
+    # ⚠️ 재조준을 `def reaim(): ...` 헬퍼로 감싸는 스타일이 흔하다(우리 달 쇼가 그렇다).
+    #    루프 안의 직접 호출만 보면 그걸 '재조준 없음'으로 오판하므로, 헬퍼 본문까지 펼쳐서 본다.
+    helpers = {n.name: _call_names(n) for n in ast.walk(tree)
+               if isinstance(n, ast.FunctionDef)}
+
+    def _effective_calls(node) -> set:
+        names = _call_names(node)
+        for n in ast.walk(node):
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Name):
+                names |= helpers.get(n.func.id, set())
+        return names
+
     for node in ast.walk(tree):
         if not isinstance(node, ast.For):
             continue
-        names = _call_names(node)
+        names = _effective_calls(node)
         if "setPositionLBR" not in names:
             continue                      # 카메라 공전 루프가 아니다
         if "setOrientationSmoothXYZR" not in names:
             issues.append(
                 "공전 루프에 재조준이 없다 — 루프 안에서 3스텝마다 "
                 "`setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(...), 포트)` 를 불러라. "
-                "없으면 대상이 화면 밖으로 흘러나간다."
+                "없으면 대상이 화면 밖으로 흘러나간다. "
+                "⚠️ 단 재조준을 추가할 때 **프레임을 섞지 마라** — 위치 이동이 `track=-1` 이면 "
+                "재조준도 같은 프레임이어야 한다. 포트로 재조준할 거면 `positionLBR` 읽기와 "
+                "`setPositionLBR` 쓰기도 **전부 같은 포트로 통일**해서 다시 써라."
             )
         if "setTargetHeight" in names:
             issues.append(

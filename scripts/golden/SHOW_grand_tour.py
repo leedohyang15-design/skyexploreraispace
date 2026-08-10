@@ -220,7 +220,10 @@ sleep(5.5)
 sat = Planet(Planet.PlanetName.Saturn)
 shadows_off(sat)
 p = cam.positionLBR
-cam.setPositionLBR(Vec(p.x, 75.0, max(3.2, p.z * 0.7)), Anim.cubic(5.0), -1)  # 고리면 개방+근접
+cam.setPositionLBR(Vec(p.x, 75.0, p.z), Anim.cubic(5.0), -1)   # 고리면만 개방(B=75), R 은 도킹값 유지
+# ⚠️ [2026-08-03 정정] 예전엔 여기서 R×0.7 로 당겼는데 그건 고리를 잘라먹는다.
+#   A고리 바깥지름 = 2.27 토성반지름(옛 '4.6'은 오기). R=5 → 고리 시직경 54°(적당),
+#   R=3.9 → 72°(이미 잘림, 실측 스샷). **고리 쇼에서 줌은 금지 — 구도(B)로만 승부한다.**
 sleep(5.5)
 cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
 make_caption(20.0)                              # 행성 프레임 자막 규칙
