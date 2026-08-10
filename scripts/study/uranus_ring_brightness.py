@@ -55,6 +55,12 @@ try:
     txt.setDistance(20.0, Anim(0.0))
     txt.setColor(Vec(1.0, 1.0, 0.6))
     txt.setIntensity(1.0, Anim(0.0))
+
+    # ⚠️⚠️ v1 버그: 여기서 화면을 '다시 켜는' 줄이 없어서 프로브 전체가 검은 화면이었다.
+    #   암전 클램프(setGlobalIntensity 0 반복)를 걸었으면 **반드시 짝으로 페이드인**한다.
+    #   클램프는 "FadeTo 슬루를 감추는" 용도지, 쇼 내내 꺼두라는 뜻이 아니다.
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
+    sleep(2.2)
 except Exception as e:
     print("접근 오류:", e)
 

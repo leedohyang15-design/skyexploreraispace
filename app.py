@@ -948,6 +948,18 @@ def _lint_script(code: str, user_prompt: str) -> list:
         if not re.search(r"from\s+%s\s+import" % name, code):
             issues.append("import 3종 중 `from %s import *` 가 빠졌다. 셋 다 넣어라." % name)
 
+    # ⚠️⚠️ 암전만 걸고 안 켜면 **쇼 전체가 검은 화면이다** (2026-08-10 사용자 실측으로 발각).
+    #   FadeTo 슬루를 감추려고 setGlobalIntensity(0) 클램프를 돌려놓고 페이드인을 안 넣은 프로브가
+    #   60초 내내 깜깜했다. 커밋된 스크립트 전수 검사 결과 **위반 1건 / 오탐 0건** — 안전한 규칙.
+    if (re.search(r"setGlobalIntensity\s*\(\s*0", code)
+            and not re.search(r"setGlobalIntensity\s*\(\s*1", code)):
+        issues.append(
+            "`setGlobalIntensity(0)`(암전)만 있고 다시 켜는 `setGlobalIntensity(1.0, Anim...)` 이 "
+            "**스크립트 어디에도 없다** — 쇼가 처음부터 끝까지 검은 화면으로 돈다. "
+            "암전은 FadeTo/reset 슬루를 감추는 용도이므로 반드시 **짝으로 페이드인**하라: "
+            "세팅이 끝난 직후 `uni.setGlobalIntensity(1.0, Anim.cubic(2.0))`."
+        )
+
     # ⚠️⚠️ 고리 줌 검사는 **토성 전용**이다(2026-08-10 정정).
     #   천왕성은 반대로 '근접 R3.2' 가 확정 레시피 — 같이 묶었더니 옳은 천왕성 쇼가 위반으로 걸렸다.
     #   또 **풀백(R 을 키우는 것)은 줌이 아니다** — 위성계를 담으려 뒤로 빼는 건 정상.
