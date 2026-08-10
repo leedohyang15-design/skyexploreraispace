@@ -27,10 +27,17 @@ HERE = Path(__file__).parent
 # 무료 티어가 넉넉하고(카드 불필요) context 가 100만 토큰 → 지식 잘림 문제 자체가 사라진다.
 # 주력 = gemini-2.5-flash(품질↑), 폴백 = gemini-2.0-flash. GEMINI_MODEL 로 오버라이드 가능.
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+# ⚠️⚠️ 무료 티어 쿼터는 **모델별·프로젝트별 하루 단위**다
+#   (quotaId: GenerateRequestsPerDayPerProjectPerModel-FreeTier, 2026-08-10 실측).
+#   → 폴백 목록에 **같은 모델의 별칭·버전 고정본만 넣으면 폴백이 무의미**하다.
+#     (gemini-2.0-flash / gemini-flash-latest / gemini-2.0-flash-001 은 사실상 한 모델 =
+#      하나가 하루 한도에 걸리면 나머지도 같이 막힘 — 실제로 그렇게 막혔다.)
+#   → 반드시 **다른 세대(2.5)** 를 섞어 하루 한도를 분리한다.
 PREFERRED_MODELS = [
     "gemini-2.0-flash",       # 주력 (신규 사용자도 무료로 접근 가능)
-    "gemini-flash-latest",    # 폴백 (항상 최신 flash 별칭)
-    "gemini-2.0-flash-001",   # 폴백 (버전 고정)
+    "gemini-2.5-flash",       # ★ 다른 세대 = 하루 한도 별도. 2.0 이 막히면 여기로 넘어간다.
+    "gemini-2.5-flash-lite",  # 더 가벼운 별도 한도
+    "gemini-flash-latest",    # 폴백 (최신 flash 별칭)
 ]
 
 # ── 남용/쿼터 보호 상한 (공개 엔드포인트라 서버측에서 강제) ──
@@ -676,10 +683,22 @@ def _retry_after_seconds(err):
 
 
 def _is_billing_issue(err) -> bool:
-    # 429 지만 '분당 한도'가 아니라 '크레딧/결제 소진'인 경우 — 기다려도 안 풀린다.
+    """진짜 '크레딧/결제' 문제일 때만 True.
+
+    ⚠️⚠️ 예전엔 `"billing" in s` 로 잡았는데, Gemini 의 **모든 429 메시지에**
+    "please check your plan and billing details" 라는 상투구가 들어 있다(2026-08-10 실측).
+    → 단순 하루 한도 초과인데도 '선불 크레딧 0' 이라는 엉뚱한 안내가 떴다.
+    결제 문제를 가리키는 고유 문구만 본다.
+    """
     s = str(err).lower()
     return ("prepayment credits" in s or "credits are depleted" in s
-            or "billing" in s or "quota" in s and "exceeded" in s)
+            or "billing account" in s or "enable billing" in s)
+
+
+def _is_daily_quota(err) -> bool:
+    # 하루 단위 무료 한도 소진(모델별). 몇 초 기다려도 안 풀리고, 다른 모델로 가야 한다.
+    s = str(err)
+    return "PerDay" in s or "requests per day" in s.lower()
 
 
 # ── 씬 플랜 생성 ──────────────────────────────────────────────
@@ -1163,12 +1182,22 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                 "# ▶ 또는: ai.studio/projects 에서 현재 프로젝트의 결제를 해제하거나 크레딧을 충전하세요.\n"
                 "# ─ 상세: %s" % last_err)
     if hit_rate_limit:
+        if _is_daily_quota(last_err):
+            return ("# 📅 오늘치 무료 한도를 다 썼습니다 (분당 한도가 아니라 '하루' 한도).\n"
+                    "# 결제 문제가 아니니 카드를 등록할 필요 없습니다. 무료 한도는\n"
+                    "# **모델별·프로젝트별로 하루 단위**라, 다른 모델로 바꾸면 바로 다시 됩니다.\n"
+                    "#\n"
+                    "# ▶ 가장 빠른 해결: Space Settings → Variables and secrets →\n"
+                    "#   Name: GEMINI_MODEL / Value: gemini-2.5-flash  (또는 gemini-2.5-flash-lite)\n"
+                    "#   → 2.0 과 별도 한도라 즉시 사용 가능합니다.\n"
+                    "# ▶ 그냥 기다리려면: 태평양시 자정(한국시간 오후 4~5시경)에 초기화됩니다.\n"
+                    "# ─ 상세: %s" % last_err)
         return ("# ⏳ 분당 토큰 한도(TPM)에 걸렸습니다. (일일 한도가 아니라 '분당' 한도)\n"
                 "# 자동 대기 재시도까지 했지만 아직 여유가 안 났어요.\n"
                 "#\n"
                 "# ▶ 지금: 40초~1분 뒤 다시 눌러 주세요. 잠깐 쉬면 한도가 회복됩니다.\n"
                 "# ▶ 팁: 대화가 길어지면 토큰이 누적됩니다 — '＋ 새 대화'로 시작하면 가벼워져요.\n"
-                "# ▶ 근본 해결: aistudio.google.com 콘솔에서 티어/한도를 확인하거나 상향하세요.\n"
+                "# ▶ 다른 방법: GEMINI_MODEL 시크릿을 gemini-2.5-flash 로 바꾸면 별도 한도를 씁니다.\n"
                 "# ─ 상세: %s" % last_err)
     if _is_payment_required(last_err):
         return ("# 💳 결제/티어 문제입니다 (402).\n"
