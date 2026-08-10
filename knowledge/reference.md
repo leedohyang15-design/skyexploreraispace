@@ -299,6 +299,11 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 
 ## 4. 🛑 시도 금지 (이 빌드서 스크립트로 안 됨)
 - **영상(VideoPlayer) / 오디오(Audio·AudioLayer·AudioLite) / DMX조명(Light)**: 별도 호스트 필요, 무반응.
+  🛑🛑 **[최종 확정 2026-08-10] 오디오는 파이썬으로 절대 못 낸다 — 켤 호스트 자체가 없다.**
+  `SoftwareManager.Source` enum 실측 = **`Source_Default` / `Source_SkyExplorer` / `Source_ViPlayer` 셋뿐**(오디오 항목 없음).
+  `softStart` 같은 메서드가 있어도 **켤 오디오 소스가 존재하지 않는다.** `AudioLayer` 도 여전히 `InvalidAudioState`/duration 0.
+  → **쇼 스크립트에 오디오 호출을 절대 넣지 마라**(사용자가 "소리/음악/나레이션"을 요청해도 코드로 만들지 말 것).
+  요청받으면 **"사운드는 Studio/오퍼레이터가 얹는 별개 레이어"** 라고 자막이나 주석으로 안내하고 비주얼만 생성한다.
 - **ParameterizationLut 수동타겟**(addTargetAttribute 로 직접): 무반영. (단 '프리셋 슬롯'은 됨 — 아래 3.5 참조.) **날씨(Rain/Snow)**: 별도 렌더러 死. **Place3D**(3D경로선): load돼도 렌더 안 됨. **SkySurvey**(HiPS): 검은화면(최종 死). **NGC 카메라 접근/센터링**: 액션 死(단 '제자리 ON'은 됨 — 3.5 참조). **Patch**: 위치 없음.
 - **별 색=온도 팔레트 = `Lut.setColorPalette` ✅됨 (2026-07-30 확정)**: 팔레트 PNG 는 반드시 **`studio/starColors/` 폴더**에 있어야 함(옛 실패=경로문제). 레시피:
   `import os` → `base = Configuration.configuration().localUserFolder` → `folder = base + "/studio/starColors"` → `files=[f for f in os.listdir(folder) if f.endswith(".png")]` →

@@ -958,6 +958,20 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   **마스터볼륨(MainAudioPlayer.setOutputVolume(1.0))까지 올리고 풀8초 재생해도 완전 무음**(사용자 확인). → 오디오 출력 소스가 스크립트 창(Studio window)엔 비활성.
   → **[최종] 파이썬으로 소리 재생 불가 = VideoPlayer 와 같은 시스템/오퍼레이터(오디오 호스트) 소관. 재시도 금지.** 쇼의 사운드는 Studio UI/오퍼레이터가 입힐 것.
   ⚠️ **교훈: 미디어(영상·오디오)·하드웨어(Light=DMX 코브조명·DMX512) 계열은 '별도 호스트' 부류라 스크립트 창에서 렌더/출력 안 됨.** 남은 미개척은 렌더 오브젝트(Lut/Place3D 등)에서 찾을 것.
+  🛑🛑🛑 **[최종 종결 2026-08-10, audio_host_probe.py] '호스트를 파이썬으로 켤 수 있나?' 도 확인 완료 — 못 켠다. 오디오 종결.**
+  여태 `SoftwareManager` 는 '비검증'으로 남아 있었는데(= 호스트를 켜면 살아날 수도 있다는 미련), 덤프해 보니 **켤 오디오 소스가 아예 없다**:
+  · `SoftwareManager.Source` 실측 멤버 = **`Source_Default` / `Source_SkyExplorer` / `Source_ViPlayer` 3개뿐**
+    (dir 에 같이 나온 as_integer_ratio/bit_count/to_bytes 등은 **int 기반 enum 이라 딸려 나온 파이썬 내장** — 실멤버 아님).
+  · 즉 `Source` 는 "이 화면의 **영상**을 어디서 받나"(엔진 렌더 vs 외부 영상플레이어)를 고르는 **디스플레이 소스** 개념이고,
+    **오디오 장치 개념이 아니다.** `softStart` 가 있어도 **켤 대상이 없다.** `AudioLayer` 재측정도 `InvalidAudioState`/duration 0 그대로.
+  → **오디오는 여기서 끝. 다시 열지 말 것.** 쇼의 소리는 Studio UI/오퍼레이터(관 음향 시스템) 소관.
+  ✅ **대신 발견 = `SoftwareManager` 는 '외부 프로그램 실행기'다** (55 멤버 실측):
+  `softName`·`softExe`·`softWorkingDir`·`softArgsAdd`·`softVarsAdd`·`softSrcsAdd` → `softStart`/`softStop`,
+  그 외 `exec`·`start`/`stop`·`reboot`·`shutdown`·`bringToForeground`/`sendToBackground`·`setOpacity`/`setUseAlpha`·`heartbeat`·`getInfo`.
+  HostType = Master/IG/Mult/Hybrid, LogLevel = Debug~Fatal, SoftwareId = SkyExplorer/Studio/ProjectionDesigner/FreeDome/AutoCal.
+  ⚠️ 이론상 외부 플레이어를 띄워 소리를 낼 수는 있으나 **엔진이 내는 소리가 아니라 그 PC 가 내는 소리**이고,
+  프로덕션 장비에서 쇼 스크립트가 임의 프로세스를 띄우는 건 사고 위험 → **납품용으로 쓰지 말 것.**
+  (같은 경로로 `softSrcsAdd(Source_ViPlayer)`+`softStart` 가 **영상 부활** 가능성을 시사하나, 실행파일 경로가 필요해 시스템/오퍼레이터 영역.)
 - ⚠️ **Place3D(3D 경로/궤적 선) = load 는 조용히 성공하나 렌더 안 됨 (2026-07-22, place3d_path.py, 사용자 "하나도 안 떴는데")**:
   TSV 위치키를 이어 3D 궤적선을 그리는 클래스. 메서드: `load(TSV)` · `setShowPath(bool)` · `setIntensity` · `setLineColor(Vec3)` · `setLineThickness(px)` ·
   `setLineDrawingMode(DrawingMode.Lines/Trail/Default/Deprecated_Dashes/Deprecated_Points)` · `setPlayMode(Simulation/Live/Play/ConstantSpeed)` · `setEvolution(0~1)`. 슬롯 Place3D001~050.
