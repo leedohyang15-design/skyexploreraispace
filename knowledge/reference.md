@@ -142,6 +142,9 @@ from Initialization import *      # DateManager 등 매니저 클래스
   `cam.setTargetHeight(30.0, Anim(1))`(**관람 표준 30 — 90(천정)은 관객이 목 꺾어야 해서 금지**, 사용자 확정) → 페이드인 → **절대타겟 지오메트릭 줌 여러 단계**(한 단계론 점 그대로):
   `p0 = cam.positionLBR.z`; `for zoom in (2.5, 6, 16, 40): cam.setPositionR(p0 / zoom, Anim.cubic(3), -1); sleep(2.4)`(원래 R 을 배율로 나눔, 배율↑=더 깊이).
   ⚠️ 은하(M31)는 얕게 + `cam.setOrientationHPR(Vec(H,P,R+35), Anim)` roll로 세워 통과 방지. (말머리 등 Nebula 이름 enum은 LOS 포트 방식 — 아래 성운 항목.)
+  ⚠️⚠️ **성운 근접에서 360° 풀 공전은 하지 마라 — 성운은 '빌보드 아트'(납작한 그림)라 뒤로 돌아가면 실루엣만 남는다**(실측).
+  가까이(R≈10pc)서 도는 공전은 **정면 스윙 ±75° 정도**로 끊을 것: `for d in (-75, -45, -15, 15, 45, 75)` 식.
+  (한 바퀴를 꼭 돌아야 하면 멀리서(R 400pc 급) 돌거나, 공전 대신 접근/후퇴로 연출한다.)
 
 - **황도 12궁(태양이 1년간 별자리 통과) — 화면만 움직이고 아무것도 안 뜸 방지**: 카메라 추적/줌/줌락 하지 말 것 →
   지상 대기 OFF + 지면 OFF + 12궁 별자리 `setLinesIntensity(0.6)`/`setLabelIntensity(0.9)` + `Planet(Earth).setEclipticGridIntensity(1,..)` + `IndividualStar(IndividualStar.IndividualStarName.Sun).setScale(3)` +

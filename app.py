@@ -985,6 +985,16 @@ def _lint_script(code: str, user_prompt: str) -> list:
                 names |= helpers.get(n.func.id, set())
         return names
 
+    # 장면 보호 — 한 줄이 죽어도 다음 장면이 나와야 한다(체크리스트 10).
+    #   짧은 스니펫까지 잡으면 시끄러우므로 '쇼 길이'일 때만 본다.
+    if len(code.splitlines()) >= 60:
+        n_try = sum(1 for n in ast.walk(tree) if isinstance(n, ast.Try))
+        if n_try < 2:
+            issues.append(
+                "장면들이 `try/except` 로 보호돼 있지 않다 — 한 줄이 실패하면 그 뒤 장면이 통째로 안 나온다. "
+                "**각 장면을 try/except 로 감싸고** `except Exception as e: print(...)` 로 넘어가게 하라."
+            )
+
     for node in ast.walk(tree):
         if not isinstance(node, ast.For):
             continue
