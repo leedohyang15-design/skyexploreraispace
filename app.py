@@ -701,6 +701,19 @@ def _is_daily_quota(err) -> bool:
     return "PerDay" in s or "requests per day" in s.lower()
 
 
+# 오늘 하루 한도를 이미 소진한 모델 — 프로세스가 사는 동안 기억해 두고 건너뛴다.
+# ⚠️ 무료 하루 한도는 모델당 20건 수준(2026-08-10 실측: gemini-3.6-flash quotaValue 20)이라
+#    한 번 막힌 모델을 매 요청마다 다시 두드리면 왕복 시간만 날린다.
+_exhausted_today = set()
+
+
+def _live_models(first: str) -> list:
+    """폴백 순서 — 오늘 이미 소진된 모델은 뒤로 미룬다(전부 소진이면 원래 순서 유지)."""
+    order = [first] + [m for m in PREFERRED_MODELS if m != first]
+    fresh = [m for m in order if m not in _exhausted_today]
+    return fresh or order
+
+
 # ── 씬 플랜 생성 ──────────────────────────────────────────────
 PLAN_SYSTEM = """당신은 Sky Explorer 플라네타리움 쇼의 씬 기획자다.
 사용자의 자연어 요청을 분석해 쇼를 구성하는 씬 계획을 JSON으로 반환한다.
@@ -1151,7 +1164,7 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
 
     # 재시도 대상 모델: 현재 모델 우선, 이후 PREFERRED 순서.
     # models.list() 호출은 실패해도 무시하고 PREFERRED 로 폴백(불필요한 API 왕복 방지).
-    fallback_models = [first_model] + [m for m in PREFERRED_MODELS if m != first_model]
+    fallback_models = _live_models(first_model)   # 오늘 소진된 모델은 뒤로
 
     last_err = None
     hit_rate_limit = False
@@ -1177,6 +1190,9 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                     last_err = e
                     if _is_rate_limit(e):
                         hit_rate_limit = True
+                        if _is_daily_quota(e):
+                            # 하루 한도는 기다려도 안 풀린다 → 기억해 두고 다음부터 건너뛴다.
+                            _exhausted_today.add(model_candidate)
                         # 짧은 분당 한도면 권장 대기시간만큼 자동 대기 후 제자리 1회 재시도.
                         wait = _retry_after_seconds(e)
                         if (not waited_once and wait is not None
@@ -1211,12 +1227,17 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
     if hit_rate_limit:
         if _is_daily_quota(last_err):
             return ("# 📅 오늘치 무료 한도를 다 썼습니다 (분당 한도가 아니라 '하루' 한도).\n"
-                    "# 결제 문제가 아니니 카드를 등록할 필요 없습니다. 무료 한도는\n"
-                    "# **모델별·프로젝트별로 하루 단위**라, 다른 모델로 바꾸면 바로 다시 됩니다.\n"
+                    "# 결제 문제가 아닙니다 — 카드 등록·결제 해제 다 필요 없습니다.\n"
                     "#\n"
-                    "# ▶ 가장 빠른 해결: Space Settings → Variables and secrets →\n"
-                    "#   Name: GEMINI_MODEL / Value: gemini-2.5-flash  (또는 gemini-2.5-flash-lite)\n"
-                    "#   → 2.0 과 별도 한도라 즉시 사용 가능합니다.\n"
+                    "# ⚠️ 무료 하루 한도는 **모델당 20건 수준**으로 작습니다. 그런데 쇼 하나를 만들 때\n"
+                    "#   씬 플랜 + 코드 생성(+규칙 위반 시 자동 재수정) = **요청 2~3건**을 씁니다.\n"
+                    "#   즉 하루에 만들 수 있는 쇼가 모델당 예닐곱 개 정도입니다.\n"
+                    "#\n"
+                    "# ▶ 지금 바로 쓰려면(1분): aistudio.google.com → 'Get API key' →\n"
+                    "#   **새 프로젝트**로 키를 발급 → Space Settings → Variables and secrets →\n"
+                    "#   GEMINI_API_KEY 를 그 키로 교체. (프로젝트가 다르면 한도가 처음부터 새로 시작)\n"
+                    "# ▶ 아직 안 써본 모델이 있으면: GEMINI_MODEL 을 gemini-2.5-flash /\n"
+                    "#   gemini-2.5-flash-lite 로. (이미 이 목록을 다 돌아 막힌 상태라면 위 방법으로)\n"
                     "# ▶ 그냥 기다리려면: 태평양시 자정(한국시간 오후 4~5시경)에 초기화됩니다.\n"
                     "# ─ 상세: %s" % last_err)
         return ("# ⏳ 분당 토큰 한도(TPM)에 걸렸습니다. (일일 한도가 아니라 '분당' 한도)\n"
