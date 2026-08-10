@@ -53,12 +53,14 @@ def clamp_dark(seconds):
 
 
 def gentle_planet():
-    """⚠️ 눈부심 제거 = 그림자를 '켜서' 밤면을 어둡게.
-       고리만 밝히는 API 가 없으므로, 원반을 죽여서 상대 대비를 얻는 게 유일한 길."""
-    UR.setIntensity(1.0, Anim(1.5))          # 1.5 는 원반이 탄다(실측)
-    UR.setShadowStrength(1.0, Anim(1.5))
-    UR.setShadowContrast(1.0, Anim(1.5))
-    UR.setPlanetShineStrength(0.15, Anim(1.5))
+    """밝기 = 2026-08-10 사용자 A/B 채택값(4조합 중 2번).
+       ⚠️ 내가 먼저 제안한 '그림자 ON 으로 밤면 죽이기'(3·4번)는 **탈락**했다 —
+          반쪽이 어두워지는 대신 볼 게 줄어 오히려 나빴다. 그림자는 끈 채로 둔다.
+       ⚠️ intensity 1.5 는 원반이 탄다. 1.2 가 눈이 편한 상한."""
+    UR.setIntensity(1.2, Anim(1.5))
+    UR.setShadowStrength(0.0, Anim(1.5))
+    UR.setShadowContrast(0.0, Anim(1.5))
+    UR.setPlanetShineStrength(1.0, Anim(1.5))
 
 
 # ── 막0 : 지상에서 ────────────────────────────────────────────
@@ -169,10 +171,10 @@ try:
     say("이 행성에도 고리가 있다 — 아주 어둡지만")
     cam.setPositionR(3.2, Anim.cubic(5.0), ep)        # 확정 근접값(절대값으로 지정)
     sleep(5.5)
-    UR.setIntensity(1.3, Anim(2.0))                   # 살짝만 — 1.5 는 탄다
-    sleep(4.0)
-    say("숯처럼 검은 얼음과 바위, 반사율 3%", 6.0)
-    UR.setIntensity(1.0, Anim(2.0))
+    # ⚠️ 여기서 intensity 를 올리지 않는다. 원반만 타고 고리 대비는 안 늘기 때문
+    #    (사용자 관찰 — 4조합에서 고리 밝기 자체는 다 같아 보였다).
+    #    고리를 보이게 하는 건 밝기가 아니라 구도(B=38 고리면 개방 + R=3.2 근접)다.
+    say("숯처럼 검은 얼음과 바위, 반사율 3%", 7.0)
     sleep(2.5)
 except Exception as e:
     print("막4 오류:", e)
