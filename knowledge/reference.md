@@ -299,6 +299,12 @@ SceneGraph().reset(1)                                     # FadeTo 잠김 방지
 DataManager.database().data(Data.Type.PlanetType, "Saturn").action(Action.Type.FadeTo).trigger()
 sleep(4.0)                                                # 옆도킹(가스행성 R≈5,B20 / 암석행성 북극 R=4)
 p = cam.positionLBR                                        # ⚠️ R 단위 = '트랙 대상 반지름'(km 아님!)
+# ⚠️⚠️ R 단위는 **프레임(포트)마다 다르다.** 실측 확인된 것:
+#   · 행성 도킹 프레임(FadeTo/GoTo, track=-1) → 대상 **반지름**   (토성 R=5, 지구 R=4)
+#   · `Planet.PlanetPort.Ecliptic`             → 대상 **지름**(반지름의 2배!) — 천왕성 R=3.2 → 163,773km = 6.4 반지름
+#   · `IndividualStarPort.Ecliptic`(태양)      → **AU**            (태양계 조망 R=6~18)
+#   · 성운/메시에 LOS 프레임                    → 초대형(1e15 급)
+# → **포트를 바꿨으면 R 을 절대값으로 쓰기 전에 HUD(km)로 환산을 한 번 확인**할 것. 같은 숫자가 프레임마다 다른 거리다.
 zoom = 2.0                                                # 배율↑ = 더 확대
 cam.setPositionLBR(Vec(p.x, p.y, p.z / zoom), Anim.cubic(4.0), -1)   # 줌 = 읽은 R / 배율 (절대값 금지)
 # 클로즈업 표준: 그림자 OFF 로 표면 다 보이게 (위상/일식 장면 제외)
