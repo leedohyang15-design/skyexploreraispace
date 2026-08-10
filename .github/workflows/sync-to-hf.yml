@@ -31,16 +31,19 @@ jobs:
           #   (히스토리에 남아 있는 옛 바이너리 blob 도 같이 안 올라가게 하려면 orphan 이 필수 —
           #    전체 히스토리를 밀면 과거 커밋의 PNG blob 때문에 다시 거부당한다.)
           SRC_SHA="$(git rev-parse HEAD)"
+
+          # 지울 바이너리 목록은 '추적 중인 파일'에서 뽑는다 (orphan 전에 뽑아야 함 —
+          # git rm --cached 뒤엔 인덱스가 비어 ls-files 가 아무것도 안 준다).
+          # ⚠️ find -prune + -delete 조합은 경고와 함께 exit 1 이라 set -e 에서 죽는다(실측) — 쓰지 말 것.
+          BIN_LIST="$(git ls-files \
+            | grep -Ei '\.(png|jpe?g|gif|webp|ico|pdf|zip|mp4|mp3|wav|ogg|avi|wmv|osg|ttf|otf|woff2?)$' || true)"
+          echo "제외할 바이너리:"; echo "${BIN_LIST:-(없음)}"
+
           git checkout --orphan hf-sync
           git rm -r --cached . -q
-
-          # 바이너리 제거 (Space 실행에 불필요한 테스트/문서용 에셋)
-          find . -path ./.git -prune -o -type f \
-            \( -iname '*.png' -o -iname '*.jpg'  -o -iname '*.jpeg' -o -iname '*.gif' \
-            -o -iname '*.webp' -o -iname '*.ico' -o -iname '*.pdf'  -o -iname '*.zip' \
-            -o -iname '*.mp4' -o -iname '*.mp3'  -o -iname '*.wav'  -o -iname '*.ogg' \
-            -o -iname '*.avi' -o -iname '*.wmv'  -o -iname '*.osg'  -o -iname '*.ttf' \
-            -o -iname '*.otf' -o -iname '*.woff' -o -iname '*.woff2' \) -print -delete
+          if [ -n "$BIN_LIST" ]; then
+            printf '%s\n' "$BIN_LIST" | xargs -d '\n' rm -f
+          fi
 
           git add -A
           git -c user.name='github-actions[bot]' \
