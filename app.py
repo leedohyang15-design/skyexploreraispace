@@ -8,6 +8,7 @@ UI: 커스텀 HTML(우주 테마) 전면 + Gradio 는 API 엔진으로 숨김
 Space 설정: Settings → Variables and secrets → GEMINI_API_KEY (필수)
   · 선택: GEMINI_MODEL(기본 gemini-2.5-flash) · KNOW_REF_LIMIT/KNOW_EX_LIMIT(지식 주입량)
 """
+import ast
 import datetime as dt
 import json
 import math
@@ -703,6 +704,9 @@ camera 파라미터 규칙:
 ⚠️ 매우 중요 — 천체 종류별 접근 방식:
 - 행성·달·태양·위성·왜소행성 등 **태양계 천체**는 **fadeto → zoom** 으로 접근한다.
   이들에는 **travel/distance_pc(파섹)를 절대 쓰지 말 것** — 태양계는 파섹 거리 개념이 아니다(토성을 800pc 로 두면 안 됨).
+- 🔴 **예외 — '고리'가 주제면 zoom 씬을 넣지 마라 (토성·천왕성).** 도킹 거리에서 고리 전체가 딱 들어차므로
+  다가가면 고리가 화면 밖으로 잘려 오히려 안 보인다(실측). "고리를 자세히/제대로 보여줘" 요청도
+  **zoom 이 아니라 fadeto(고리면 개방) + orbit** 으로 계획할 것.
 - **travel/distance_pc 는 성운·은하 등 딥스카이 여행에만** 쓴다(수백 파섹 거리라 의미가 있음).
 - "토성으로 이동/여행" 같은 행성 요청도 fadeto(도킹) + zoom(확대)로 표현한다.
 
@@ -877,6 +881,147 @@ def plan(prompt: str) -> str:
         return json.dumps({"scenes": [], "error": str(e)}, ensure_ascii=False)
 
 
+# ── 생성 후 규칙 검사 + 자동 재수정 ──────────────────────────
+# ⚠️⚠️ 왜 필요한가 (2026-08-10 실측):
+#   지식 문서 맨 앞 체크리스트로 못을 박아도 **모델의 강한 사전 성향을 거스르는 규칙은 안 지켜진다.**
+#   · 프레임 통일(4번) = 모델이 딱히 하고 싶지 않던 일 → 넣자마자 지켜짐.
+#   · 고리 줌 금지(8번) = "자세히 = 확대"라는 성향에 반함 → 참조→본문→🔴전면금지 3단 강화에도 계속 위반.
+#   → 확률(프롬프트)로 안 되는 건 **코드로 강제**한다. 위반이 잡히면 1회 재수정 호출.
+_RING_TOPIC_RE = re.compile(r"고리|링|ring", re.I)
+_RING_BODY_RE = re.compile(r"토성|천왕성|saturn|uranus", re.I)
+
+# setTargetHeight 허용값: 30(관람 표준) · 29.9(no-op 우회 지글) · 0(지상 전천 그리드) · 90(딥스카이 LOS 중앙)
+_ALLOWED_TARGET_HEIGHT = {0.0, 29.9, 30.0, 90.0}
+
+
+def _is_ring_show(user_prompt: str) -> bool:
+    return bool(_RING_TOPIC_RE.search(user_prompt) and _RING_BODY_RE.search(user_prompt))
+
+
+def _call_names(node) -> set:
+    """AST 서브트리 안에서 호출된 메서드 이름 집합 (obj.method(...) 형태)."""
+    out = set()
+    for n in ast.walk(node):
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute):
+            out.add(n.func.attr)
+    return out
+
+
+def _lint_script(code: str, user_prompt: str) -> list:
+    """확정 위반만 골라 반환. 애매한 건 잡지 않는다(재수정 루프가 시끄러워지므로)."""
+    issues = []
+    ring = _is_ring_show(user_prompt)
+
+    for name in ("skyExplorer", "studio", "Initialization"):
+        if not re.search(r"from\s+%s\s+import" % name, code):
+            issues.append("import 3종 중 `from %s import *` 가 빠졌다. 셋 다 넣어라." % name)
+
+    if ring:
+        if re.search(r"\.setPositionR\s*\(", code) or re.search(r"positionLBR\.z\s*[/*]", code):
+            issues.append(
+                "고리 쇼인데 줌(`setPositionR` 또는 R 을 나누고 곱하는 코드)이 들어갔다. "
+                "**줌 장면을 통째로 삭제**하고 FadeTo 도킹 R(≈5)을 그대로 유지하라. "
+                "고리 전체 시직경이 R=5 에서 54°(적당)인데 R 을 줄이면 화면 밖으로 잘린다."
+            )
+        if not re.search(r"Stars\s*\(", code):
+            issues.append("고리 쇼는 배경을 검게 정리해야 한다 — `Stars(Stars.StarsName.StarrySky).setIntensity(0, Anim(...))` 추가.")
+        if not re.search(r"setShadowStrength", code):
+            issues.append("그림자 OFF 3세터(setShadowStrength/setShadowContrast/setPlanetShineStrength)를 넣어라.")
+
+    for m in re.finditer(r"setTargetHeight\s*\(\s*(-?\d+(?:\.\d+)?)", code):
+        val = float(m.group(1))
+        if val not in _ALLOWED_TARGET_HEIGHT:
+            issues.append(
+                "`setTargetHeight(%g)` 는 금지다. 관람 표준은 **30** 이다"
+                "(지상 전천 그리드 0, 딥스카이 LOS 중앙 90 만 예외)." % val
+            )
+            break
+
+    # 공전 루프 검사 — AST 로 for 블록 안의 호출을 본다(들여쓰기 파싱보다 견고).
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        issues.append("스크립트에 문법 오류가 있다. 실행 가능한 코드로 고쳐라.")
+        return issues
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.For):
+            continue
+        names = _call_names(node)
+        if "setPositionLBR" not in names:
+            continue                      # 카메라 공전 루프가 아니다
+        if "setOrientationSmoothXYZR" not in names:
+            issues.append(
+                "공전 루프에 재조준이 없다 — 루프 안에서 3스텝마다 "
+                "`setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(...), 포트)` 를 불러라. "
+                "없으면 대상이 화면 밖으로 흘러나간다."
+            )
+        if "setTargetHeight" in names:
+            issues.append(
+                "공전 루프 안에서 `setTargetHeight` 를 부르고 있다 — 그건 돔 틸트라 "
+                "매 스텝 화면이 까딱거린다. 루프 밖에서 한 번만 불러라."
+            )
+        break
+
+    return issues
+
+
+_REPAIR_PROMPT = """아래 Sky Explorer 스크립트에 **확정 규칙 위반**이 있다. 지적된 것만 고쳐서 전체 스크립트를 다시 내라.
+
+[위반 목록]
+%s
+
+[원본 스크립트]
+```python
+%s
+```
+
+지시:
+- 위반 항목을 전부 해소할 것. 지적되지 않은 부분은 **그대로 유지**하라(장면 구성·자막·타이밍을 새로 바꾸지 말 것).
+- 장면을 삭제하라고 한 경우, 남은 장면들의 흐름이 자연스럽게 이어지도록 앞뒤만 다듬어라.
+- 설명 없이 완성된 파이썬 코드 한 덩어리만 출력하라.
+"""
+
+
+def _repair_script(client, model: str, code: str, issues: list) -> str:
+    """위반이 잡히면 1회만 재수정 호출. 실패하면 원본을 그대로 돌려준다(더 나빠지지 않게)."""
+    try:
+        resp = client.chat.completions.create(
+            model=model,
+            temperature=0.1,
+            max_tokens=8192,
+            messages=[
+                {"role": "system", "content": SYSTEM},
+                {"role": "user", "content": _REPAIR_PROMPT % ("\n".join("- " + s for s in issues), code)},
+            ],
+        )
+        fixed = _extract_code(resp.choices[0].message.content or "")
+        # 재수정본이 비었거나 문법이 깨졌으면 원본 유지
+        if len(fixed) < 200:
+            return code
+        try:
+            ast.parse(fixed)
+        except SyntaxError:
+            return code
+        return fixed
+    except Exception:
+        return code
+
+
+def _postprocess(client, model: str, code: str, user_prompt: str) -> str:
+    """규칙 검사 → (위반 시) 재수정 → 재검사. 남은 위반은 주석으로 알린다."""
+    issues = _lint_script(code, user_prompt)
+    if not issues:
+        return code
+    code = _repair_script(client, model, code, issues)
+    remaining = _lint_script(code, user_prompt)
+    if remaining:
+        head = ["# ⚠️ 자동 검사에서 남은 규칙 위반 (직접 확인해 주세요):"]
+        head += ["#   - " + s.replace("\n", " ") for s in remaining]
+        return "\n".join(head) + "\n" + code
+    return code
+
+
 def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
     global _model
     prompt = (prompt or "").strip()[:MAX_PROMPT_CHARS]   # 남용 방지: 길이 상한
@@ -886,6 +1031,8 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
         return ("# 오류: GEMINI_API_KEY 가 설정되지 않았습니다.\n"
                 "# Space Settings → Variables and secrets → New secret 에서\n"
                 "# Name: GEMINI_API_KEY / Value: aistudio.google.com 발급 키 를 추가하세요.")
+
+    user_prompt = prompt          # 규칙 검사는 '원래 요청' 기준(플랜 지시문이 붙기 전)
 
     # 씬 플랜이 있으면 프롬프트에 타이밍 지시문 삽입
     if scenes_json:
@@ -923,7 +1070,9 @@ def generate(prompt: str, history_json: str = "", scenes_json: str = "") -> str:
                     )
                     _model = model_candidate
                     text = resp.choices[0].message.content or ""
-                    return _extract_code(text)
+                    # 확률(프롬프트) 대신 코드로 규칙을 강제한다 — 위반 시 1회 자동 재수정.
+                    return _postprocess(client, model_candidate,
+                                        _extract_code(text), user_prompt)
                 except Exception as e:
                     last_err = e
                     if _is_rate_limit(e):
