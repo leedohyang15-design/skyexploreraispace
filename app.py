@@ -936,7 +936,15 @@ def _lint_script(code: str, user_prompt: str) -> list:
             issues.append("import 3종 중 `from %s import *` 가 빠졌다. 셋 다 넣어라." % name)
 
     if ring:
-        if re.search(r"\.setPositionR\s*\(", code) or re.search(r"positionLBR\.z\s*[/*]", code):
+        # ⚠️ 장편(태양계 대여행 등)은 화성·목성 장면에서 정상적으로 줌한다.
+        #   파일 전체를 보면 그걸 '고리 쇼 줌'으로 오판한다(검증된 골든 2개가 걸렸음).
+        #   → 토성/천왕성 도킹 이후 ~ 다음 도킹/리셋 전까지의 '그 장면'만 본다.
+        scene = code
+        m = re.search(r"data\(\s*Data\.Type\.PlanetType\s*,\s*[\"'](?:Saturn|Uranus)[\"']", code)
+        if m:
+            nxt = re.search(r"data\(\s*Data\.Type\.\w+\s*,|SceneGraph\(\)\.reset", code[m.end():])
+            scene = code[m.end(): m.end() + nxt.start()] if nxt else code[m.end():]
+        if re.search(r"\.setPositionR\s*\(", scene) or re.search(r"positionLBR\.z\s*[/*]", scene):
             issues.append(
                 "고리 쇼인데 줌(`setPositionR` 또는 R 을 나누고 곱하는 코드)이 들어갔다. "
                 "**줌 장면을 통째로 삭제**하고 FadeTo 도킹 R(≈5)을 그대로 유지하라. "
@@ -1005,8 +1013,11 @@ def _lint_script(code: str, user_prompt: str) -> list:
         return names
 
     # 장면 보호 — 한 줄이 죽어도 다음 장면이 나와야 한다(체크리스트 10).
-    #   짧은 스니펫까지 잡으면 시끄러우므로 '쇼 길이'일 때만 본다.
-    if len(code.splitlines()) >= 60:
+    # ⚠️⚠️ 임계값은 **검증된 골든 코퍼스에 맞춰 보정**한 값이다(2026-08-10).
+    #   단편(g1~g7, 66~100줄)은 한 장면짜리라 try 0~1개로 선형 작성 = 정상.
+    #   장편(SHOW_*, 170~386줄)만 막 단위로 감싼다(try 2~9개).
+    #   → 60줄 기준으로 잡았더니 검증된 단편 8개 중 7개가 걸렸다(내 규칙이 틀렸던 것).
+    if len(code.splitlines()) >= 150:
         n_try = sum(1 for n in ast.walk(tree) if isinstance(n, ast.Try))
         if n_try < 2:
             issues.append(
@@ -1020,7 +1031,23 @@ def _lint_script(code: str, user_prompt: str) -> list:
         names = _effective_calls(node)
         if "setPositionLBR" not in names:
             continue                      # 카메라 공전 루프가 아니다
-        if "setOrientationSmoothXYZR" not in names:
+
+        # ⚠️⚠️ 재조준이 '필요한 공전'과 '아닌 공전'을 가르는 건 **track 인자**다(실측 3건 일치):
+        #   · 포트 프레임 공전(달=EquatorialSync, 말머리·오리온=Nebula LOS) → 재조준 필수.
+        #     빠지면 대상이 돔 중앙으로 밀리고 이상하게 구른다(달에서 실제로 겪음).
+        #   · `track=-1` 공전(가스행성 FadeTo 옆도킹 L 스윕) → 재조준 없이도 정상(검증됨).
+        #   → -1 로만 도는 루프는 지적하지 않는다. (전에 안 갈랐더니 검증된 골든 3개가 걸렸다.)
+        uses_port_track = False
+        for c in ast.walk(node):
+            if not (isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+                    and c.func.attr == "setPositionLBR" and len(c.args) >= 3):
+                continue
+            trk = c.args[2]
+            neg_one = (isinstance(trk, ast.UnaryOp) and isinstance(trk.op, ast.USub)
+                       and isinstance(trk.operand, ast.Constant) and trk.operand.value == 1)
+            if not neg_one:
+                uses_port_track = True
+        if uses_port_track and "setOrientationSmoothXYZR" not in names:
             issues.append(
                 "공전 루프에 재조준이 없다 — 루프 안에서 3스텝마다 "
                 "`setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim(...), 포트)` 를 불러라. "

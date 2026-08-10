@@ -146,6 +146,20 @@ from Initialization import *      # DateManager 등 매니저 클래스
   가까이(R≈10pc)서 도는 공전은 **정면 스윙 ±75° 정도**로 끊을 것: `for d in (-75, -45, -15, 15, 45, 75)` 식.
   (한 바퀴를 꼭 돌아야 하면 멀리서(R 400pc 급) 돌거나, 공전 대신 접근/후퇴로 연출한다.)
 
+- **일주운동/지구 자전(별이 도는 것) — '별만 도는 밋밋한 화면' 방지**: 시간가속만 걸면 별이 돌긴 하나
+  **무엇을 기준으로 도는지가 안 보여** 밋밋하다. 검증된 쇼(celestial_rotation.py, 사용자 확인)의 핵심은
+  **고정된 격자와 도는 격자를 같이 켜는 것**이다:
+  · 지상(관측자 프레임 = **고정**): `place = Place2D(Place2D.Place2DName(0))` →
+    `place.setAzimuthGridIntensity(0.45, Anim)`(방위·고도) + `place.setMeridianIntensity(0.4, Anim)`(자오선)
+    + `place.setCardinalPointsIntensity(0.9, Anim)`(동서남북 — 기본형으로 잘 뜸, Representation 세터 생략).
+  · 천구(별과 함께 **회전**): `earth.setEquatorialGridIntensity(0.6, Anim)`(천구 적도 그리드).
+  · **북극성 지목**: `IndividualStar(IndividualStar.IndividualStarName.Polaris).setPointerIntensity(1.0, Anim)`
+    — 자전축이 가리키는 별이라 거의 안 움직인다(회전 중심이 눈에 보인다).
+  · 가속: `dm.setDateTime(+6시간, tz, Anim(32.0))` = **6시간을 32초에**(90° 회전) — 이 속도가 부드럽다.
+    ⚠️ 12시간을 20초에 넣는 식으로 빠르게 감으면 어지럽다. **시간Δ ÷ 초 ≈ 0.2h/초** 를 기준으로.
+  · 조준: 북쪽 `cam.setOrientationH(180)`. ⚠️ **전천 격자를 보여줄 땐 `setTargetHeight(0)`**(돔 하단에
+    지평선 아래가 들어와 하늘 격자가 비는 것 방지) — 격자 장면만 0, 관람 복귀는 30.
+
 - **황도 12궁(태양이 1년간 별자리 통과) — 화면만 움직이고 아무것도 안 뜸 방지**: 카메라 추적/줌/줌락 하지 말 것 →
   지상 대기 OFF + 지면 OFF + 12궁 별자리 `setLinesIntensity(0.6)`/`setLabelIntensity(0.9)` + `Planet(Earth).setEclipticGridIntensity(1,..)` + `IndividualStar(IndividualStar.IndividualStarName.Sun).setScale(3)` +
   청주 정오(03:30 UTC) 춘분 시작 → **`dm.setMotionType(DateManager.MotionType.MotionAnalemma)`** → `dm.setDateTime(올해+1, 3, 20, 3, 30, 0, tz, Anim(42))`(1년 가속).
