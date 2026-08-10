@@ -290,16 +290,25 @@ try:
     print("   현재 L=%.1f B=%.1f R=%.3f" % (p.x, p.y, p.z))
 
     say("달의 옆으로 돌아가 보자")
-    cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(6.0), mp)   # ① 극 위 → 적도 옆
-    sleep(5.5)
-    reaim(1.5); tilt30(); sleep(1.8)                                # 자세 바꾼 직후 재조준 + 틸트 1회
+    sleep(2.2)
+
+    # ⚠️⚠️ 자세 변경(B 90→20)·재조준·풀백은 '슬루'라 그대로 보여주면 너저분하다(실측 지적).
+    #   → 우리 표준: **자세를 바꾸는 구간은 암전 속에서 끝내고, 정렬이 끝난 뒤 페이드인.**
+    #   (기존 'Target 재정렬은 암전에서' 규칙의 확장 — B 이동·프레임 전환도 같다.)
+    dark(1.8)
+
+    cam.setPositionLBR(Vec(p.x, 20.0, p.z), Anim.cubic(5.0), mp)   # ① 극 위 → 적도 옆
+    sleep(5.2)
+    reaim(1.2); tilt30(); sleep(1.6)                                # 자세 바꾼 직후 재조준 + 틸트 1회
 
     # ★ 공전 전 살짝 풀백 — 너무 붙어 있으면 도는 동안 달이 화면을 다 먹는다(실측 지적).
     r0 = cam.positionLBR.z
-    cam.setPositionR(r0 * 1.8, Anim.cubic(3.0), mp); sleep(3.2)
-    reaim(1.0); sleep(1.2)
+    cam.setPositionR(r0 * 1.8, Anim.cubic(2.5), mp); sleep(2.8)
+    reaim(0.8); sleep(1.0)
     q = cam.positionLBR
-    print("   공전 준비 완료 L=%.1f B=%.1f R=%.3f" % (q.x, q.y, q.z))
+    print("   공전 준비 완료 L=%.1f B=%.1f R=%.3f (암전 중 정렬)" % (q.x, q.y, q.z))
+
+    light(2.4)                                                      # 정렬 끝난 뒤 페이드인
 
     # ② 스텝 오빗 — 15° 스텝 + 3스텝마다 '시선만' 재조준. 틸트는 건드리지 않는다.
     say("이제 달을 한 바퀴 돌아 뒷면으로")
