@@ -254,6 +254,11 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **DwarfPlanet**: Pluto/Ceres/Eris… FadeTo(R=4). `setTerrainModel(TerrainModel.NewHorizons)`=명왕성 하트.
 - **Comet/Asteroid**: 궤도 6요소로 직접 그림. `setEccentricity/setInclination/setSemiMajorAxis/...` 넣고 `sleep(0.3)`. 태양계 조망: `sp=sun.portId(IndividualStar.IndividualStarPort.Ecliptic)`→`cam.setPositionLBR(Vec(0,90,6),Anim,sp)`+`cam.setTargetHeight(30)`.
 - **ShootingStar**(유성우): `setReferential(Referential.RaDec)`+`setRainGradientPoint(Vec2(적경,적위))` 복사점 고정 + `setZenithalHourlyRate`(⚠️ 내부저장=ZHR/60! 볼만함=800~1500) + `setRainSeed(1)`. `setRepresentationType(Model.Gradient)`.
+  ⚠️⚠️ **아래 4개를 빼먹으면 유성이 가늘고 짧아 '쏟아지는' 맛이 안 난다 — 실측 확정값을 그대로 쓸 것**:
+  `setRainChaosGradientPoint(12.0)`(복사점 산포 12°, 없으면 한 점에서만 나와 부자연) · `setRainSpeed(1.0)` ·
+  `setBrightness(1.0)`(선 굵기/밝기) · `setTrailLength(0.7)`(꼬리 길이). **순서 = 복사점·산포·속도·밝기·꼬리 → ZHR → `setRainSeed(1)`.**
+  연출: ZHR 1200(볼만함) → 3000(폭풍) → 1000(진정), 끝에 `setRainSeed(0)`(정지).
+  카메라(페르세우스 기준 실측): `setOrientationH(135)`(북동) + `setTargetHeight(22)` — 복사점이 낮게 뜨므로 30보다 22가 잘 잡힌다.
 - **Bolide**(화구): `setModel(ModelID.ColoredFireball,"")`+`setElement(Element.Sodium,Vec3(0,0,0),Anim)`+`set(시작az,h,고도,끝az,h,고도,1.0)`+`play(12~18)`.
 - **HUD 위젯**(전부 `cam.addChild(obj.id, Camera.CameraPort.FixedForeground)`): InsertText(자막,한글OK) / Insert2D(로컬이미지,`setTexture`) / Clock(`setModelset(Clock.Modelset.SystemClock001)`, 문자판=setForegroundTexture) / Chart2D(값0~1,라벨영문만,`setCategoryCount` 먼저) / DrawableInsert(`setBrushType(Pen)`+beginDraw/setBrushPosition/endDraw).
 - **움직이는 오버레이/영상 대체 = Insert2D 애니메이션 ✅됨 (2026-07-30 확정)**: 영상 파일은 못 넣지만 Insert2D 는 `setPosition`/`setSize` 가 Anim 을 받아 이미지 한 장을 부드럽게 움직임. "우주선 접근/천체 플라이바이/로켓" 연출은 이걸로.
