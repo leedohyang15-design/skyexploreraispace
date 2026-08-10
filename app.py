@@ -928,14 +928,18 @@ def _lint_script(code: str, user_prompt: str) -> list:
         if not re.search(r"setShadowStrength", code):
             issues.append("그림자 OFF 3세터(setShadowStrength/setShadowContrast/setPlanetShineStrength)를 넣어라.")
 
-    for m in re.finditer(r"setTargetHeight\s*\(\s*(-?\d+(?:\.\d+)?)", code):
-        val = float(m.group(1))
-        if val not in _ALLOWED_TARGET_HEIGHT:
-            issues.append(
-                "`setTargetHeight(%g)` 는 금지다. 관람 표준은 **30** 이다"
-                "(지상 전천 그리드 0, 딥스카이 LOS 중앙 90 만 예외)." % val
-            )
-            break
+    # ⚠️ Target 30 은 '행성·우주(도킹) 프레임'의 표준이다.
+    #    지상 Sky View 는 대상 고도에 맞춰 틸트를 바꾸는 게 정상(유성우 22·오로라 40·황도 37 등 실측 예제 다수)
+    #    → 도킹 액션이 있는 스크립트에서만 검사한다. 안 그러면 지상 쇼가 죄다 오탐.
+    if re.search(r"Action\.Type\.(FadeTo|GoTo|ConnectTo|StraightGoTo)", code):
+        for m in re.finditer(r"setTargetHeight\s*\(\s*(-?\d+(?:\.\d+)?)", code):
+            val = float(m.group(1))
+            if val not in _ALLOWED_TARGET_HEIGHT:
+                issues.append(
+                    "`setTargetHeight(%g)` 는 금지다. 도킹(FadeTo/GoTo/ConnectTo) 프레임의 관람 표준은 "
+                    "**30** 이다(딥스카이 LOS 중앙 90 만 예외)." % val
+                )
+                break
 
     # 공전 루프 검사 — AST 로 for 블록 안의 호출을 본다(들여쓰기 파싱보다 견고).
     try:

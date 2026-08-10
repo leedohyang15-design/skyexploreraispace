@@ -10,7 +10,8 @@
 아래 문서가 길다. **먼저 이 10줄을 적용한 뒤** 세부 레시피를 찾아라. 이걸 어기면 실제 돔에서 반드시 티가 난다.
 
 1. **import 3종** — `skyExplorer` + `studio` + `Initialization` (sleep·DateManager 가 여기 있음). 하나라도 빠지면 죽는다.
-2. **Target 은 항상 30** — `cam.setTargetHeight(30.0, Anim)`. 90/45/50 금지(관객이 목을 꺾는다).
+2. **도킹(FadeTo/GoTo/ConnectTo) 프레임의 Target 은 항상 30** — `cam.setTargetHeight(30.0, Anim)`. 35/45/50/90 금지(관객이 목을 꺾는다).
+   ⚠️ 단 **지상 Sky View 는 예외** — 보여줄 대상의 고도에 맞춰 틸트를 조정한다(유성우 22·황도 37·오로라 40 등). 딥스카이 LOS 프레임은 90 이 돔 중앙.
 3. **자세를 바꾸는 구간은 암전 속에서** — B 이동·프레임 전환·재정렬·풀백은 `dark()` → (정렬 전부 완료) → `light()`. 슬루가 보이면 너저분하다.
 4. **공전 = 위치 이동 + 재조준, 그리고 프레임은 하나로** — 루프 안에서 **`setOrientationSmoothXYZR(Vec4(0,0,0,0), Anim, 포트)`** 를 3스텝마다. 이게 없으면 대상이 화면 밖으로 흘러나간다.
    ⚠️⚠️ **한 장면 안에서 `track=-1` 과 `track=포트id` 를 섞지 마라.** `cam.positionLBR` **읽기와 `setPositionLBR` 쓰기와 재조준이 전부 같은 프레임**이어야 한다. -1 로 읽은 L/B/R 을 포트 프레임에 그대로 써넣으면 좌표계가 달라 카메라가 튄다. → 자세를 다 잡은 뒤 **포트를 한 번 정하고 그 뒤로는 끝까지 그 포트만** 쓴다.
@@ -182,6 +183,7 @@ t = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t.id, Camera.CameraPort.FixedForeground)
 t.setPosition(Vec(0, 25, 0)); t.setSize(0.052); t.setColor(Vec(1.0, 1.0, 0.55)); t.setDistance(1.0, Anim(0.0))
 t.setText("안녕하세요"); t.setIntensity(1.0, Anim(1.0))     # 한글 OK
+t.setText("첫 줄\n둘째 줄")                                  # ✅ 줄바꿈(\n) 정상 표출 (2026-08-10 사용자 확인)
 # ⚠️ 행성/은하 프레임(FadeTo 후) 자막은 setDistance(20) + 기본 size. 지상은 size 0.052 + distance 1.0.
 ```
 
@@ -258,6 +260,8 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **토성 고리 ✅**: FadeTo Saturn → 그림자 OFF 3세터 → **`cam.setPositionLBR(Vec(L, 75, 읽은R), Anim, -1)`**(= **B 만 75 로 열고 R 은 도킹값 5 그대로**) → `setTargetHeight(30)` + Stars 0.
   ⚠️⚠️ **[2026-08-03 실측 정정] 토성은 줌인하지 말 것 — 고리가 화면 밖으로 잘린다.** A고리 바깥지름 = **2.27 토성반지름**(옛 노트의 '4.6'은 오기).
   카메라 R 별 고리 전체 시직경: **R=5 → 54°(적당)** / R=3.9 → 72°(이미 잘림, 실측 스샷) / R=1.7 → 180°(완전히 삼켜짐).
+  ⚠️⚠️ **자막에 '카시니 간극'을 쓰지 마라 — 이 빌드는 간극을 렌더하지 않는다**(`setRingModel` A/B 를 바꿔도 카시니 간극 유무가 화면에 안 드러남, 실측).
+  화면에 없는 걸 설명하는 자막은 관객에게 거짓말이 된다. **자막은 실제로 렌더되는 것만 말할 것**(고리의 존재·기울기·밝기는 OK).
   → **고리 쇼의 R 은 도킹 기본값(5) 유지가 정답**이고, 더 크게 보이고 싶으면 줌이 아니라 **B 를 여는 것**으로 해결한다. (⚠️ setRingModel 모델교체 A/B 는 여전히 차이 미미 = 룩 변경 연출 X.)
 - **천왕성 고리 ✅**: FadeTo Uranus → 그림자 OFF → **`setPositionLBR(Vec(L, 38, 3.2), Anim, -1)`**(근접+고리면 개방) → Stars 0 → **`ur.setIntensity(1.5, Anim)`**(1.0→1.5 A/B 로 고리 또렷, 1.8+ 는 원반이 하얗게 탐).
 - 🎯 **교훈: 고리·대기광학은 '구도(B 개방·근접)'와 '대비(OFF→ON A/B)'가 8할.** 그냥 켜두면 안 보여서 死로 오판했던 것.
