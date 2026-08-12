@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ─────────────────────────────────────────────────────────────
-#  검증: 부분확인 (2026-08-10) — 관성 프레임 전환·위성 표시·풀백 R=40(HUD 2.86Gm) 돔 확인, 네 궤도 다 잡힘. ⚠️ 자막 템포가 길다는 지적으로 홀드 자동계산 + 가속 60초로 재조정 → 그 수정본은 미확인
+#  검증: 부분확인 (2026-08-10) — 풀백 R=40(HUD 2.86Gm)·네 궤도 표시·관성 프레임 전환 확인. ⚠️ B=0 으로 궤도가 납작해지는 버그와 도킹 R 페이드인 눈부심 발견 → B 고정·도착 R×2 로 수정, 수정본 미확인. 자막 템포 조정분도 미확인
 #  ⚠️ 이 줄은 '돔에서 실제로 봤는가'만 적는다. 코드가 규칙을 지켰는지와는 별개다.
 #     확인했으면 날짜와 확인 범위를 남길 것 — 안 남기면 다음에 처음부터 다시 의심해야 한다.
 # ─────────────────────────────────────────────────────────────
@@ -19,6 +19,10 @@
 #    ③ **도킹은 고정 sleep 이 아니라 폴링으로 기다린다.** 도킹 애니가 R 을 계속 끌어당기는데
 #       그때 `cam.positionLBR` 을 읽으면 수렴 중인 먼 값이 고정돼 목성이 작게 잡힌다(천왕성 실측).
 #    ④ **FadeTo 로 쇼를 열지 않는다.** 클램프 암전이 그대로 '검은 오프닝'이 되므로 지상 인트로를 먼저 둔다.
+#    ⑤ **도킹 R(=5) 에서 페이드인하지 않는다.** 목성이 돔을 채우고 새하얗게 떠 눈이 부셨다(돔 실측).
+#       그림자 OFF 라 원반 전체가 균일하게 밝기 때문 → 도착은 ×2(≈10), 위성 공개 때 ×8(=40).
+#    ⑥ **L·B 는 읽지 말고 박는다.** 폴러가 R 만 보다 B 가 아직 0 일 때 통과시켜, 그 0 을 고정하는 바람에
+#       위성 궤도가 타원이 아니라 납작한 선으로 깔렸다(HUD B=0.00). 폴러도 L/B/R 을 같이 보도록 고쳤다.
 #
 #  ⚠️ 프레임 주의
 #    · 도킹(EquatorialSynchronous)은 카메라가 목성 자전을 따라 돈다 → 위성이 아니라 하늘이 도는 것처럼 보인다.
@@ -49,7 +53,11 @@ JU = Planet(Planet.PlanetName.Jupiter)
 # 갈릴레이 위성 — 궤도 반지름(목성반지름 단위)과 공전주기(일)
 #   이오 5.9 / 1.77d · 유로파 9.4 / 3.55d · 가니메데 15.0 / 7.15d · 칼리스토 26.3 / 16.7d
 GALILEAN = ["Io", "Europa", "Ganymede", "Callisto"]
-PULLBACK = 8.0          # 도킹 R(≈5 목성반지름) × 8 = 40 → 칼리스토 26.3 이 여유 있게 담긴다
+# ⚠️ [2026-08-10 돔] 도킹 R=5 에서 페이드인했더니 **목성이 돔을 채우고 새하얗게 떠서 눈이 부셨다**
+#   (그림자 OFF 라 원반 전체가 균일하게 밝다). → 도착은 ×2(≈10)에서, 위성 공개 때 ×8(=40)로.
+ARRIVE = 2.0            # 페이드인 시점 R = 도킹 R × 2 ≈ 10 목성반지름
+PULLBACK = 8.0          # 위성계 조망 R = 도킹 R × 8 = 40 → 칼리스토 26.3 이 여유 있게 담긴다
+B_VIEW = 20.0           # 가스행성 도킹의 표준 개방각. 0 이면 궤도가 납작한 선이 된다(실측)
 ACCEL_DAYS = 17         # 칼리스토 1주기(16.7일)보다 살짝 길게
 ACCEL_SEC = 60.0        # 30초(너무 빠름) → 80초(느려서 빔) → 60초. 칼리스토 1주기 = 60초
 
@@ -77,16 +85,23 @@ def say(s, hold=None):
 
 def wait_dock(max_s=18.0):
     """도킹 애니가 카메라를 놓을 때까지 대기(암전 클램프 겸용).
-       ⚠️ 고정 sleep 금지 — 천왕성 실측에서 6초 뒤에도 R 이 653,188 → 163,773 km 로 수렴 중이었다."""
+
+    ⚠️ 고정 sleep 금지 — 천왕성 실측에서 6초 뒤에도 R 이 653,188 → 163,773 km 로 수렴 중이었다.
+    ⚠️⚠️ [2026-08-10 2차 실측] **R 만 보고 판정하면 안 된다.** 도킹 애니는 L·B·R 을 같이 움직이는데
+       **R 이 먼저 멈추고 B 가 늦게 도착한다.** R 만 보고 통과시킨 뒤 B 를 읽었더니 아직 0 이었고,
+       그 0 을 그대로 고정해서 위성 궤도가 타원이 아니라 **납작한 선**으로 깔렸다(HUD B=0.00 으로 확인).
+       → **L·B·R 셋 다 멈춘 뒤**에 통과시킨다."""
     prev, stable, t = None, 0, 0.0
     while t < max_s:
         uni.setGlobalIntensity(0.0, Anim(0.0))      # 한 번만 걸면 FadeTo 가 1.0 으로 되돌린다
         cur = None
         try:
-            cur = cam.positionLBR.z
+            q = cam.positionLBR
+            cur = (q.x, q.y, q.z)
         except Exception:
             pass
-        if cur is not None and prev is not None and abs(cur - prev) < 1e-4 * max(1.0, abs(cur)):
+        if cur is not None and prev is not None and all(
+                abs(a - b) < 1e-4 * max(1.0, abs(a)) for a, b in zip(cur, prev)):
             stable += 1
             if stable >= 4:
                 break
@@ -95,8 +110,8 @@ def wait_dock(max_s=18.0):
         prev = cur
         sleep(0.25)
         t += 0.25
-    print("도킹 안정화, R =", prev)
-    return prev
+    print("도킹 안정화 L/B/R =", prev)
+    return prev[2] if prev else None
 
 
 # ── 막0 : 지상에서 — 1610년의 그 별 ──────────────────────────
@@ -160,14 +175,15 @@ try:
     #   (HUD 357,460km = 5.0 목성반지름으로 확인). setPositionLBR 은 Anim(0.0) 이어도 즉시 반영이
     #   아니다 → **'쓰고 바로 읽기'를 하지 마라.** 순서를 뒤집어 프레임부터 잡고, 풀백은 막2에서
     #   눈에 보이게 한다(연출적으로도 이쪽이 낫다 — 목성이 작아지며 궤도가 드러난다).
-    p = cam.positionLBR
-    base_r = dock_r if dock_r else p.z
+    # ⚠️⚠️ L·B 도 '읽지 말고 값을 박는다.' 읽으면 아직 도착 안 한 값(B=0)을 집을 수 있고,
+    #   그걸 고정하면 위성 궤도가 납작한 선이 된다(실측). B=20 은 가스행성 도킹의 표준 개방각이다.
+    base_r = dock_r if dock_r else 5.0
     ip = JU.portId(Planet.PlanetPort.EquatorialJ2000)
-    cam.setPositionLBR(Vec(p.x, p.y, base_r), Anim(0.0), ip)
+    cam.setPositionLBR(Vec(0.0, B_VIEW, base_r * ARRIVE), Anim(0.0), ip)
     cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.0), ip)
     cam.setTargetHeight(30.0, Anim(0.0))
-    sleep(0.8)
-    print("프레임 전환 후 R =", cam.positionLBR.z, "(도킹 R =", base_r, ")")
+    sleep(1.0)
+    print("프레임 전환 후 L/B/R =", cam.positionLBR.x, cam.positionLBR.y, cam.positionLBR.z)
 
     dm.setDateTime(2026, 3, 20, 13, 0, 0, tz, Anim(0.0))   # 위성 켜기 전에 날짜 고정
     sleep(0.8)
