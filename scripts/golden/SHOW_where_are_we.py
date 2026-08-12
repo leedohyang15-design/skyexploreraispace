@@ -324,7 +324,10 @@ say("붉은 사막. 물이 흐른 흔적이 남아 있다", 6.0)
 say("더 멀리, 고리를 가진 행성")
 Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(1.5))    # 배경 검정 = 대비
 db.data(Data.Type.PlanetType, "Saturn").action(Action.Type.FadeTo).trigger()
-sleep(5.5)
+# ⚠️ [2026-08-10 정정] 여기만 고정 sleep 이었다. FadeTo 도 도킹 애니가 R 을 계속 끌어당기므로
+#   (천왕성 실측: 6초 뒤에도 653,188 → 163,773 km 로 수렴 중) 그 상태에서 아래 `cam.positionLBR` 을
+#   읽으면 **수렴 중인 먼 값이 그대로 고정**돼 토성이 의도보다 작게 잡힌다. 이 파일에 이미 있는 폴러를 쓴다.
+wait_arrival(dock_r=100.0)
 sat = Planet(Planet.PlanetName.Saturn)
 sat.setShadowStrength(0.0, Anim(0.5))
 sat.setShadowContrast(0.0, Anim(0.5))
