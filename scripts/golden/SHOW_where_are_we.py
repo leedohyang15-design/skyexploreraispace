@@ -322,6 +322,19 @@ db.data(Data.Type.PlanetType, "Mars").action(Action.Type.GoTo).trigger()
 print("   화성으로 비행")
 wait_arrival(dock_r=100.0)                    # ★ 행성은 R≈4~5 로 수렴하니 dock_r 사용
 cam.setTargetHeight(30.0, Anim(1.5)); sleep(2.0)   # B 는 손대지 않는다
+
+# ⚠️⚠️ [2026-08-12 린터가 잡아낸 버그] 여기부터는 **행성 프레임**이라 자막 규칙이 반대가 된다.
+#   · 지상 = `setSize(0.052)` + `setDistance(1.0)`
+#   · 행성 = **크기를 만지지 말고** `setDistance(20)` — 크기를 걸면 자막이 **화면에서 사라진다**
+#   지상에서 쓰던 t1 은 이미 setSize 가 걸려 있어 거리만 20 으로 바꾸면 안 보인다(실측).
+#   size 를 되돌리는 API 가 없으므로 **크기를 한 번도 안 건드린 새 슬롯**으로 갈아탄다.
+t1.setIntensity(0.0, Anim(0.6)); sleep(0.7)
+t1 = InsertText(InsertText.InsertTextName(2))
+cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
+t1.setPosition(Vec(0, 12, 0))                 # ⚠️ setSize 를 부르지 않는다
+t1.setColor(Vec(1.0, 1.0, 0.55)); t1.setDistance(20.0, Anim(0.0))
+t1.setIntensity(0.0, Anim(0.0))
+
 say("화성 궤도")
 sleep(2.0)
 zoom_in()
@@ -348,7 +361,7 @@ cam.setPositionLBR(Vec(p.x, 75.0, p.z), Anim.cubic(5.0), -1)   # 고리면만 �
 #   R=3.9 → 72°(이미 잘림, 실측 스샷). **고리 쇼에서 줌은 금지 — 구도(B)로만 승부한다.**
 sleep(5.5)
 cam.setTargetHeight(30.0, Anim(1.5)); sleep(1.5)
-t1.setDistance(20.0, Anim(0.0))              # 행성 프레임 자막 규칙
+# (자막은 화성 도착 때 행성 프레임용 슬롯으로 이미 갈아탔다 — 여기서 거리를 다시 만지지 않는다)
 say("토성", 4.0)
 say("고리는 얼음과 바위 — 가장 큰 조각도 집 한 채 크기", 6.0)
 

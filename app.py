@@ -1282,6 +1282,53 @@ def _lint_script(code: str, user_prompt: str) -> list:
             )
         break
 
+    # ⚠️⚠️ [2026-08-12 돔 실측 "우주 장면에서 자막이 4분 내내 안 떴다"]
+    #   행성/은하 프레임 자막(`setDistance(20)`)에 `setSize` 를 걸면 **화면에서 사라진다**(실측).
+    #   지상은 반대로 `setSize(0.052)` + `setDistance(1.0)` 이 정답이라, 한 헬퍼로 두 프레임을
+    #   처리하면서 분기를 안 하면 이 사고가 난다(천리안 쇼 v1 이 정확히 그랬다).
+    #   → 같은 자막 객체에 **같은 블록에서** 둘 다 부르면 잡는다.
+    #     `if` 로 프레임을 갈라 부르는 코드(=고친 형태)는 블록이 다르므로 걸리지 않는다.
+    for _blk in ast.walk(tree):
+        _body = getattr(_blk, "body", None)
+        if not isinstance(_body, list):
+            continue
+        #   ⚠️ 이름에 **다시 대입하면 다른 객체**다(새 슬롯으로 갈아타는 게 정석 수정법) —
+        #      대입을 만나면 그 이름의 상태를 지운다. 안 그러면 고친 코드까지 잡는다.
+        _seen = {}
+        _hit = False
+        for _st in _body:
+            if isinstance(_st, ast.Assign):
+                for _tg in _st.targets:
+                    if isinstance(_tg, ast.Name):
+                        _seen.pop(_tg.id, None)
+                continue
+            if not (isinstance(_st, ast.Expr) and isinstance(_st.value, ast.Call)):
+                continue
+            _f = _st.value.func
+            if not (isinstance(_f, ast.Attribute) and isinstance(_f.value, ast.Name)):
+                continue
+            _rec = _f.value.id
+            if _f.attr == "setSize":
+                _seen.setdefault(_rec, {})["size"] = True
+            elif _f.attr == "setDistance" and _st.value.args:
+                _a0 = _st.value.args[0]
+                if isinstance(_a0, ast.Constant) and isinstance(_a0.value, (int, float)) \
+                        and _a0.value >= 5:
+                    _seen.setdefault(_rec, {})["far"] = True
+            _v = _seen.get(_rec, {})
+            if _v.get("size") and _v.get("far"):
+                _hit = True
+                break
+        if _hit:
+            issues.append(
+                "자막에 `setDistance(20)` 과 `setSize` 를 같이 걸고 있다 — **행성/은하 프레임에서는 "
+                "`setSize` 를 부르면 자막이 화면에서 사라진다**(돔 실측: 우주 장면 4분 내내 글자가 "
+                "하나도 안 떴다). 프레임마다 규칙이 반대다 — **지상 = `setSize(0.052)` + "
+                "`setDistance(1.0)` / 우주 = 크기를 만지지 말고 `setDistance(20)` 만.** "
+                "자막 헬퍼를 하나로 쓸 거면 거리로 분기해서 지상에서만 `setSize` 를 불러라."
+            )
+            break
+
     return issues
 
 

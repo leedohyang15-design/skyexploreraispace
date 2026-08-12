@@ -221,7 +221,11 @@ from Initialization import *      # DateManager 등 매니저 클래스
   TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
   ⚠️⚠️ **OrbitalPlace = '궤도선 전용' 클래스 (전체 API 덤프로 확정)**: 있는 세터 = 궤도요소들 + `setOrbitColor/setOrbitIntensity/setOrbitThickness` + `setParent` **뿐**.
   **`setIntensity`·`setLabelNameOverride`·`setLabelIntensity` 등 본체/라벨 API 전무**(호출 시 AttributeError로 스크립트 사망). 위성 이름 표시는 **InsertText 자막**으로 대체할 것.
-  ⚠️ 이때 자막은 행성 프레임 규칙: **`setSize` 호출 금지(기본값 유지) + `setDistance(20)`** — distance 20 프레임에서 setSize(0.03~0.05)를 걸면 자막이 화면에서 사라짐(실측, ISS v3 실패 원인).
+  ⚠️⚠️⚠️ **[2026-08-12 또 당했다 — 천리안 쇼 v1 이 우주 장면 4분 내내 자막을 못 띄웠다]**
+  자막 규칙은 **프레임마다 반대**다: 지상 = `setSize(0.052)` + `setDistance(1.0)` / 행성·은하 = **`setSize` 호출 금지(기본값 유지)** + `setDistance(20)`.
+  ⚠️ **크기를 되돌리는 API 가 없다** → 지상에서 쓰던 자막의 거리만 20 으로 바꾸면 **안 보인다.** **크기를 한 번도 안 건드린 새 슬롯**으로 갈아탈 것.
+  ⚠️ 자막 헬퍼를 하나로 쓸 거면 **거리로 분기**해서 지상에서만 `setSize` 를 불러라 — 헬퍼는 편한 만큼 규칙을 숨긴다.
+  (옛 문구) 행성 프레임 규칙: **`setSize` 호출 금지(기본값 유지) + `setDistance(20)`** — distance 20 프레임에서 setSize(0.03~0.05)를 걸면 자막이 화면에서 사라짐(실측, ISS v3 실패 원인).
   ⚠️ ISS는 저궤도(MM≈15.5)라 R=12 줌에선 지구에 묻힘 → 잘 보이려면 **근접 줌**(R 더 작게) 또는 MM 낮은(고고도) 궤도로 강조. 궤도 세팅 없이 FadeTo만 하면 '지구만' 뜸.
 
 - **은하/성운 '여행'(안드로메다·게성운·M42 등) — 대상이 점처럼 작음(배율 부족) 방지**: 지상 setPositionLBR 직접 이동 X →
@@ -391,6 +395,7 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
   · 프레임 flip(저프레임 영상): PNG 시퀀스를 `for p in frames: ins.setTexture(p); sleep(0.25)` 로 갈아끼움.
 - **DateManager**: `setDateTime(y,m,d,h,mi,s,tz,Anim)` `stop()`(setDateTime '앞'에) `julianDate`(읽기) `setMotionType(MotionType.MotionAnalemma/MotionPrecession)`(아날렘마/세차). 시간가속=목표시각+Anim(초).
 - **DataManager/Action**: `DataManager.database().data(Data.Type.타입,"이름").action(Action.Type.FadeTo).trigger()`. FadeTo=페이드전환(비행아님) / GoTo=연속비행 / ConnectTo=프레임만전환. 이름: 은하수="Milky Way", 달="Moon", 화성="Mars"(PlanetType). action이 None이면 미지원.
+- ⚠️⚠️ **지상 쇼 → 우주 쇼로 넘어갈 때 지구 렌더를 되살려라 (2026-08-12 실측)**: 지상 하늘 쇼는 `setTerrainIntensity(0)`·`setAtmosphereIntensity(0)` 으로 지면·대기를 끈다. 그 상태로 FadeTo 지구를 하면 **지구가 회색 공이 되고, 가까이 갈수록 그릴 표면이 없어 아예 사라진다.** 우주 진입 직후 `setIntensity(1)`+`setTerrainIntensity(1)`+`setTerrainModel(BMNG_Ocean)`+`setAtmosphereIntensity(1)` 로 복구할 것.
 - **로컬 파일 경로**: `Configuration.configuration().localUserFolder`(=`D:/SkyExplorer-Data/user`). 이미지/텍스처는 여기 두고 절대경로 or 파일명.
   ⚠️ `setModelFilename` 의 상대경로 기준점도 **여기다**(2026-08-12 실측). 블랙홀의 `..\data\scene\...` 은 이 폴더에서 한 단계 올라간 `D:\SkyExplorer-Data\data\` 를 가리킨다. `os.getcwd()` 와는 무관.
 - **Insert3D(3D 모델) ✅ 2026-08-12 실측 — 여태 지식이 없던 클래스다**

@@ -354,12 +354,14 @@ def frame_earth():
 
 
 def sub():
+    """⚠️⚠️ [2026-08-12 돔 실측] 행성 프레임 자막은 **setSize 를 부르면 화면에서 사라진다.**
+    (천리안 쇼 v1 이 이걸로 우주 장면 4분간 자막을 못 띄웠다.)
+    지상 = size 0.052 + distance 1.0 / 우주 = 크기를 만지지 말고 distance 20."""
     t = InsertText(InsertText.InsertTextName(1))
     cam.addChild(t.id, Camera.CameraPort.FixedForeground)
     t.setPosition(Vec(0, 14, 0))
-    t.setSize(0.05)
     t.setColor(Vec(1.0, 1.0, 0.6))
-    t.setDistance(20.0, Anim(0.0))            # 행성 프레임 자막 = distance 20
+    t.setDistance(20.0, Anim(0.0))            # 행성 프레임 자막 = distance 20, setSize 없음
     t.setIntensity(1.0, Anim(0.0))
     return t
 

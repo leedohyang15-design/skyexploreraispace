@@ -933,6 +933,15 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 ## InsertText — `InsertText(InsertText.InsertTextName(slot))` (slot 1~46)
 - `setText(text)`, `setPosition(Vec(azimuth, height, roll))`, `setDistance(dist, Anim)`
 - `setIntensity(intensity, Anim)`(0=숨김,1=표시), `setSize(size)`(예 0.05), `setColor(Vec(r,g,b))`
+- ⚠️⚠️⚠️ **[2026-08-12 돔 실측] 자막 규칙은 프레임마다 '반대'다 — 어기면 우주 장면에서 자막이 통째로 안 뜬다**:
+  천리안 쇼 v1 이 **0:40 이후 4분 내내 글자를 하나도 못 띄웠다.** 원인은 자막 헬퍼가 우주 프레임에서도 `setSize` 를 부른 것.
+  · **지상 = `setSize(0.052)` + `setDistance(1.0)`** / **행성·은하 = `setSize` 호출 금지(기본값 유지) + `setDistance(20)`**
+  · ⚠️ **크기를 되돌리는 API 가 없다** → 지상에서 쓰던 자막의 **거리만** 20 으로 바꾸면 안 보인다.
+    **크기를 한 번도 안 건드린 새 슬롯**(다른 InsertTextName)으로 갈아탈 것.
+  · 헬퍼를 하나로 쓸 거면 **거리로 분기**해서 지상에서만 `setSize` 를 부른다. (린터 규칙으로 승격 — `setDistance(20)`+`setSize` 동시 호출을 잡는다.)
+- ⚠️⚠️ **지상 쇼 → 우주 쇼 전환 시 지구 렌더를 되살려라 (2026-08-12 실측)**: 지상 하늘 쇼는 `setTerrainIntensity(0)`·`setAtmosphereIntensity(0)` 로 지면·대기를 끈다.
+  그대로 FadeTo 지구를 하면 **지구가 회색 공이 되고, 가까이 갈수록 그릴 표면이 없어 아예 사라진다**(R=3.2 에서 화면이 텅 빔).
+  → 우주 진입 직후 `setIntensity(1)` + `setTerrainIntensity(1)` + `setTerrainModel(BMNG_Ocean)` + `setAtmosphereIntensity(1)` 로 복구.
 - ✅✅ **지상 자막 '가독성' 표준 (2026-07-15 사용자 확정, star_colors v2)**: 기존 size 0.035 는 **너무 작아 잘 안 보임**.
   → **읽기 좋은 지상 자막 = `setSize(0.052)` + `setPosition(Vec(0, 25, 0))`(높이 25 = 프레임 하단이지만 지평선 위) +
   밝은 색 `setColor(Vec(1.0, 1.0, 0.55))`(검은 하늘에 노랑이 잘 뜸) + distance 1.0**. (행성/은하 프레임은 여전히 distance 20.)
