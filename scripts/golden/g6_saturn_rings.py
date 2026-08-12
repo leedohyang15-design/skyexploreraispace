@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+# ─────────────────────────────────────────────────────────────
+#  검증: 부분확인 (2026-08-10) — L 스윕이 재조준 없이 토성을 계속 중앙에 유지함을 확인, 고리 시직경 R=5/3.9/1.7 은 스샷 실측. 도킹 폴링 교체분은 미확인
+#  ⚠️ 이 줄은 '돔에서 실제로 봤는가'만 적는다. 코드가 규칙을 지켰는지와는 별개다.
+#     확인했으면 날짜와 확인 범위를 남길 것 — 안 남기면 다음에 처음부터 다시 의심해야 한다.
+# ─────────────────────────────────────────────────────────────
+
 # ═══ [정답 예제 6] 토성 고리 크게 보여주기 ═══
 # 대응 프롬프트: "토성 고리를 크고 잘 보이게 보여줘"
 #
@@ -30,7 +36,32 @@ dm.stop(); sleep(0.3)
 # ── 토성 도킹 ────────────────────────────────────────────────
 DataManager.database().data(Data.Type.PlanetType, "Saturn") \
     .action(Action.Type.FadeTo).trigger()
-sleep(5.0)
+
+
+def wait_dock(max_s=16.0):
+    """⚠️ 고정 sleep 으로 도킹을 기다리지 마라 — 도킹 애니가 R 을 계속 끌어당긴다.
+       천왕성 실측: 6초 뒤에도 R 이 653,188 → 163,773 km 로 계속 수렴 중이었다.
+       그 상태에서 `cam.positionLBR` 을 읽으면 **수렴 중인 먼 값이 그대로 고정**돼
+       행성이 의도보다 작게 잡힌다. → R 이 멈춘 뒤에 읽는다."""
+    prev, stable, t = None, 0, 0.0
+    while t < max_s:
+        cur = None
+        try:
+            cur = cam.positionLBR.z
+        except Exception:
+            pass
+        if cur is not None and prev is not None and abs(cur - prev) < 1e-4 * max(1.0, abs(cur)):
+            stable += 1
+            if stable >= 4:
+                break
+        else:
+            stable = 0
+        prev = cur
+        sleep(0.25); t += 0.25
+    print("도킹 안정화, R =", prev)
+
+
+wait_dock()
 
 sat = Planet(Planet.PlanetName.Saturn)
 

@@ -1,28 +1,40 @@
 # -*- coding: utf-8 -*-
+# ─────────────────────────────────────────────────────────────
+#  검증: 부분확인 (2026-08-10) — 구도(L=0 세로 / L=90 과녁)·밝기 1.2 를 돔 스샷으로 확정. v3 전체 재생은 미확인(막3 스윕 속도·R_SYSTEM=15 프레이밍)
+#  ⚠️ 이 줄은 '돔에서 실제로 봤는가'만 적는다. 코드가 규칙을 지켰는지와는 별개다.
+#     확인했으면 날짜와 확인 범위를 남길 것 — 안 남기면 다음에 처음부터 다시 의심해야 한다.
+# ─────────────────────────────────────────────────────────────
+
 # ══════════════════════════════════════════════════════════════════════════
-#  "누워서 도는 행성 — 천왕성"   (약 3분)
+#  "누워서 도는 행성 — 천왕성"   v3   (약 2분 25초)
 #
-#  ★ 왜 이 소재인가 = 우리가 아직 안 해본 조합이다.
-#    · 위성계 쇼는 목성(갈릴레이 4)·토성(7)까지 했지만 **천왕성 5위성은 미개척**.
-#    · 천왕성 고리는 2026-07-30 에 '승격 확정'(B38+R3.2+intensity1.5)됐지만
-#      **위성과 묶은 쇼로는 한 번도 안 만들었다.**
-#    · 결정적으로 화면이 다르다 — 천왕성은 자전축이 98° 누워 있어
-#      **고리도 위성 궤도도 '세로'로 돈다.** 목성·토성의 가로 배치와 한눈에 대비된다.
+#  ⚠️ v1·v2 에서 배운 것 (2026-08-10 사용자 돔 실측 + 스샷 9장)
+#    ① **'누운 자세'를 결정하는 건 B 가 아니라 L 이다.** (v1·v2 최대 오류)
+#       황도 프레임(`PlanetPort.Ecliptic`) + **B=0** 으로 두고 L 만 바꾸면:
+#         · **L=0   → 고리·궤도가 완전한 '세로 선'**  ★"누워서 돈다"를 한 방에
+#         · **L=90  → 정면 '과녁'(동심원)**          ★고리가 가장 잘 보이는 구도
+#         · L=135 등 중간값 → 대각선(어중간, 쓰지 않는다)
+#       v1·v2 는 L 을 FadeTo 가 준 임의값으로 두고 B 만 만졌다 → 세로가 나올 수 없었다.
+#    ② **황도 포트의 R 단위 = 행성 '지름'** (도킹 프레임의 반지름 단위와 2배 차이).
+#       실측 R=3.2 → 163,773 km = 6.4 천왕성반지름. v2 의 R=28 은 56 반지름이었다(과했음).
+#       → 위성 궤도(오베론 22.8 반지름)를 담으려면 **R ≈ 11.4 + 여유 = 15**.
+#    ③ **FadeTo 클램프 6초는 짧다** — 도킹 애니가 아직 카메라를 끌어서 `Anim(0.0)` 이 씹힌다.
+#       실측: 목표 L=45 로 보냈는데 L=4.5 에서 찍혔다. → **R 이 멈출 때까지 폴링**한 뒤 구도를 꽂는다.
+#    ④ **고리는 주인공이 될 수 없다.** intensity 도 setScale 도 죽은 레버(양방향 실측 확정) —
+#       고리가 보이는 건 오직 구도(L=90 정면)뿐이다. 밝기는 1.2(눈이 편한 값)로 고정.
+#    ⑤ 그림자는 **끈다.** '밤면을 죽여 대비를 얻자'는 안은 A/B 에서 탈락했다.
 #
 #  구성
-#    막0  지상에서 — "맨눈으로 볼 수 있는 마지막 행성"        (~25초)
-#    막1  접근 (암전 클램프 속에서 전부 정렬)                  (~15초)
-#    막2  세로로 선 고리                                       (~35초)
-#    막3  풀백 → 다섯 위성                                     (~30초)
-#    막4  시간가속 — 세로로 도는 궤도                          (~78초)
-#    막5  마무리                                               (~10초)
+#    막0  지상에서                                   (~19초)
+#    막1  접근 — 황도 프레임 · L=0 · B=0             (~13초)
+#    막2  세로로 선 궤도                             (~24초)
+#    막3  0→90° 열기 — 세로가 과녁이 된다            (~22초)
+#    막4  시간가속 — 궤도를 도는 위성                (~60초)
+#    막5  정면에서 본 고리                           (~22초)
+#    막6  마무리                                     (~10초)
 #
-#  적용한 확정 규칙
-#    · FadeTo 로 쇼를 시작하지 않는다(지상 인트로 먼저) — 안 그러면 오프닝이 검은 화면
-#    · 암전은 '한 번'이 아니라 **클램프 루프** — FadeTo 가 밝기를 1.0 으로 되돌린다
-#    · 위성 공전을 보려면 **관성 프레임(EquatorialJ2000)** 전환 필수(동기 프레임이면 하늘이 돈다)
-#    · 시작 날짜(instant)는 **위성을 켜기 전** 암전 중에 고정(안 그러면 위성이 순간이동)
-#    · 지상 자막 distance 1.0 / 행성 프레임 자막 distance 20
+#  ⚠️ 자막 홀드는 `say()` 가 글자 수로 자동 계산한다(2초 + 글자당 0.1초).
+#     숫자를 직접 박지 말 것 — 6~7초씩 붙잡으면 "인터벌이 길다"는 소리를 듣는다(실측 피드백).
 # ══════════════════════════════════════════════════════════════════════════
 from skyExplorer import *
 from studio import *
@@ -32,32 +44,63 @@ cam = Camera(Camera.CameraName.MainCamera)
 uni = Universe(Universe.UniverseName.MainUniverse)
 dm = DateManager()
 tz = DateManager.TimeZone.DefaultTimeZone
+UR = Planet(Planet.PlanetName.Uranus)
 
-URANUS = Planet(Planet.PlanetName.Uranus)
-MOONS = [                                  # 천왕성 위성은 이 5개가 전부다
-    ("Miranda",  "미란다",   1.41),
-    ("Ariel",    "아리엘",   2.52),
-    ("Umbriel",  "움브리엘", 4.14),
-    ("Titania",  "티타니아", 8.71),
-    ("Oberon",   "오베론",  13.46),
-]
+MOONS = ["Miranda", "Ariel", "Umbriel", "Titania", "Oberon"]
+
+R_SYSTEM = 15.0        # 위성계 조망 (오베론 궤도 11.4 단위 + 여유)
+R_RINGS = 3.2          # 고리 근접 (실측 확정값)
+L_EDGE = 0.0           # 세로 — 고리면을 옆에서
+L_FACE = 90.0          # 과녁 — 고리면을 정면에서
 
 txt = None
+ep = None
 
 
-def say(s, hold=0.0):
+def say(s, hold=None):
+    """자막 교체. hold 를 안 주면 **글자 수로 자동 계산**(2초 + 글자당 0.1초).
+
+    ⚠️ [2026-08-10 돔 피드백 "왜 이렇게 인터벌이 긴거야?"] 내가 쓰던 6~7.5초 홀드는
+       두 배쯤 과했다. 한글 20자면 4초면 읽고도 여유가 있고, 그 이상 붙잡으면
+       화면이 멈춘 것처럼 보인다. `hold=0` 은 기다리지 않음."""
     if txt:
         txt.setText(s)
-        if hold:
-            sleep(hold)
+    if hold is None:
+        hold = 2.0 + len(s) * 0.1
+    if hold:
+        sleep(hold)
 
 
-def clamp_dark(seconds):
-    """⚠️ FadeTo/reset 은 GlobalIntensity 를 1.0 으로 되돌린다.
-       한 번 거는 걸론 안 되고 계속 찍어 눌러야 슬루가 안 보인다."""
-    for _ in range(int(seconds / 0.2)):
-        uni.setGlobalIntensity(0.0, Anim(0.0))
-        sleep(0.2)
+def wait_settle(max_s=16.0):
+    """FadeTo 도킹 애니가 카메라를 놓을 때까지 기다린다(암전 클램프 겸용).
+       ⚠️ 이게 없으면 뒤따르는 setPositionLBR(Anim 0) 이 씹혀 엉뚱한 구도에서 화면이 켜진다(실측)."""
+    prev = None
+    stable = 0
+    t = 0.0
+    while t < max_s:
+        uni.setGlobalIntensity(0.0, Anim(0.0))      # 클램프 — 한 번만 걸면 FadeTo 가 1.0 으로 되돌린다
+        cur = None
+        try:
+            cur = cam.positionLBR.z
+        except Exception:
+            pass
+        if cur is not None and prev is not None and abs(cur - prev) < 1e-4 * max(1.0, abs(cur)):
+            stable += 1
+            if stable >= 4:                          # 1초간 변화 없음 = 도킹 끝
+                break
+        else:
+            stable = 0
+        prev = cur
+        sleep(0.25)
+        t += 0.25
+    print("도킹 안정화 완료, R =", prev)
+
+
+def frame(L, B, R, anim=None):
+    """황도 프레임 안에서만 움직인다 — 읽기·쓰기·재조준 프레임을 절대 섞지 않는다."""
+    a = anim if anim else Anim(0.0)
+    cam.setPositionLBR(Vec(L, B, R), a, ep)
+    cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), a, ep)
 
 
 # ── 막0 : 지상에서 ────────────────────────────────────────────
@@ -69,8 +112,9 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
-    earth.setAtmosphereIntensity(0.0, Anim(0.0))     # 대기 OFF
-    earth.setTerrainIntensity(0.0, Anim(0.0))        # 지면 OFF (둘은 항상 세트)
+    earth.setAtmosphereIntensity(0.0, Anim(0.0))
+    earth.setTerrainIntensity(0.0, Anim(0.0))
+    earth.setElevationScale(0.0)
     Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
     Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.45, Anim(0.0))
 
@@ -78,123 +122,139 @@ try:
     dm.setDateTime(2026, 10, 15, 13, 0, 0, tz, Anim(0.0))   # 청주 밤 22시 = 13 UTC
     sleep(0.4)
 
-    cam.setOrientationH(0.0, Anim(0.0))               # 남쪽
+    cam.setOrientationH(0.0, Anim(0.0))
     cam.setTargetHeight(30.0, Anim(0.0))
 
     txt = InsertText(InsertText.InsertTextName(1))
     cam.addChild(txt.id, Camera.CameraPort.FixedForeground)
     txt.setPosition(Vec(0, 12, 0))
-    txt.setSize(0.052)                                # 지상 자막 표준
+    txt.setSize(0.052)
     txt.setColor(Vec(1.0, 1.0, 0.55))
     txt.setDistance(1.0, Anim(0.0))
-    txt.setText("맨눈으로 볼 수 있는 마지막 행성")
+    txt.setText("태양계에서 혼자만 '누워서' 도는 행성이 있다")
     txt.setIntensity(1.0, Anim(1.0))
 
     uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
     sleep(5.5)
-    say("6등급 — 아주 어두운 밤에, 아주 좋은 눈으로만", 6.0)
-    say("1781년까지 아무도 '행성'인 줄 몰랐던 천왕성", 6.5)
-    say("망원경으로 발견된 최초의 행성 — 가서 보자", 6.0)
+    say("다른 행성들은 팽이처럼 선 채로 돈다")
+    say("천왕성만 옆으로 쓰러진 채 돈다 — 자전축 98도")
+    say("가서 확인해 보자")
 except Exception as e:
     print("막0 오류:", e)
 
-# ── 막1 : 접근 (전부 암전 속에서) ─────────────────────────────
+# ── 막1 : 접근 (황도 프레임 · L=0 · B=0) ──────────────────────
 try:
     txt.setIntensity(0.0, Anim(1.0)); sleep(1.2)
     uni.setGlobalIntensity(0.0, Anim.cubic(1.5)); sleep(1.6)
 
     DataManager.database().data(Data.Type.PlanetType, "Uranus").action(Action.Type.FadeTo).trigger()
-    clamp_dark(6.0)                                   # ★ 도착 + 내부 방향정렬 슬루가 끝날 때까지
+    wait_settle()                                   # ★ 도킹이 끝난 뒤에 구도를 꽂는다
 
-    # 표면·고리를 보려면 그림자 OFF 3세터
-    URANUS.setShadowStrength(0.0, Anim(0.0))
-    URANUS.setShadowContrast(0.0, Anim(0.0))
-    URANUS.setPlanetShineStrength(1.0, Anim(0.0))
-    Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))   # 배경 검정 = 고리 대비
+    # 밝기 = A/B 채택값. 올려도 고리 대비는 안 늘고 원반만 탄다.
+    UR.setIntensity(1.2, Anim(0.0))
+    UR.setShadowStrength(0.0, Anim(0.0))
+    UR.setShadowContrast(0.0, Anim(0.0))
+    UR.setPlanetShineStrength(1.0, Anim(0.0))
+    Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))
 
-    # ★ 관성 프레임 — 이걸 빼면 위성이 도는 게 아니라 하늘이 돈다
-    ip = URANUS.portId(Planet.PlanetPort.EquatorialJ2000)
-    p = cam.positionLBR
-    # 고리면 개방 B=38 + 근접 R=3.2 (2026-07-30 승격 확정 구도)
-    cam.setPositionLBR(Vec(p.x, 38.0, 3.2), Anim(0.0), ip)
-    cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.0), ip)
+    # ★ 황도 프레임 + L=0 + B=0 — 이 셋이 다 맞아야 '세로'가 나온다
+    ep = UR.portId(Planet.PlanetPort.Ecliptic)
+    frame(L_EDGE, 0.0, R_SYSTEM)
     cam.setTargetHeight(30.0, Anim(0.0))
-    URANUS.setIntensity(1.0, Anim(0.0))
 
-    # ⚠️ 시작 날짜는 '위성을 켜기 전' 암전 중에 고정 — 안 그러면 위성이 궤도상 순간이동
-    dm.setDateTime(2026, 10, 15, 13, 0, 0, tz, Anim(0.0))
+    dm.setDateTime(2026, 10, 15, 13, 0, 0, tz, Anim(0.0))   # 위성 켜기 전에 날짜 고정
     sleep(1.0)
 
-    txt.setDistance(20.0, Anim(0.0))                  # 행성 프레임 자막 표준
-    txt.setSize(0.052)
+    txt.setDistance(20.0, Anim(0.0))                # 행성 프레임 자막
     say("천왕성")
     txt.setIntensity(1.0, Anim(1.5))
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.5))      # 정렬이 다 끝난 뒤에야 페이드인
-    sleep(3.0)
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
+    sleep(3.5)
 except Exception as e:
     print("막1 오류:", e)
 
-# ── 막2 : 세로로 선 고리 ──────────────────────────────────────
+# ── 막2 : 세로로 선 궤도 ──────────────────────────────────────
 try:
-    say("고리가 '세로'로 서 있다", 6.0)
-    say("자전축이 98도 — 누운 채로 태양을 도는 행성이다", 7.0)
+    say("다섯 개의 큰 위성이 있다")
 
-    # 고리는 본체 intensity 에 묶여 있다 — 1.0 → 1.5 A/B 로 또렷해지는 걸 보여준다
-    say("본체를 조금 밝히면 고리가 드러난다")
-    URANUS.setIntensity(1.5, Anim(3.0))               # 1.8 이상은 원반이 타서 금지
-    sleep(5.0)
-    say("얼음과 숯빛 암석 — 실제 반사율 3%의 어두운 고리", 8.0)
-    say("13개의 고리가 있지만, 대부분은 이렇게 가늘다", 7.0)
-    say("1977년, 별을 가리는 순간에 우연히 발견됐다", 7.0)
-    sleep(3.0)
+    for nm in MOONS:
+        try:
+            s = Satellite(getattr(Satellite.SatelliteName, nm))
+            s.setIntensity(1.0, Anim(1.5))
+            s.setOrbitIntensity(1.0, Anim(1.5))     # ★ 궤도선이 '누운 자세'의 증거
+            s.setLabelIntensity(1.0, Anim(1.5))
+            s.setScale(14.0, Anim(1.5))
+        except Exception as ex:
+            print("   위성 실패", nm, ex)
+    sleep(3.5)
+
+    say("궤도가 '세로'로 서 있다")
+    say("다른 행성이라면 이 각도에서 옆으로 누워 보인다")
+    say("행성이 쓰러졌으니 위성도 함께 쓰러진 채 돈다")
+    say("미란다 · 아리엘 · 움브리엘 · 티타니아 · 오베론")
 except Exception as e:
     print("막2 오류:", e)
 
-# ── 막3 : 풀백 → 다섯 위성 ────────────────────────────────────
+# ── 막3 : 0→90° 열기 (세로 → 과녁) ───────────────────────────
+#   ⚠️ 포트 프레임 공전이므로 재조준 필수(track=-1 공전과 다르다).
 try:
-    say("이 행성에는 다섯 개의 큰 위성이 있다")
-    # 풀백은 '보여줄 움직임' — 암전하지 않는다.
-    # 오베론 궤도가 22.8 천왕성반지름이라 R 은 그보다 넉넉히.
-    cam.setPositionR(28.0, Anim.cubic(6.0), ip)
-    sleep(6.5)
-
-    for eng, kor, period in MOONS:
-        try:
-            s = Satellite(getattr(Satellite.SatelliteName, eng))
-            s.setIntensity(1.0, Anim(1.0))
-            s.setOrbitIntensity(0.75, Anim(1.0))      # 궤도선
-            s.setLabelIntensity(1.0, Anim(1.0))       # 이름표
-            s.setScale(9.0, Anim(1.0))                # 멀리서도 보이게
-        except Exception as ex:
-            print("   위성 실패", eng, ex)
-    sleep(2.0)
-
-    say("미란다 · 아리엘 · 움브리엘 · 티타니아 · 오베론", 7.0)
-    say("셰익스피어와 포프의 등장인물에서 이름을 따왔다", 6.5)
+    say("천천히 돌아서 정면으로 가 보자")
+    L = L_EDGE
+    step = 0
+    while L <= L_FACE:
+        cam.setPositionLBR(Vec(L, 0.0, R_SYSTEM), Anim(0.6), ep)
+        step += 1
+        if step % 3 == 0:
+            cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.6), ep)
+        sleep(0.6)
+        L += 4.5
+    cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.8), ep)
+    sleep(1.0)
+    say("세로로 서 있던 궤도가 과녁처럼 열린다")
 except Exception as e:
     print("막3 오류:", e)
 
-# ── 막4 : 시간가속 — 세로로 도는 궤도 ─────────────────────────
+# ── 막4 : 시간가속 ────────────────────────────────────────────
 try:
-    say("14일을 1분으로 — 궤도가 '세로'로 돈다")
-    dm.setDateTime(2026, 10, 29, 13, 0, 0, tz, Anim(78.0))    # +14일을 78초에
-    sleep(26.0)
-    say("안쪽 미란다는 1.4일에 한 바퀴")
-    sleep(26.0)
-    say("바깥 오베론은 13.5일 — 멀수록 느리다 (케플러)")
-    sleep(26.0)
+    # ⚠️ [2026-08-10 "인터벌이 길다"] 20초 간격은 한 줄 읽고 15초가 빈다.
+    #    자막은 읽는 시간 + 여백 4초 ≈ 9초 간격으로, 문장은 짧게 쪼갠다.
+    say("14일을 1분으로 압축한다", 0)
+    dm.setDateTime(2026, 10, 29, 13, 0, 0, tz, Anim(60.0))
+    sleep(4.0)
+    say("안쪽 미란다 — 1.4일에 한 바퀴")
+    sleep(4.5)
+    say("가장 안쪽이라 가장 빠르다")
+    sleep(4.5)
+    say("아리엘 2.5일, 움브리엘 4.1일")
+    sleep(4.5)
+    say("티타니아 8.7일")
+    sleep(4.5)
+    say("바깥 오베론은 13.5일")
+    sleep(4.5)
+    say("멀수록 느리다 — 케플러 법칙")
+    sleep(4.0)
 except Exception as e:
     print("막4 오류:", e)
 
-# ── 막5 : 마무리 ──────────────────────────────────────────────
+# ── 막5 : 정면에서 본 고리 ────────────────────────────────────
+#   ⚠️ 고리가 보이는 건 오직 이 구도(L=90 정면) 덕이다. 밝기를 올리지 마라 — 원반만 탄다.
 try:
-    say("누워서 도는 행성, 그리고 함께 누운 다섯 위성", 6.0)
-    say("태양계에서 이렇게 도는 행성은 여기 하나뿐이다", 6.5)
-    txt.setIntensity(0.0, Anim(2.0))
-    sleep(2.5)
-    URANUS.setIntensity(1.0, Anim(2.0))               # 원래 밝기로 복귀
-    sleep(2.0)
+    say("이 행성에도 고리가 있다")
+    cam.setPositionR(R_RINGS, Anim.cubic(6.0), ep)
+    sleep(6.5)
+    say("정면으로 마주 봐야 비로소 보인다 — 동심원 여러 겹")
+    say("숯처럼 검은 얼음과 바위, 반사율 3%")
 except Exception as e:
     print("막5 오류:", e)
 
-print("쇼 종료 — 누워서 도는 행성 (천왕성)")
+# ── 막6 : 마무리 ──────────────────────────────────────────────
+try:
+    cam.setPositionR(R_SYSTEM, Anim.cubic(5.0), ep)
+    sleep(5.5)
+    say("누운 채로 도는 행성, 함께 누운 다섯 위성")
+    txt.setIntensity(0.0, Anim(2.0))
+    sleep(2.5)
+except Exception as e:
+    print("막6 오류:", e)
+
+print("쇼 종료 — 누워서 도는 행성 (천왕성) v3")

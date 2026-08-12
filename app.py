@@ -948,6 +948,18 @@ def _lint_script(code: str, user_prompt: str) -> list:
         if not re.search(r"from\s+%s\s+import" % name, code):
             issues.append("import 3종 중 `from %s import *` 가 빠졌다. 셋 다 넣어라." % name)
 
+    # ⚠️⚠️ 암전만 걸고 안 켜면 **쇼 전체가 검은 화면이다** (2026-08-10 사용자 실측으로 발각).
+    #   FadeTo 슬루를 감추려고 setGlobalIntensity(0) 클램프를 돌려놓고 페이드인을 안 넣은 프로브가
+    #   60초 내내 깜깜했다. 커밋된 스크립트 전수 검사 결과 **위반 1건 / 오탐 0건** — 안전한 규칙.
+    if (re.search(r"setGlobalIntensity\s*\(\s*0", code)
+            and not re.search(r"setGlobalIntensity\s*\(\s*1", code)):
+        issues.append(
+            "`setGlobalIntensity(0)`(암전)만 있고 다시 켜는 `setGlobalIntensity(1.0, Anim...)` 이 "
+            "**스크립트 어디에도 없다** — 쇼가 처음부터 끝까지 검은 화면으로 돈다. "
+            "암전은 FadeTo/reset 슬루를 감추는 용도이므로 반드시 **짝으로 페이드인**하라: "
+            "세팅이 끝난 직후 `uni.setGlobalIntensity(1.0, Anim.cubic(2.0))`."
+        )
+
     # ⚠️⚠️ 고리 줌 검사는 **토성 전용**이다(2026-08-10 정정).
     #   천왕성은 반대로 '근접 R3.2' 가 확정 레시피 — 같이 묶었더니 옳은 천왕성 쇼가 위반으로 걸렸다.
     #   또 **풀백(R 을 키우는 것)은 줌이 아니다** — 위성계를 담으려 뒤로 빼는 건 정상.
@@ -1024,6 +1036,81 @@ def _lint_script(code: str, user_prompt: str) -> list:
     #     · CityType GoTo 는 1~2초면 끝나 4초 요구가 틀림(대상 종류마다 다름).
     #     · 페이드인 순서는 light() 헬퍼가 앞쪽에 정의되면 텍스트 순서가 실행 순서와 어긋남.
     #   → 규칙은 reference.md 쪽에 두고, 여기서는 검사하지 않는다.
+
+    # ⚠️⚠️ [2026-08-10 돔에서 네 번 터진 유형] 카메라에 쓴 값을 곧바로 다시 읽어 되쓰기.
+    #   `Anim(0.0)` 이어도 즉시 반영이 아니라, 읽으면 **이전 값**이 나오고 그걸 되쓰면
+    #   방금 건 이동이 자기 자신에게 덮어씌워져 사라진다(목성 풀백이 통째로 증발).
+    #   판정 조건 3개를 모두 만족할 때만 잡는다 — 골든 15개 전수 검사에서 **오탐 0** 확인:
+    #     ⓐ 쓴 뒤 6줄 안에서 positionLBR 을 변수로 읽고
+    #     ⓑ 그 변수를 다시 setPosition* 에 넣고 (print 로 로그만 찍는 건 무해하므로 제외)
+    #     ⓒ 그 사이 대기가 Anim 시간보다 짧거나 Anim(0.0) 이다 (폴링했으면 안전)
+    _lines = code.split("\n")
+    for _i, _l in enumerate(_lines):
+        _m = re.search(r"cam\.setPosition(?:LBR|R)\s*\([^\n]*Anim(?:\.cubic)?\(([\d.]+)\)", _l)
+        if not _m:
+            continue
+        _anim = float(_m.group(1))
+        _slept = sum(float(x) for x in re.findall(r"sleep\(([\d.]+)\)", _l[_m.end():]))
+        _stop = False
+        for _j in range(_i + 1, min(_i + 7, len(_lines))):
+            _seg = _lines[_j]
+            if re.search(r"wait_\w+\(", _seg):
+                break                                    # 폴링으로 기다렸으면 안전
+            if re.match(r"\s*(for|while|def|try|except|#\s*──)", _seg):
+                break                                    # 블록 경계
+            _slept += sum(float(x) for x in re.findall(r"sleep\(([\d.]+)\)", _seg))
+            _rd = re.search(r"(\w+)\s*=\s*cam\.positionLBR", _seg)
+            if not _rd:
+                continue
+            _var = _rd.group(1)
+            _reused = any(re.search(r"cam\.setPosition[^\n]*\b%s\.[xyz]\b" % _var, _lines[_k])
+                          for _k in range(_j + 1, min(_j + 9, len(_lines))))
+            if _reused and (_anim == 0.0 or _slept < _anim):
+                issues.append(
+                    "카메라에 쓴 값을 곧바로 `cam.positionLBR` 로 읽어 되쓰고 있다(%d번째 줄 근처). "
+                    "**`Anim(0.0)` 이어도 즉시 반영이 아니라 읽으면 이전 값이 나오고, 그걸 되쓰면 "
+                    "방금 건 이동이 사라진다.** 셋 중 하나로 고쳐라: "
+                    "① 읽지 말고 **목표를 절대값으로** `setPositionR(목표, Anim, 프레임)`, "
+                    "② 값이 멈출 때까지 **폴링**한 뒤 읽기, "
+                    "③ 이동을 **보이는 애니메이션**으로 걸고 `sleep(애니시간+0.5)` 뒤에 다음 단계."
+                    % (_i + 1)
+                )
+                _stop = True
+            break
+        if _stop:
+            break
+
+    # ⚠️ [2026-08-10 돔 피드백 "왜 이렇게 인터벌이 긴거야?"] 자막 템포.
+    #   한글 자막은 `2초 + 글자당 0.1초`면 읽고도 여유가 있다(20자 ≈ 4초).
+    #   ⚠️ 임계값을 두 번 조정했다(2026-08-10). 처음엔 5초/1.6배로 잡았더니 **내가 직접 쓴
+    #      정상 자막까지 걸렸다** — 긴 애니메이션을 narration 으로 채울 땐 한 줄이 7~8초가 되는 게
+    #      자연스럽고, 그건 죽은 시간이 아니다. 4~8초대는 **규칙이 아니라 판단 영역**이다.
+    #      → 8초/2배로 올려 '명백히 죽은 홀드'만 잡는다. 진짜 문제였던 20초 공백은 아래 규칙이 잡는다.
+    _slow = []
+    for _m in re.finditer(r'say\(\s*"([^"]*)"\s*,\s*([\d.]+)\s*\)', code):
+        _t, _h = _m.group(1), float(_m.group(2))
+        _ideal = 2.0 + len(_t) * 0.1
+        if _h >= 8.0 and _h > _ideal * 2.0:
+            _slow.append("%.1f초(%d자, 적정 %.1f초)" % (_h, len(_t), _ideal))
+    if _slow:
+        issues.append(
+            "자막을 너무 오래 붙잡고 있다 — %s. 한글 자막은 **`2초 + 글자당 0.1초`**면 "
+            "읽고도 여유가 있고, 그 이상이면 화면이 멈춘 것처럼 보인다. "
+            "`say()` 헬퍼에서 `hold` 를 안 주면 글자 수로 자동 계산하게 만들고 숫자를 직접 박지 마라."
+            % ", ".join(_slow[:3])
+        )
+
+    # ⚠️ 같은 피드백의 다른 얼굴 — 시간가속처럼 긴 애니메이션을 통째로 기다리는 구간.
+    #   화면이 계속 변하니 괜찮을 것 같지만, 자막이 안 바뀌면 그 구간이 제일 비어 보인다.
+    for _m in re.finditer(r"Anim(?:\.cubic)?\(([\d.]+)\)[^\n]*\n\s*sleep\(([\d.]+)\)", code):
+        if float(_m.group(2)) >= 20.0:
+            issues.append(
+                "긴 애니메이션을 `sleep(%s)` 로 통째로 기다리는데 그동안 자막이 한 번도 안 바뀐다. "
+                "**대기를 쪼개서 9초쯤마다 자막을 갱신**하라(문장은 짧게 나눠서). "
+                "시간가속 구간이 특히 그렇다 — 화면이 변해도 자막이 멈춰 있으면 비어 보인다."
+                % _m.group(2)
+            )
+            break
 
     # 날짜/시간 세팅 검사
     for m in re.finditer(r"setDateTime\s*\(\s*(\d{4})\s*,\s*(\d+)\s*,\s*(\d+)", code):
