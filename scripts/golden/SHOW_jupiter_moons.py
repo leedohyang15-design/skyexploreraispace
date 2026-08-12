@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # ─────────────────────────────────────────────────────────────
-#  검증: 미확인 — 규칙 검사는 통과했으나 돔에서 본 기록이 없다. 기하(프레임·L/B·R 단위)는 정적 검사로 안 잡히니 재생 전 신뢰하지 말 것
+#  검증: 부분확인 (2026-08-10) — 관성 프레임 전환·위성 표시·지상 인트로는 돔 확인. ⚠️ 풀백 버그 발견(R 이 도킹 5 에 머물러 바깥 두 위성이 화면 밖) → 막2로 옮겨 수정, 수정본 재확인 필요. 시간가속 속도도 미확인
 #  ⚠️ 이 줄은 '돔에서 실제로 봤는가'만 적는다. 코드가 규칙을 지켰는지와는 별개다.
 #     확인했으면 날짜와 확인 범위를 남길 것 — 안 남기면 다음에 처음부터 다시 의심해야 한다.
 # ─────────────────────────────────────────────────────────────
@@ -52,6 +52,7 @@ ACCEL_SEC = 80.0        # ⚠️ 이전 시안은 ~30초라 너무 빨랐다
 
 txt = None
 ip = None
+base_r = None          # 막1에서 잰 도킹 R — 막2의 풀백이 이걸 기준으로 삼는다
 
 
 def say(s, hold=0.0):
@@ -140,20 +141,20 @@ try:
     Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))
     Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.0, Anim(0.0))
 
-    # 풀백 — ⚠️ 기준은 반드시 '도킹 R'. 줌인한 뒤의 작아진 R 에 배율을 곱하면 풀백이 반토막 난다.
+    # 관성 프레임으로 — 같은 L/B/R 이라 카메라는 안 움직이고 '기준'만 바뀐다
+    # ⚠️⚠️ [2026-08-10 실측 버그] 여기서 풀백을 '먼저' 걸고 곧바로 positionLBR 을 읽어 프레임에
+    #   넘겼더니, 읽은 값이 아직 풀백 전(도킹 R=5)이라 **풀백이 자기 자신에게 덮어씌워졌다**
+    #   (HUD 357,460km = 5.0 목성반지름으로 확인). setPositionLBR 은 Anim(0.0) 이어도 즉시 반영이
+    #   아니다 → **'쓰고 바로 읽기'를 하지 마라.** 순서를 뒤집어 프레임부터 잡고, 풀백은 막2에서
+    #   눈에 보이게 한다(연출적으로도 이쪽이 낫다 — 목성이 작아지며 궤도가 드러난다).
     p = cam.positionLBR
     base_r = dock_r if dock_r else p.z
-    cam.setPositionLBR(Vec(p.x, p.y, base_r * PULLBACK), Anim(0.0), -1)
-    sleep(0.5)
-
-    # 관성 프레임으로 — 같은 L/B/R 이라 카메라는 안 움직이고 '기준'만 바뀐다
-    q = cam.positionLBR
     ip = JU.portId(Planet.PlanetPort.EquatorialJ2000)
-    cam.setPositionLBR(Vec(q.x, q.y, q.z), Anim(0.0), ip)
+    cam.setPositionLBR(Vec(p.x, p.y, base_r), Anim(0.0), ip)
     cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.0), ip)
     cam.setTargetHeight(30.0, Anim(0.0))
     sleep(0.8)
-    print("풀백 후 R =", cam.positionLBR.z)          # ⚠️ HUD(km)와 대조해 프레이밍 확인
+    print("프레임 전환 후 R =", cam.positionLBR.z, "(도킹 R =", base_r, ")")
 
     dm.setDateTime(2026, 3, 20, 13, 0, 0, tz, Anim(0.0))   # 위성 켜기 전에 날짜 고정
     sleep(0.8)
@@ -181,9 +182,19 @@ try:
             print("   위성 실패", nm, ex)
     sleep(3.5)
 
-    say("이오 · 유로파 · 가니메데 · 칼리스토", 7.0)
-    say("맨눈으로는 절대 안 보인다 — 망원경이 있어야 보인다", 7.5)
-    say("이것이 지동설의 첫 증거가 되었다", 7.0)
+    say("이오 · 유로파 · 가니메데 · 칼리스토", 6.0)
+
+    # ★ 풀백을 '보이게' 한다 — 목성이 작아지며 바깥 두 위성의 궤도가 화면에 들어온다.
+    #   ⚠️ 절대값으로 지정한다(읽어서 곱하지 않는다). 읽기는 아직 반영 안 된 값을 줄 수 있다.
+    #      칼리스토 궤도가 26.3 목성반지름이라 R=40 은 돼야 담긴다 —
+    #      도킹 R=5 그대로 두면 이오·유로파만 보이고 나머지는 화면 밖이다(실측).
+    say("네 개가 다 들어오게 뒤로 물러나 보자")
+    cam.setPositionR((base_r or 5.0) * PULLBACK, Anim.cubic(7.0), ip)   # 막1이 죽어도 도킹 기본값으로
+    sleep(7.5)
+    print("풀백 후 R =", cam.positionLBR.z)          # ⚠️ HUD(km) 와 대조 — 40 목성반지름이어야 한다
+
+    say("맨눈으로는 절대 안 보인다 — 망원경이 있어야 보인다", 7.0)
+    say("이것이 지동설의 첫 증거가 되었다", 6.5)
 except Exception as e:
     print("막2 오류:", e)
 
