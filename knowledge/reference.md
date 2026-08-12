@@ -392,6 +392,17 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
 - **DateManager**: `setDateTime(y,m,d,h,mi,s,tz,Anim)` `stop()`(setDateTime '앞'에) `julianDate`(읽기) `setMotionType(MotionType.MotionAnalemma/MotionPrecession)`(아날렘마/세차). 시간가속=목표시각+Anim(초).
 - **DataManager/Action**: `DataManager.database().data(Data.Type.타입,"이름").action(Action.Type.FadeTo).trigger()`. FadeTo=페이드전환(비행아님) / GoTo=연속비행 / ConnectTo=프레임만전환. 이름: 은하수="Milky Way", 달="Moon", 화성="Mars"(PlanetType). action이 None이면 미지원.
 - **로컬 파일 경로**: `Configuration.configuration().localUserFolder`(=`D:/SkyExplorer-Data/user`). 이미지/텍스처는 여기 두고 절대경로 or 파일명.
+  ⚠️ `setModelFilename` 의 상대경로 기준점도 **여기다**(2026-08-12 실측). 블랙홀의 `..\data\scene\...` 은 이 폴더에서 한 단계 올라간 `D:\SkyExplorer-Data\data\` 를 가리킨다. `os.getcwd()` 와는 무관.
+- **Insert3D(3D 모델) ✅ 2026-08-12 실측 — 여태 지식이 없던 클래스다**
+  · **자작 모델을 넣을 수 있다.** `.obj` / `.stl` / `.osg`(ASCII) 전부 `Loaded`. 유저 폴더에 파일을 쓰고 파일명 or 절대경로로 건다.
+  · ⚠️⚠️ **모델 단위 = 미터, `setScale` = 순수 배율**(원본 scale 은 1.0). 근거: 반지름 1.732 상자를 ×1e7 → 화면에서 17,321 km.
+    → 화면에 보이려면 **키워야 한다**. 실제 8m 위성은 지구 궤도 조망(R≈20 지구반지름=12.7만 km)에서 ×3e5~1e6 은 돼야 점을 면한다.
+  · ⚠️⚠️ **로딩은 폴링해라.** 고정 `sleep(1.3)` 이면 큰 모델은 `loadingStatus=Loading` / `modelRadius=-1.0` 인 채 지나간다(실측 7개 전부 오판). `Loaded` 뜰 때까지 0.4초씩 최대 12초.
+  · **배치**: `ins.setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))` → `ins.setPositionLBR(Vec(L,B,R), Anim)` — ⚠️ **카메라와 달리 track 인자 없는 2인자**. R 단위는 부모 반지름(지구=6,378km). 정지궤도 = 6.611.
+  · 메서드 19종: setModelFilename/setParent/setPositionLBR/setPositionXYZ/setOrientationHPR/**setScale**/setIntensity/setExposure/setShadowStrength/setPointSize/setUniform/setAnimationName/setAnimationEvolution/setVideoState 등. 읽기: `loadingStatus`/`modelRadius`/`parentRadius`/`scale`/`positionLBR`/`instrospectionOutput`(철자 주의).
+  · ✅ **물체형 모델은 바깥에서 보인다** — 지구 궤도에 놓은 상자가 또렷했다. 옛 노트의 "Insert3D 는 몰입형만 된다"는 **블랙홀 모델 하나의 성질**이지 클래스 한계가 아니다(그 모델은 안쪽을 향한 셸).
+  · ⚠️⚠️ **궤도 위 물체는 '크기'보다 '구도'다 (실측)**: 검증된 궤도 조망(B=35, R=12)에서는 정지궤도 위성이 **화면 밖으로 밀려 안 보였다**.
+    **북극 위 `setPositionLBR(Vec(0, 88, 20), Anim, -1)` 이면 GEO 링 전체가 한 화면**에 들어온다. 안 보이면 배율부터 올리지 말고 **구도를 먼저 의심할 것**.
 
 ## 4. 🛑 시도 금지 (이 빌드서 스크립트로 안 됨)
 - **영상(VideoPlayer) / 오디오(Audio·AudioLayer·AudioLite) / DMX조명(Light)**: 별도 호스트 필요, 무반응.

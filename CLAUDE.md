@@ -519,6 +519,21 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   (Set place2D→북극 R=4 도킹) + 위성들(Charon 등, cmd 1282) ON.
 
 ## Insert3D — 3D 모델 삽입 (2026-07-09 실측, blackhole_show)
+
+- ✅✅✅ **[2026-08-12 대폭 갱신 — 자작 모델 파이프라인이 열렸다] probe_model_pipeline.py / probe_model_scale.py**
+  · **경로 기준점 확정** = `Configuration.configuration().localUserFolder`(`D:/SkyExplorer-Data/user`).
+    블랙홀의 `..\data\scene\...` 은 그 폴더의 **부모**(`D:\SkyExplorer-Data\data\`)를 가리킨다(존재 확인). `os.getcwd()`(`D:\MaintenanceRSAC\StaffData\APE`)와 무관.
+  · ✅ **우리가 만든 모델이 로드된다 — `.obj` / `.stl` / `.osg`(ASCII) 세 포맷 전부 `Loaded`**, 상대(파일명)·절대경로 둘 다.
+    2×2×2 상자의 `modelRadius` 가 정확히 √3=1.7320508 → 엔진이 정점을 제대로 읽는다.
+  · ⚠️⚠️ **모델 단위 = 미터 / `setScale` = 순수 배율(원본 1.0)**. 반지름 1.732 상자 ×1e7 → 화면 17,321 km(지구 2.7배)로 실측 일치.
+  · ⚠️⚠️ **로딩은 폴링**: 고정 `sleep(1.3)` 이면 큰 모델이 `Loading`/`radius=-1.0` 인 채 지나가 **로드 실패로 오판**한다(cassini·ISS·블랙홀 7개 전부 그랬다가 1.6초 주니 Loaded). `Loaded` 뜰 때까지 0.4초씩 최대 12초.
+  · **배치** = `setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))` + `setPositionLBR(Vec(L,B,R), Anim)` — **카메라와 달리 track 없는 2인자**. R 단위 = 부모 반지름(지구 6,378km) → 정지궤도 = 6.611.
+  · ✅✅ **물체형은 바깥에서 보인다 (확정)** — 지구 궤도에 놓은 상자가 또렷. 아래 "블랙홀은 몰입형" 항목은 **그 모델 하나의 성질**이지 Insert3D 한계가 아니다(옛 판정은 0.05×4.85e7 을 포트 단위에 넣은 단위 실수도 겹쳤다).
+  · ⚠️⚠️ **궤도 물체는 크기보다 '구도'** (사용자 실측): 검증된 궤도 조망 `Vec(L,35,12)` 에서는 정지궤도 위성이 **화면 밖**이었다. 사용자가 돌려 보니 **L 0 / B 90 / R 131,247km(=20.6 지구반지름)** 에서 보였다.
+    → **북극 위 `Vec(0, 88, 20)` = GEO 링 전체가 한 화면.** 안 보이면 배율 올리기 전에 구도부터 의심할 것.
+  · **메서드 19종(dir 실측)**: setModelFilename · setParent · setPositionLBR · setPositionXYZ · setOrientationHPR · **setScale** · setIntensity · setIntensityIDV · setExposure · setShadowStrength · setPointSize/setPointSizeFactor/setPointExposure · setUniform · setAnimationName/setAnimationStartTime/setAnimationEvolution · setVideoState/setVideoSpeed.
+    읽기: `loadingStatus`(Loaded/Loading/Error/LoadedPendingDependencies) · `modelRadius` · **`parentRadius`** · `scale` · `positionLBR` · `orientationHPR` · `modelFilename` · `instrospectionOutput`(철자) · `modifyUniform` · `rotateMatrix`/`translateMatrix`/`scaleMatrix`.
+  · **유저 폴더에 모델 파일 1,282개**(우주선 .osg/.ive 151개): `Metaspace\cassini\cassini.osg` · `ISS2019\...\ISS_2019_IVX_4.3_01.osg` · `Metaspace\...\ISS_2020_Full_Lite_HD_v1.ive` · 허블/아폴로/새턴V/셔틀/바이킹(.3DS 다수). ⚠️ **천리안·COMS 계열은 0개** — 만들어야 한다.
 - 생성: `Insert3D(Insert3D.Insert3DName(0))` (family 0x1D). **Insert3DName = 269멤버**(대부분 시스템 예약:
   LiveAtlas/HudGrid 등, 사용자용은 001~052 + 059~068 정도).
 - 로드: `setModelFilename("..\\data\\scene\\astronomy\\...\\모델.osg")` — **Studio 로컬 .osg 경로**(상대).
