@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 # ─────────────────────────────────────────────────────────────
-#  검증: 미확인 — 모델 제작 도구다. 돌리고 나온 화면(위성 모양)이 곧 결과다.
+#  검증: 확인 (2026-08-12) — 돔 실행. `chollian.osg` `Loaded`, radius 5.27 m,
+#        모양 확인(사용자 "모델링은 잘했네"), 궤도 배율은 **×1e6** 채택.
+#        ⚠️ 색은 안 나온다(전부 흰색) — 조명이 켜져 있어 정점색이 무시된다. 재질은 다음 과제.
+#        ⚠️ `.obj` 는 인코딩 사고로 안 만들어졌었다 → 이 판에서 ASCII 가드로 수정(재확인 필요).
 # ─────────────────────────────────────────────────────────────
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -161,7 +164,17 @@ written = []
 
 
 def w(name, text):
+    """⚠️⚠️ [2026-08-12 실측 사고] Studio 파이썬의 `open(p,"w")` 는 **cp949**(한국어 윈도우 기본
+    코덱)로 쓴다. 파일 내용에 ASCII 밖 글자가 하나라도 있으면 통째로 실패한다 —
+    `.obj` 가 헤더의 em-dash(—) 하나 때문에 안 만들어졌고, 그 뒤 '로드 시간초과'는
+    파일이 없어서였지 obj 로더 문제가 아니었다.
+    → **모델 파일 내용은 ASCII 로만 쓴다.** 한글 설명은 이 스크립트 주석에만 둔다."""
     if not USER:
+        return None
+    bad = [c for c in text if ord(c) > 127]
+    if bad:
+        print("   ✗ %s: ASCII 밖 문자 %d개(%s...) — 파일 내용은 ASCII 로만 써야 한다"
+              % (name, len(bad), repr("".join(bad[:5]))))
         return None
     p = os.path.join(USER, name)
     try:
@@ -272,7 +285,8 @@ if RUN_WRITE:
                 "Ks 0.15 0.15 0.15", "Ns 12", "d 1.0", ""]
     w("chollian.mtl", "\n".join(mtl) + "\n")
 
-    obj = ["# Chollian-1 (COMS-1) — 천리안 1호", "mtllib chollian.mtl"]
+    # ⚠️ 파일 내용은 ASCII 만 (위 w() 주석 참조 — cp949 로 저장돼 한글/em-dash 가 못 들어간다)
+    obj = ["# Chollian-1 (COMS-1) geostationary satellite", "mtllib chollian.mtl"]
     vi = 1
     for nm, col, tris in PARTS:
         obj.append("usemtl %s" % nm)
