@@ -1112,6 +1112,53 @@ def _lint_script(code: str, user_prompt: str) -> list:
             )
             break
 
+    # ⚠️⚠️ [2026-08-12 돔 실측 "회전할 때 뚝뚝 끊긴다"] 공전 루프가 스텝마다 멈추는 경우.
+    #   원인은 **`sleep >= anim`** — 다음 스텝이 이전 애니가 끝난 뒤에 들어가면 매 스텝 정지가 보인다.
+    #   재조준 뒤에 `sleep` 을 또 붙이면 그 순간 완전히 멈춘다(실패한 demo2 v1 이 정확히 그랬다).
+    for _i, _l in enumerate(_lines):
+        _m = re.search(r"cam\.setPositionLBR\s*\([^\n]*Anim(?:\.cubic)?\(([\d.]+)\)", _l)
+        if not _m:
+            continue
+        _ind = len(_l) - len(_l.lstrip())
+        if not any(re.match(r"\s*(for|while)\b", _lines[_k])
+                   for _k in range(max(0, _i - 8), _i)):
+            continue                                  # 공전 루프가 아니다
+        _anim = float(_m.group(1))
+        _tot = 0.0
+        for _j in range(_i + 1, min(_i + 7, len(_lines))):
+            _seg = _lines[_j]
+            if not _seg.strip():
+                break
+            if len(_seg) - len(_seg.lstrip()) < _ind:
+                break                                 # 루프 밖으로 나감
+            if re.search(r"cam\.setPositionLBR", _seg):
+                break                                 # 다음 스텝
+            _tot += sum(float(x) for x in re.findall(r"sleep\(([\d.]+)\)", _seg))
+        if _tot >= _anim:
+            issues.append(
+                "공전 루프가 스텝마다 멈춘다 — 한 스텝의 `sleep` 합계가 %.2f초인데 `Anim` 은 %.2f초다(%d번째 줄). "
+                "**`sleep < anim` 이어야 다음 스텝이 겹쳐 들어가 매끄럽다.** "
+                "재조준(`setOrientationSmoothXYZR`)을 넣더라도 **그 뒤에 `sleep` 을 붙이지 마라** — "
+                "그 순간 화면이 완전히 멈춘다. (`track=-1` 공전은 재조준 자체가 불필요하다.)"
+                % (_tot, _anim, _i + 1)
+            )
+            break
+
+    # ⚠️ [같은 실측 "처음에 토성이 보였다 사라진다"] reset 전에 암전이 없는 경우.
+    #   `SceneGraph().reset()` 은 시간이 걸리고 그동안 화면은 **켜진 상태**라 직전 장면이 그대로 노출된다.
+    #   쇼를 연달아 재생하면 매번 앞 쇼의 마지막 화면이 번쩍인다.
+    _rs = re.search(r"SceneGraph\(\)\.reset", code)
+    if _rs and "setGlobalIntensity(0" not in code[:_rs.start()]:
+        _after = code[_rs.end(): _rs.end() + 300]
+        _sl = re.search(r"sleep\(([\d.]+)\)", _after)
+        if _sl and float(_sl.group(1)) >= 0.5:
+            issues.append(
+                "`SceneGraph().reset()` 앞에 암전이 없다 — reset 이 도는 %s초 동안 화면이 켜져 있어 "
+                "**직전 장면이 그대로 보인다**(돔 실측: 토성이 잠깐 보였다 사라짐). "
+                "`Universe(...).setGlobalIntensity(0.0, Anim(0.0))` 을 **reset 보다 먼저** 부르고, "
+                "reset 이 밝기를 1.0 으로 되돌리므로 그 뒤에도 클램프로 눌러둘 것." % _sl.group(1)
+            )
+
     # 날짜/시간 세팅 검사
     for m in re.finditer(r"setDateTime\s*\(\s*(\d{4})\s*,\s*(\d+)\s*,\s*(\d+)", code):
         mm, dd = int(m.group(2)), int(m.group(3))

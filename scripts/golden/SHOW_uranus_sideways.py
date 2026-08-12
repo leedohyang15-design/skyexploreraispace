@@ -202,11 +202,12 @@ try:
     L = L_EDGE
     step = 0
     while L <= L_FACE:
-        cam.setPositionLBR(Vec(L, 0.0, R_SYSTEM), Anim(0.6), ep)
+        cam.setPositionLBR(Vec(L, 0.0, R_SYSTEM), Anim(0.9), ep)
         step += 1
         if step % 3 == 0:
-            cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.6), ep)
-        sleep(0.6)
+            # ⚠️ 재조준은 '겹쳐서' 건다 — 뒤에 sleep 을 붙이면 그 순간 화면이 멈춘다(demo2 v1 실패 원인).
+            cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.9), ep)
+        sleep(0.6)                              # ★ sleep < anim = 겹쳐서 매끄럽게
         L += 4.5
     cam.setOrientationSmoothXYZR(Vec4(0, 0, 0, 0), Anim(0.8), ep)
     sleep(1.0)

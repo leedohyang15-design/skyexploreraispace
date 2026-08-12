@@ -12,6 +12,12 @@ from skyExplorer import *
 from studio import *
 from Initialization import *
 
+Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
+
+# ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
+
+#    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
+
 try:
     SceneGraph().reset(1)
 except Exception:
