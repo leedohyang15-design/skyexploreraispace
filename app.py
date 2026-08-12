@@ -1329,6 +1329,46 @@ def _lint_script(code: str, user_prompt: str) -> list:
             )
             break
 
+    # ⚠️⚠️⚠️ [2026-08-12 3차 돔 실측 — 위 규칙을 통과하고도 또 자막이 안 떴다]
+    #   위 규칙은 **변수 이름**으로 추적한다. 그런데 진짜 정체성은 **슬롯 번호**다.
+    #   `sub(distance, slot=1)` 같은 헬퍼를 지상·우주에 같이 쓰면, 지상에서 걸어 둔
+    #   `setSize` 가 **슬롯에 남아** 우주에서 그 슬롯을 다시 잡을 때 자막이 사라진다.
+    #   (v3: 본 자막은 슬롯 1 재사용이라 안 떴고, 범례는 새 슬롯이라 떴다.)
+    #   → 규칙의 핵심은 '호출을 피하라'가 아니라 **'슬롯을 갈아라'** 다.
+    #   슬롯을 **파라미터로 받으면서** 크기와 거리를 둘 다 만지는 헬퍼를 잡는다.
+    for _fn in ast.walk(tree):
+        if not isinstance(_fn, ast.FunctionDef):
+            continue
+        _params = set()
+        for _a in list(_fn.args.args) + list(getattr(_fn.args, "kwonlyargs", [])):
+            _params.add(_a.arg)
+        if not _params:
+            continue
+        _slot_param = False
+        _has_size = False
+        _dist_param = False
+        for _n in ast.walk(_fn):
+            if not (isinstance(_n, ast.Call) and isinstance(_n.func, ast.Attribute)):
+                continue
+            if _n.func.attr == "InsertTextName" and _n.args:
+                if isinstance(_n.args[0], ast.Name) and _n.args[0].id in _params:
+                    _slot_param = True
+            elif _n.func.attr == "setSize":
+                _has_size = True
+            elif _n.func.attr == "setDistance" and _n.args:
+                if isinstance(_n.args[0], ast.Name) and _n.args[0].id in _params:
+                    _dist_param = True
+        if _slot_param and _has_size and _dist_param:
+            issues.append(
+                "자막 헬퍼 `%s()` 가 **슬롯을 인자로 받으면서** 크기와 거리를 둘 다 만진다 — "
+                "지상·우주에 같은 슬롯을 쓰게 되고, 지상에서 건 `setSize` 가 **슬롯에 남아** "
+                "우주에서 자막이 사라진다(돔 실측 2회). **크기를 되돌리는 API 가 없어서** "
+                "`setSize` 호출만 피하는 걸로는 안 된다 — **슬롯 자체를 갈아야 한다.** "
+                "`sub_ground()`(슬롯 1, setSize 있음) / `sub_space()`(다른 슬롯, setSize 없음) "
+                "처럼 **프레임별로 함수를 나누고 슬롯 번호를 상수로 고정**하라." % _fn.name
+            )
+            break
+
     return issues
 
 

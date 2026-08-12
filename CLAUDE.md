@@ -938,7 +938,10 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · **지상 = `setSize(0.052)` + `setDistance(1.0)`** / **행성·은하 = `setSize` 호출 금지(기본값 유지) + `setDistance(20)`**
   · ⚠️ **크기를 되돌리는 API 가 없다** → 지상에서 쓰던 자막의 **거리만** 20 으로 바꾸면 안 보인다.
     **크기를 한 번도 안 건드린 새 슬롯**(다른 InsertTextName)으로 갈아탈 것.
-  · 헬퍼를 하나로 쓸 거면 **거리로 분기**해서 지상에서만 `setSize` 를 부른다. (린터 규칙으로 승격 — `setDistance(20)`+`setSize` 동시 호출을 잡는다.)
+  · ⚠️⚠️⚠️ **[3차 실측] '호출을 피하라'로는 안 된다 — '슬롯을 갈아라'가 규칙이다.**
+    `setSize` 를 안 불러도 **지상에서 크기를 걸어 둔 슬롯을 우주에서 재사용하면 그대로 안 보인다**(크기가 슬롯에 남는다).
+    → `SLOT_GROUND=1` / `SLOT_SPACE=5` 처럼 **상수로 못 박고 함수를 나눈다**(`sub_ground()`/`sub_space()`).
+    ⚠️ **슬롯을 인자로 받는 자막 헬퍼 하나로 두 프레임을 처리하지 마라** — 두 번 연속 자막을 죽인 형태다(린터 규칙 2개로 승격).
 - ⚠️⚠️ **지상 쇼 → 우주 쇼 전환 시 지구 렌더를 되살려라 (2026-08-12 실측)**: 지상 하늘 쇼는 `setTerrainIntensity(0)`·`setAtmosphereIntensity(0)` 로 지면·대기를 끈다.
   그대로 FadeTo 지구를 하면 **지구가 회색 공이 되고, 가까이 갈수록 그릴 표면이 없어 아예 사라진다**(R=3.2 에서 화면이 텅 빔).
   → 우주 진입 직후 `setIntensity(1)` + `setTerrainIntensity(1)` + `setTerrainModel(BMNG_Ocean)` + `setAtmosphereIntensity(1)` 로 복구.
