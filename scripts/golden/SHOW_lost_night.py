@@ -88,7 +88,8 @@ def goto_place(dtype, name, caption, during=None, fade=10.0):
 
 
 # ── 막0 : 원래의 밤하늘부터 (어두운 곳에서 시작) ─────────────
-SceneGraph().reset(1); sleep(1.6)
+SceneGraph().reset(1)
+clamp_dark(1.6)   # ⚠️ reset 은 밝기를 1.0 으로 되돌린다 — 계속 눌러야 세팅이 안 보인다
 uni.setGlobalIntensity(0.0, Anim(0.0))
 ground_night_slow(y=2026, mo=8, d=1, h=13, mw=0.9)     # 여름밤, 은하수 가득
 make_caption(1.0)

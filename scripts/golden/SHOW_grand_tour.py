@@ -163,7 +163,8 @@ def fly_to_planet(name, caption, zoom=True, pullback=None, inertial_obj=None):
     if zoom: zoom_in()
 
 # ── 막0 : 지상에서 출발 ──────────────────────────────────────
-SceneGraph().reset(1); sleep(1.6)
+SceneGraph().reset(1)
+clamp_dark(1.6)   # ⚠️ reset 은 밝기를 1.0 으로 되돌린다 — 계속 눌러야 세팅이 안 보인다
 uni.setGlobalIntensity(0.0, Anim(0.0))
 ground_night_slow(y=2026, mo=1, d=15, h=12)
 make_caption(1.0)

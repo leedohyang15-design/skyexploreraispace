@@ -24,6 +24,15 @@
 from skyExplorer import *
 from studio import *
 from Initialization import *
+def _dark(sec=0.0):
+    """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+       ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+          세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+    u = Universe(Universe.UniverseName.MainUniverse)
+    for _ in range(max(int(sec / 0.2), 1)):
+        u.setGlobalIntensity(0.0, Anim(0.0))
+        if sec:
+            sleep(0.2)
 
 cam = Camera(Camera.CameraName.MainCamera)
 dm  = DateManager()
@@ -33,7 +42,7 @@ tz  = DateManager.TimeZone.DefaultTimeZone
 Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-SceneGraph().reset(1); sleep(1.5)
+SceneGraph().reset(1); _dark(1.5)
 earth = Planet(Planet.PlanetName.Earth)
 earth.setIntensity(1.0, Anim(0.0))
 earth.setAtmosphereIntensity(0.0, Anim(0.0))      # 대기 OFF
@@ -42,7 +51,9 @@ Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
 Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))   # 청주
 dm.stop(); sleep(0.3)
 dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)         # 밤 21시 = 12 UTC
+_dark()
 cam.setTargetHeight(30.0, Anim(0.0))
+_dark()
 sleep(2.0)
 
 # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면

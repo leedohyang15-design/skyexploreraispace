@@ -22,6 +22,15 @@
 from skyExplorer import *
 from studio import *
 from Initialization import *
+def _dark(sec=0.0):
+    """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+       ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+          세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+    u = Universe(Universe.UniverseName.MainUniverse)
+    for _ in range(max(int(sec / 0.2), 1)):
+        u.setGlobalIntensity(0.0, Anim(0.0))
+        if sec:
+            sleep(0.2)
 
 cam = Camera(Camera.CameraName.MainCamera)
 dm  = DateManager()
@@ -31,7 +40,7 @@ tz  = DateManager.TimeZone.DefaultTimeZone
 Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-SceneGraph().reset(1); sleep(1.5)
+SceneGraph().reset(1); _dark(1.5)
 # ⚠️ 여기서 불을 켜지 않는다 — 도킹·고리면 개방까지 전부 암전 속에서 끝낸 뒤 페이드인한다.
 #    (돔 실측: "쇼마다 카메라를 자꾸 조정하는 게 보인다" = 세팅을 불 켠 채로 했기 때문)
 Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))
@@ -83,6 +92,7 @@ p = cam.positionLBR
 cam.setPositionLBR(Vec(p.x, 75.0, p.z), Anim.cubic(5.0), -1)
 sleep(5.5)
 cam.setTargetHeight(30.0, Anim.cubic(1.5))    # 관람 표준
+_dark()
 sleep(2.0)
 
 # ★ 도킹·고리면 개방·틸트가 전부 끝난 뒤에야 페이드인

@@ -157,7 +157,8 @@ def to_inertial(planet_obj):
 # ══════════════════════════════════════════════════════════════
 #  막 0 — 지상에서 달 올려다보기
 # ══════════════════════════════════════════════════════════════
-SceneGraph().reset(1); sleep(1.6)
+SceneGraph().reset(1)
+clamp_dark(1.6)   # ⚠️ reset 은 밝기를 1.0 으로 되돌린다 — 계속 눌러야 세팅이 안 보인다
 uni.setGlobalIntensity(0.0, Anim(0.0))
 ground_night_slow(y=2026, mo=3, d=5, h=12, mi=0)     # 보름 근처 밤(21시=12 UTC)
 make_caption(1.0)

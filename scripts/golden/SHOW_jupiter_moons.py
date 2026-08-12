@@ -117,7 +117,7 @@ def wait_dock(max_s=18.0):
 # ── 막0 : 지상에서 — 1610년의 그 별 ──────────────────────────
 try:
     SceneGraph().reset(1)
-    sleep(1.5)
+    for _ in range(7): uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.2)
     uni.setGlobalIntensity(0.0, Anim(0.0))
 
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
@@ -131,10 +131,13 @@ try:
 
     dm.stop(); sleep(0.2)
     dm.setDateTime(2026, 3, 20, 13, 0, 0, tz, Anim(0.0))    # 청주 밤 22시 = 13 UTC
+    uni.setGlobalIntensity(0.0, Anim(0.0))
     sleep(0.4)
 
     cam.setOrientationH(0.0, Anim(0.0))              # 남쪽
+    uni.setGlobalIntensity(0.0, Anim(0.0))
     cam.setTargetHeight(30.0, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0))
 
     txt = InsertText(InsertText.InsertTextName(1))
     cam.addChild(txt.id, Camera.CameraPort.FixedForeground)

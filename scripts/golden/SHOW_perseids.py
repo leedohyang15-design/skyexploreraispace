@@ -86,7 +86,7 @@ Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
 try:
     SceneGraph().reset(1)
-    sleep(1.5)
+    for _ in range(7): uni.setGlobalIntensity(0.0, Anim(0.0)); sleep(0.2)
     uni.setGlobalIntensity(0.0, Anim(0.0))
 
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 800.0))   # 청주(고도 800m 산지)
@@ -100,10 +100,13 @@ try:
     dm.stop(); sleep(0.2)
     # ★ 청주 8/13 새벽 2시(극대·페르세우스 고도 충분) = 8/12 17:00 UTC
     dm.setDateTime(2026, 8, 12, 17, 0, 0, tz, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0))
     sleep(0.4)
 
     cam.setOrientationH(H_NORTHEAST, Anim(0.0))      # 북동
+    uni.setGlobalIntensity(0.0, Anim(0.0))
     cam.setTargetHeight(TILT, Anim(0.0))
+    uni.setGlobalIntensity(0.0, Anim(0.0))
 
     txt = InsertText(InsertText.InsertTextName(1))
     cam.addChild(txt.id, Camera.CameraPort.FixedForeground)

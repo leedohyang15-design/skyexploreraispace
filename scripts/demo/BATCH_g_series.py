@@ -61,6 +61,15 @@ try:
     #   ③ 프레이밍은 Target(고도) 30 으로만       ④ 그림자 OFF 3세터 = 표면 전체 밝게
     #   ⑤ 줌 2대 원칙: 절대타겟(p0 한 번만) + 선형 Anim + 겹치기(sleep < anim)
     #   ⑥ 안전장치: p0 가 비정상 범위면 줌을 건너뛴다(폭발 방지)
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     cam = Camera(Camera.CameraName.MainCamera)
     dm  = DateManager()
@@ -70,7 +79,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))      # 대기 OFF
@@ -79,7 +88,9 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))   # 청주
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)         # 밤 21시 = 12 UTC
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(2.0)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -151,6 +162,15 @@ try:
     # ⚠️⚠️ **비행이 끝나기 전에 줌을 걸면 비행을 가로채 카메라가 태양계 한복판으로 날아간다.**
     #      (sleep(4) 후 p0=105,609 를 읽어 나누면 2.6억km 지점으로 이동 → 태양만 보임)
     # ✅ 정답 = **도착 폴링**: R 이 안정되고(변화 < 0.01) 도킹권(R < 100)에 들어올 때까지 기다린다.
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     cam = Camera(Camera.CameraName.MainCamera)
     dm  = DateManager()
@@ -183,7 +203,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -192,7 +212,9 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(2.0)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -257,6 +279,15 @@ try:
     #   ③ NGC 패널(NgcType)              → 이동 액션 없음, LookAt + ScaleUp
     # ⚠️ NGC6543 은 'NGC 번호'지만 NEBULA 패널 소속이라 NebulaType 으로 찾아야 함
     #    (NgcType 으로 찾으면 안 나옴 — 같은 번호라도 패널 소속이 능력을 가름)
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     cam = Camera(Camera.CameraName.MainCamera)
     uni = Universe(Universe.UniverseName.MainUniverse)
@@ -267,7 +298,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -277,8 +308,11 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 7, 15, 13, 0, 0, tz, Anim(0.0)); sleep(0.4)   # 여름밤 22시
+    _dark()
     cam.setOrientationH(180.0, Anim(0.0))       # 북쪽(용자리 방향)
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(2.0)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -333,6 +367,15 @@ try:
     #     · LookAt   = 조준(성운을 화면 중앙으로)
     #     · ScaleUp  = 확대 (1회 = 1단계 → 반복 트리거). NGC 는 setScale/scale 속성이 없음
     #   → 카메라로 다가가는 게 아니라 '개체를 키워서' 접근 느낌을 낸다.
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     SCALE_STEPS = 6          # ScaleUp 반복 횟수(크기 조절용)
 
@@ -344,7 +387,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -354,8 +397,11 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)
+    _dark()
     cam.setOrientationH(30.0, Anim(0.0))         # 남동쪽(외뿔소자리)
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(1.5)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -419,6 +465,15 @@ try:
     #   🛑 061_WeatherEffectRain / 062_Snow = 별도 날씨 렌더러 소관이라 死(쓰지 말 것)
     #   ★ 핵심: setEnabled(True) 후 **sleep(1.5) 프레임 대기** 없으면 enabled 가 False 로 남음
     #   → 88개 별자리를 개별 호출할 필요 없이 한 번에 부드럽게 페이드
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     cam = Camera(Camera.CameraName.MainCamera)
     dm  = DateManager()
@@ -428,7 +483,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -438,8 +493,11 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0)); sleep(0.4)
+    _dark()
     cam.setOrientationH(0.0, Anim(0.0))
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(2.0)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -511,6 +569,15 @@ try:
     #
     # ⚠️ 준비: localUserFolder(D:/SkyExplorer-Data/user)에 우주선 PNG(투명배경) 1장.
     #    파일명 몰라도 되게 폴더를 자동 탐색한다.
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
     import os
 
     cam = Camera(Camera.CameraName.MainCamera)
@@ -551,7 +618,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -561,8 +628,11 @@ try:
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 8, 1, 13, 0, 0, tz, Anim(0.0)); sleep(0.4)
+    _dark()
     cam.setOrientationH(0.0, Anim(0.0))
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
     sleep(2.0)
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
@@ -632,6 +702,15 @@ try:
     #
     # 연출 포인트: 관측지가 바뀌면 **같은 시각인데 하늘이 달라진다**(위도에 따라 별자리 높이·
     #   보이는 별자리가 바뀜). 남반구(시드니)로 가면 오리온이 뒤집혀 보이는 게 하이라이트.
+    def _dark(sec=0.0):
+        """암전 '유지' — reset/FadeTo/무거운 세팅은 밝기를 1.0 으로 되돌린다.
+           ⚠️ setGlobalIntensity(0) 을 **한 번만** 걸면 소용없다(2026-08-12 실측: 그래서
+              세팅 구간이 그대로 보였다). 이 함수를 세팅 단계마다 끼워 넣어 계속 눌러준다."""
+        u = Universe(Universe.UniverseName.MainUniverse)
+        for _ in range(max(int(sec / 0.2), 1)):
+            u.setGlobalIntensity(0.0, Anim(0.0))
+            if sec:
+                sleep(0.2)
 
     # (도시이름, 자막) — 이름은 DB 표기 그대로. 실측 확인: Seoul/Paris/New York/London/Tokyo
     CITIES = [
@@ -650,7 +729,7 @@ try:
     Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
     # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
     #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
-    SceneGraph().reset(1); sleep(1.5)
+    SceneGraph().reset(1); _dark(1.5)
     earth = Planet(Planet.PlanetName.Earth)
     earth.setIntensity(1.0, Anim(0.0))
     earth.setAtmosphereIntensity(0.0, Anim(0.0))     # 대기 OFF
@@ -659,9 +738,12 @@ try:
     Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.5, Anim(0.0))
     dm.stop(); sleep(0.3)
     dm.setDateTime(2026, 1, 15, 12, 0, 0, tz, Anim(0.0))   # 같은 시각 고정(UTC)
+    _dark()
     sleep(0.5)
     cam.setOrientationH(0.0, Anim(0.0))
+    _dark()
     cam.setTargetHeight(30.0, Anim(0.0))
+    _dark()
 
     # ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
     #   그 조정 과정이 관객에게 그대로 보인다(돔 실측: "쇼마다 카메라를 자꾸 조정하는 게 보인다").
