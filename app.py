@@ -1112,17 +1112,53 @@ def _lint_script(code: str, user_prompt: str) -> list:
             )
             break
 
+    # ⚠️ [2026-08-12 오탐 교정] '공전 루프' 규칙 3개는 **A/B 스윕 루프**를 오해한다.
+    #   프로브·비교 장면은 `for mul in (...)` 안에서 값을 바꾸고 **스텝마다 페이드인**해 보여준다.
+    #   그건 끊겨야 정상이다(비교가 목적) — 매끄러움을 요구하면 안 된다.
+    #   가르는 신호: **루프 안에서 화면을 다시 켜는가.** 공전을 매 스텝 페이드인하는 사람은 없다.
+    # ⚠️ [같은 날 두 번째 오탐] "루프 안인가"를 **8줄 되돌아보기**로 판정하던 것도 틀렸다.
+    #   바로 위에 무관한 짧은 `for` 가 있으면 그 다음의 **일회성 카메라 배치**까지 공전으로 본다.
+    #   → 들여쓰기 추측 대신 AST 로 '루프 본문에 속한 줄'을 정확히 모은다.
+    _sweep_lines = set()
+    _loop_body_lines = set()
+    try:
+        _t0 = ast.parse(code)
+        for _n in ast.walk(_t0):
+            if not isinstance(_n, (ast.For, ast.While)):
+                continue
+            if _n.body:
+                _b0 = _n.body[0].lineno
+                _b1 = getattr(_n, "end_lineno", _b0) or _b0
+                _loop_body_lines |= set(range(_b0, _b1 + 1))
+            if not isinstance(_n, ast.For):
+                continue
+            _fades_in = False
+            for _c in ast.walk(_n):
+                if not (isinstance(_c, ast.Call) and isinstance(_c.func, ast.Attribute)
+                        and _c.func.attr == "setGlobalIntensity" and _c.args):
+                    continue
+                _a0 = _c.args[0]
+                if isinstance(_a0, ast.Constant) and isinstance(_a0.value, (int, float)) \
+                        and _a0.value > 0:
+                    _fades_in = True
+            if _fades_in:
+                _end = getattr(_n, "end_lineno", _n.lineno) or _n.lineno
+                _sweep_lines |= set(range(_n.lineno, _end + 1))
+    except SyntaxError:
+        pass
+
     # ⚠️⚠️ [2026-08-12 돔 실측 "회전할 때 뚝뚝 끊긴다"] 공전 루프가 스텝마다 멈추는 경우.
     #   원인은 **`sleep >= anim`** — 다음 스텝이 이전 애니가 끝난 뒤에 들어가면 매 스텝 정지가 보인다.
     #   재조준 뒤에 `sleep` 을 또 붙이면 그 순간 완전히 멈춘다(실패한 demo2 v1 이 정확히 그랬다).
     for _i, _l in enumerate(_lines):
+        if _i + 1 in _sweep_lines:
+            continue                                  # A/B 스윕 — 끊기는 게 목적이다
         _m = re.search(r"cam\.setPositionLBR\s*\([^\n]*Anim(?:\.cubic)?\(([\d.]+)\)", _l)
         if not _m:
             continue
         _ind = len(_l) - len(_l.lstrip())
-        if not any(re.match(r"\s*(for|while)\b", _lines[_k])
-                   for _k in range(max(0, _i - 8), _i)):
-            continue                                  # 공전 루프가 아니다
+        if _i + 1 not in _loop_body_lines:
+            continue                                  # 루프 본문이 아니다 = 공전 루프가 아니다
         _anim = float(_m.group(1))
         _tot = 0.0
         for _j in range(_i + 1, min(_i + 7, len(_lines))):
@@ -1212,6 +1248,8 @@ def _lint_script(code: str, user_prompt: str) -> list:
         names = _effective_calls(node)
         if "setPositionLBR" not in names:
             continue                      # 카메라 공전 루프가 아니다
+        if node.lineno in _sweep_lines:
+            continue                      # A/B 스윕 — 위 교정 주석 참조
 
         # ⚠️⚠️ 재조준이 '필요한 공전'과 '아닌 공전'을 가르는 건 **track 인자**다(실측 3건 일치):
         #   · 포트 프레임 공전(달=EquatorialSync, 말머리·오리온=Nebula LOS) → 재조준 필수.
