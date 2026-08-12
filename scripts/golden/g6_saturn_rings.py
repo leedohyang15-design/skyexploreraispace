@@ -32,7 +32,8 @@ Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
 SceneGraph().reset(1); sleep(1.5)
-Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim(0.0))
+# ⚠️ 여기서 불을 켜지 않는다 — 도킹·고리면 개방까지 전부 암전 속에서 끝낸 뒤 페이드인한다.
+#    (돔 실측: "쇼마다 카메라를 자꾸 조정하는 게 보인다" = 세팅을 불 켠 채로 했기 때문)
 Stars(Stars.StarsName.StarrySky).setIntensity(0.0, Anim(0.0))
 dm.stop(); sleep(0.3)
 
@@ -48,6 +49,8 @@ def wait_dock(max_s=16.0):
        행성이 의도보다 작게 잡힌다. → R 이 멈춘 뒤에 읽는다."""
     prev, stable, t = None, 0, 0.0
     while t < max_s:
+        # ★ 클램프 겸용 — FadeTo 가 밝기를 1.0 으로 되돌리므로 계속 눌러야 도킹 슬루가 안 보인다
+        Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
         cur = None
         try:
             cur = cam.positionLBR.z
@@ -81,6 +84,10 @@ cam.setPositionLBR(Vec(p.x, 75.0, p.z), Anim.cubic(5.0), -1)
 sleep(5.5)
 cam.setTargetHeight(30.0, Anim.cubic(1.5))    # 관람 표준
 sleep(2.0)
+
+# ★ 도킹·고리면 개방·틸트가 전부 끝난 뒤에야 페이드인
+Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim.cubic(2.0))
+sleep(2.2)
 
 # ── 자막 ─────────────────────────────────────────────────────
 t1 = InsertText(InsertText.InsertTextName(1))

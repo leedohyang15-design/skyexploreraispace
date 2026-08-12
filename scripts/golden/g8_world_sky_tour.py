@@ -39,7 +39,6 @@ Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
 SceneGraph().reset(1); sleep(1.5)
-uni.setGlobalIntensity(1.0, Anim(0.0))
 earth = Planet(Planet.PlanetName.Earth)
 earth.setIntensity(1.0, Anim(0.0))
 earth.setAtmosphereIntensity(0.0, Anim(0.0))     # 대기 OFF
@@ -52,6 +51,10 @@ sleep(0.5)
 cam.setOrientationH(0.0, Anim(0.0))
 cam.setTargetHeight(30.0, Anim(0.0))
 
+# ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
+#   그 조정 과정이 관객에게 그대로 보인다(돔 실측: "쇼마다 카메라를 자꾸 조정하는 게 보인다").
+Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim.cubic(2.0))
+sleep(2.2)
 # 오리온을 기준점으로 (도시마다 높이·기울기가 달라지는 게 보임)
 ori = Constellation(Constellation.ConstellationName.Ori)
 ori.setLinesIntensity(0.8, Anim(1.0))

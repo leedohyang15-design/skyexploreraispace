@@ -28,22 +28,40 @@ dm  = DateManager()
 tz  = DateManager.TimeZone.DefaultTimeZone
 
 # ── 이미지 자동 탐색 ─────────────────────────────────────────
+#   ⚠️⚠️ [2026-08-12 돔 실측] 예전엔 폴더의 **첫 번째** 이미지를 무조건 썼다
+#     (`sorted(...)[0]`). 그런데 유저폴더에는 예전 실험 파일(시계 문자판·별 스프라이트·링 PNG 등)이
+#     같이 들어 있어서, 우주선 대신 **시계가 떴다**. 파일명으로 골라야 한다.
+#   ⚠️ 후보가 없으면 **아무 이미지나 대신 쓰지 않는다** — 엉뚱한 그림이 뜨는 게 안 뜨는 것보다 나쁘다.
 base = Configuration.configuration().localUserFolder
-imgs = []
+WANT = ("ship", "spaceship", "spacecraft", "probe", "rocket", "craft", "우주선", "탐사선")
+SKIP = ("clock", "hand", "face", "dial", "star", "sprite", "ring", "palette", "test", "target", "frame")
+
+allimg, imgs = [], []
 try:
     for f in sorted(os.listdir(base)):
-        if f.lower().endswith((".png", ".jpg", ".jpeg")):
-            imgs.append(base.rstrip("/\\") + "/" + f)
+        if not f.lower().endswith((".png", ".jpg", ".jpeg")):
+            continue
+        p = base.rstrip("/\\") + "/" + f
+        allimg.append(p)
+        n = f.lower()
+        if any(w in n for w in WANT) and not any(w in n for w in SKIP):
+            imgs.append(p)
 except Exception as ex:
     print("폴더 목록 실패:", ex)
-print("사용할 이미지:", imgs[0] if imgs else "(없음 — PNG 1장 넣어주세요)")
+
+if imgs:
+    print("사용할 이미지:", imgs[0])
+else:
+    print("⚠️ 우주선 이미지를 못 찾았다. 폴더:", base)
+    print("   있는 이미지:", [os.path.basename(x) for x in allimg][:12])
+    print("   → 파일명에 'ship' 이 들어가는 PNG(투명배경) 1장을 넣어주세요.")
+    print("   (아무 이미지나 대신 쓰지 않는다 — 예전엔 시계 문자판이 우주선 자리에 떴다.)")
 
 # ── 별밭 배경 ────────────────────────────────────────────────
 Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(0.0, Anim(0.0))
 # ⚠️ [2026-08-12] 암전은 **reset 보다 먼저**. reset 뒤에 걸면 그 사이 직전 장면이 그대로 보인다
 #    (돔 실측: 토성이 잠깐 보였다 사라짐). reset 은 밝기를 1.0 으로 되돌리니 뒤에서 다시 눌러야 한다.
 SceneGraph().reset(1); sleep(1.5)
-Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim(0.0))
 earth = Planet(Planet.PlanetName.Earth)
 earth.setIntensity(1.0, Anim(0.0))
 earth.setAtmosphereIntensity(0.0, Anim(0.0))
@@ -57,6 +75,10 @@ cam.setOrientationH(0.0, Anim(0.0))
 cam.setTargetHeight(30.0, Anim(0.0))
 sleep(2.0)
 
+# ★ 세팅이 전부 끝난 뒤에야 페이드인 — 관측지·시각·조준을 불 켠 채로 하면
+#   그 조정 과정이 관객에게 그대로 보인다(돔 실측: "쇼마다 카메라를 자꾸 조정하는 게 보인다").
+Universe(Universe.UniverseName.MainUniverse).setGlobalIntensity(1.0, Anim.cubic(2.0))
+sleep(2.2)
 t1 = InsertText(InsertText.InsertTextName(1))
 cam.addChild(t1.id, Camera.CameraPort.FixedForeground)
 t1.setPosition(Vec(0, 20, 0)); t1.setSize(0.052)
@@ -67,9 +89,15 @@ sleep(3.0)
 # ── Insert2D 붙이기 ──────────────────────────────────────────
 ship = Insert2D(Insert2D.Insert2DName.Insert2D001)
 cam.addChild(ship.id, Camera.CameraPort.FixedForeground)
+# ⚠️⚠️ [2026-08-12 돔 실측] **텍스처를 못 걸었으면 intensity 도 올리지 마라.**
+#   Insert2D 슬롯은 **이전 스크립트가 걸어둔 텍스처를 그대로 들고 있다.** 예전 코드는
+#   `if imgs:` 로 setTexture 만 막고 intensity 는 무조건 1.0 으로 올려서,
+#   슬롯에 남아 있던 **시계 문자판이 우주선 자리에 그대로 떴다.**
 if imgs:
     ship.setTexture(imgs[0])
-ship.setIntensity(1.0, Anim(0.0))
+    ship.setIntensity(1.0, Anim(0.0))
+else:
+    ship.setIntensity(0.0, Anim(0.0))      # 이미지가 없으면 아예 숨긴다(잔상 방지)
 
 # ── ① 접근: 작은 점(낮은 곳) → 크게(위로) ───────────────────
 ship.setSize(0.04, Anim(0.0))
