@@ -763,11 +763,17 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   0 과 0.05 로 나란히 놓아도 구분이 안 됐으니 **감쇠항이 원인이 아니다.** (아래 2026-08-12 자 '원인 확정' 기록은 폐기.)
   ⚠️⚠️ **위 '✅ 렌더됨' 기록도 정정한다** — 궤도 5개가 겹쳐 있어 나선인 걸 둘 다 못 알아본 것이다.
   **핸들이 살아 있고 화면에 뭔가 그려진다고 '된다'가 아니다.** 개체 하나만 띄워 모양을 봐야 한다.
-  ✅✅ **대안(확정 경로) = 궤도선을 '직접 구운 고리 모델'로 그린다** (`scripts/study/make_orbit_ring.py`):
-  반지름 1.0(미터) 짜리 얇은 고리를 OSG 로 구워 `Insert3D` 로 올리고 **`setScale(궤도반지름[m])`** —
-  정지궤도 42,164 km → `setScale(4.2164e7)`. `setParent(관성 포트)` + `setPositionLBR(Vec(0,0,0))` = 지구 중심.
-  **계산으로 그린 원이라 전파기가 없다 = 나선이 될 수가 없다.** 색은 `Material{emissionColor}` 로 스스로 빛나게.
-  ⚠️ 남는 미지수는 **고리를 적도면에 눕히는 `setOrientationHPR`** 하나 — `probe_ring_model.py` 로 (0,0,0)/(0,90,0)/(90,0,0) A/B.
+  ✅✅✅ **대안 확정 = 궤도선을 '직접 구운 고리 모델'로 그린다 (2026-08-13 사용자 스샷 4장으로 검증 완료)**
+  (`scripts/study/make_orbit_ring.py` + `probe_ring_model.py`):
+  · 반지름 **1.0(미터)** 짜리 얇은 고리를 OSG 로 구워 `Insert3D` 로 올리고 **`setScale(궤도반지름[m])`**
+    — 정지궤도 42,164 km → `setScale(4.2164e7)`. **닫힌 원**으로 렌더된다(전파기가 없으니 나선이 불가능).
+  · `setParent(지구 관성 포트)` + **`setPositionLBR(Vec(0,0,0))`** = 지구 중심. R=0 이 정상 동작한다.
+  · ✅ **`setOrientationHPR(Vec(0,0,0))` 이 적도면에 눕는다** — (0,90,0)은 옆으로 서고, (90,0,0)도 누움(같은 평면).
+  · ✅ **축척 검증**: 같은 프레임에 놓은 정지궤도 위성(동기 프레임 R=6.611)이 **고리 위에 정확히 얹힌다.**
+    즉 `Insert3D` 의 미터 단위 축척과 LBR 의 지구반지름 단위가 서로 맞아떨어진다.
+  · 색 = `Material{emissionColor}` 를 색 그대로 = **스스로 빛난다**(태양 각도와 무관하게 늘 보임). 앞뒤 양면을 다 굽는다.
+  · 띠 폭은 반지름의 **1.2%**(정지궤도에서 ~500km)면 가느다란 선으로 보기 좋다.
+  → **엔진이 못 그리는 기하는 직접 구워서 올리면 된다**는 일반 해법. 궤도선 말고도 쓸 수 있다(고리·격자·표식).
   ⚠️ (구 기록, 폐기) "궤도선이 나선이면 `setBstar`·`setEpochYears` 누락" — **틀렸다.** 위 판별 결과 참조.
 - **부모 = 지구**: `op.setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))`. 표시 = `setOrbitColor`(Vec3)/`setOrbitThickness`/`setOrbitIntensity` + `setIntensity`.
 - ✅✅ **레시피 (확정)**: reset → **FadeTo 지구(외부)** → 풀백 `cam.setPositionLBR(Vec(L, 35, 12), Anim, -1)`(R=12 지구반지름=HUD 76538km, B35 오블리크) + `setTargetHeight(30)` → 위성들 TLE 요소 + 시간가속(setDateTime +1일) = 고도별 공전속도 차(케플러). 몰니야(e=0.74)는 찌그러진 타원으로 정확히 렌더.

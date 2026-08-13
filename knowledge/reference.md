@@ -222,8 +222,11 @@ from Initialization import *      # DateManager 등 매니저 클래스
   판별 프로브의 A 단계 = **검증된 예제 코드 그대로**였는데 그것도 나선(사용자 "다 나선").
   카메라 프레임·단독 렌더·`semiMajorAxis`·**bstar 0 vs 0.05 대조**까지 전부 나선 → **감쇠항이 원인이 아니다.**
   (2026-08-12 자 "`setBstar` 누락이 원인" 기록은 **오진, 폐기**.)
-  ✅ **대안 = 고리를 직접 구워 `Insert3D` 로 올린다**(`make_orbit_ring.py`): 반지름 1.0 m 고리 →
-  `setScale(궤도반지름[m])` + `setParent(관성 포트)` + `setPositionLBR(Vec(0,0,0))`. 전파기가 없으니 나선이 불가능하다.
+  ✅✅✅ **대안 확정(2026-08-13 스샷 검증) = 고리를 직접 구워 `Insert3D` 로 올린다**(`make_orbit_ring.py`):
+  반지름 1.0 m 고리 → `setScale(궤도반지름[m])` + `setParent(관성 포트)` + `setPositionLBR(Vec(0,0,0))`.
+  **`setOrientationHPR(Vec(0,0,0))` 이 적도면에 눕는다**(0,90,0 은 섬). 닫힌 원으로 렌더되고,
+  **정지궤도 위성이 그 고리 위에 정확히 얹힌다**(미터 축척 ↔ LBR 지구반지름 단위 일치 확인).
+  색은 `Material{emissionColor}` 로 자체 발광. **엔진이 못 그리는 기하는 직접 구워 올리면 된다.**
   ⚠️⚠️ **교훈: '핸들이 살아 있고 화면에 뭔가 그려진다' ≠ '된다'.** 예전에 이걸 ✅로 적은 건 궤도 5개가
   겹쳐 있어 나선인 걸 못 알아본 것이다. **개체를 하나만 띄워 모양을 확인**하고 나서 ✅를 붙일 것.
   TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
