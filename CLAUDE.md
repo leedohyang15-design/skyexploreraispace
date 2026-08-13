@@ -582,6 +582,14 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
       '옆에 두려고' 경도를 고정하면 **저고도에서 화면을 통째로 덮는다**(R=1.6·9° = 겨우 1,600km,
       겉보기 146° 실측). 거리 = 2·R·sin(Δ/2). **올라가며 Δ 를 좁혀** 거리를 일정하게 유지할 것
       (위치와 자세를 같은 Anim 으로 함께 애니메이션 — 구간마다 끊으면 각도를 홱 트는 게 보인다).
+
+  ⚠️⚠️⚠️ **[2026-08-13 돔 실측] '자작 모델이 반투명해 보인다' = 재질이 아니라 **거리**다 (대기 산란).**
+    지상 발사 장면에서 로켓을 관측자 경도 +3°(= **333 km**)에 세웠더니 **하늘색으로 덮여 통째로 반투명**하게 보였다
+    (사용자 "아리랑이 무슨 투명하다"). `emissionColor` 를 0.18 배로 낮게 줬는데도 그랬다 — 재질 문제가 아니다.
+    수백 km 떨어진 물체는 **엔진의 대기 산란(aerial perspective)** 이 하늘색으로 칠해 버린다.
+    → **가까이·작게가 정답**: 6.6 km(경도 0.06°) 앞 + 배율 50(높이 2.8 km) = 색·윤곽이 살아난다.
+    ⚠️ **지상에서 경도 오프셋 → 거리 환산**: 거리 ≈ 지구반지름 × Δ경도(rad) × cos(위도).
+      0.06° ≈ 6.6 km / 3° ≈ 333 km. **각도 감각으로 넣지 말고 매번 km 로 환산할 것.**
   · **메서드 19종(dir 실측)**: setModelFilename · setParent · setPositionLBR · setPositionXYZ · setOrientationHPR · **setScale** · setIntensity · setIntensityIDV · setExposure · setShadowStrength · setPointSize/setPointSizeFactor/setPointExposure · setUniform · setAnimationName/setAnimationStartTime/setAnimationEvolution · setVideoState/setVideoSpeed.
     읽기: `loadingStatus`(Loaded/Loading/Error/LoadedPendingDependencies) · `modelRadius` · **`parentRadius`** · `scale` · `positionLBR` · `orientationHPR` · `modelFilename` · `instrospectionOutput`(철자) · `modifyUniform` · `rotateMatrix`/`translateMatrix`/`scaleMatrix`.
   · **유저 폴더에 모델 파일 1,282개**(우주선 .osg/.ive 151개): `Metaspace\cassini\cassini.osg` · `ISS2019\...\ISS_2019_IVX_4.3_01.osg` · `Metaspace\...\ISS_2020_Full_Lite_HD_v1.ive` · 허블/아폴로/새턴V/셔틀/바이킹(.3DS 다수). ⚠️ **천리안·COMS 계열은 0개** — 만들어야 한다.
@@ -1115,6 +1123,28 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
   나는 이걸 내 코드 버그로 착각해 한참 헤맸다.
 - ⚠️ **끈 게 안 꺼지는 일이 있다** — `Insert3D` 는 모델 로드가 끝나며 밝기를 되돌리는 것으로 보인다.
   → 숨길 때는 **프레임을 사이에 두고 두세 번 다시 누른다**(`setIntensity(0)` → `sleep(0.15)` → 반복).
+
+- ⚠️⚠️⚠️ **[2026-08-13 돔 실측] 동기(EquatorialSynchronous) 프레임에서 시간을 흘리면 '배경이 도는 것처럼' 보인다 — 별을 꺼도 그렇다.**
+  천리안 쇼에서 위성을 눈앞에 두고 돌리는 장면에 **5일치 시간가속**을 걸었더니 사용자가
+  **"갑자기 왜 배경은 왜 돌리는 거야"** 라고 했다. 별은 이미 꺼 둔 상태였다.
+  · 원인은 별이 아니라 **태양 각도**다. 동기 프레임에서는 지구·위성이 고정이라, 시간이 흐르면
+    **터미네이터(낮/밤 경계)만 지구 표면을 쓸고 지나간다** — 5일이면 5바퀴. 그게 '배경이 도는' 것으로 읽힌다.
+  → **위성을 보여주는 장면에서는 시간을 아예 흘리지 마라.** 구름을 보여주고 싶으면
+    `setCloudsIntensity` 0→1 **페이드인만으로 충분하다**(구름 렌더 마스터라 없음→가득이 확실히 보인다).
+- ✅✅ **[2026-08-13 확정] 궤도 위성이 지구 뒤로 숨는지는 각도 하나로 계산된다 — 감으로 고르지 마라.**
+  관성 프레임에서 시간을 흘리면 정지궤도 위성이 지구를 한 바퀴 돈다. 낮은 각도에서 보면
+  뒤편으로 갈 때 **지구에 가려 사라진다**(사용자 "남쪽으로 가니까 천리안이 안 보여").
+  · **화면에 투영된 궤도의 최소 반지름 = 궤도R × cos(B)** (지구 반지름 = 1 단위).
+    이 값이 **1 보다 크면 절대 안 가려진다.** 정지궤도(6.611) 기준:
+    B 40° → 5.06(원근·기울기로 실제로는 스침) · **B 62° → 3.10(넉넉히 안전)** · B 88°(탑뷰) → 0.23 이지만
+    탑뷰는 위성이 늘 원반 바깥이라 별개로 안전(대신 평면적이라 이탈이 안 읽힌다).
+  → **위성이 도는 장면은 B 60 이상 오블리크.** 낮밤 경계도 이 각도면 충분히 보인다.
+- ✅✅ **[2026-08-13] 암전 없이 우주 → 지상으로 '그대로 떨어지기' (사용자 요청 "암막 효과 빼고 그대로 낙하")**:
+  검증된 Land 레시피를 장면 전환에 그대로 쓴다 — `setPositionLBR(Vec(L, B, 0), Anim.cubic(13), -1)` +
+  `setOrientationHPR(Vec(현재 H, 0, 0), Anim.cubic(13))` **동시 발사**. reset 불필요.
+  ⚠️⚠️ **핵심은 순서다**: 착지 후엔 손댈 게 없어야 하므로 **지상 세팅(관측지·시각·대기·지면·모델 로딩)을
+  하강 '전에' 전부 끝내 둔다.** 특히 **모델 로딩은 최대 12초 폴링**이라 하강 중에 부르면 화면이 멈춘다.
+  ⚠️ 자막은 하강 중에 **우주 슬롯 → 지상 슬롯으로 갈아탄다**(슬롯 규칙은 그대로 유효).
 
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
 

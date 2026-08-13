@@ -69,12 +69,25 @@
 #  ① **Intro 를 딥스페이스에서 시작** — R 140 → 22 → 3.4 로 두 단계로 파고든다
 #  ② **발사를 지상에서 본다** — 쿠루에 서서 올려다본다. 우주 랑데부 구성은 버렸다
 #  ③ **로켓 배율 1,000배 축소** (5.5e4 → 3.6e3) — "무슨 지구 반지름만 한데"
-#  ④ **이름표를 넣었다** — 아리안 5호 · 천리안 1호 · 2A · 2B (자막과 별개 슬롯)
+#  ④ **이름표를 넣었다** — 로켓 · 천리안 1호 · 2A · 2B (자막과 별개 슬롯)
 #  ⑤ **Scene 2 의 '하늘이 도는' 현상 제거** — 동기 프레임 + 시간가속이면 배경 별이 돈다 → 별을 껐다
 #  ⑥ **시간 타임랩스를 텍스트로** — 돔 시계 대신 연도(2011→2021)가 올라간다
 #  ⑦ **2A·2B 를 은색 판으로** — 1호(금색)와 한눈에 갈린다
 #  ⑧ **폐기궤도 8.6 + 카메라 16** — 이탈이 화면 밖으로 밀리던 걸 양쪽에서 고쳤다
 #  ⑨ **마지막 세 위성 타블로 삭제** — 내가 만든 비트였다
+#
+#  ══ v11 — 돔 재생 지적 6건 반영 (2026-08-13) ══
+#  ① **로켓 이름 = 아리랑 5호** (`ROCKET_NAME`) — 사용자 지시.
+#     ※ 사실은 아리안 5(Ariane 5)이고 '아리랑'은 KOMPSAT 위성 이름이다. 한 줄만 고치면 되돌린다.
+#  ② **Intro → 발사 전환에서 암전을 없앴다** — 발사장 상공에서 그대로 떨어진다(Land 레시피).
+#  ③ **'로켓이 투명하다'의 진짜 원인 = 거리** — 333 km 때문에 대기 산란이 덮었다.
+#     → 6.6 km 앞으로 당기고 배율을 3.6e3 → 50 으로 낮췄다.
+#  ④ **발사를 짧게** — 상승 4단계 → 2단계, 끝나면 로켓을 페이드아웃.
+#  ⑤ **Scene 2 의 '배경이 도는' 진짜 원인 = 시간가속** — 별을 끈 것과는 무관했다.
+#     동기 프레임에서 5일을 흘리니 **터미네이터가 5바퀴 쓸고 지나갔다** → 시간을 안 흘린다.
+#  ⑥ **위성이 지구 뒤로 숨는 것 = 각도 문제** — 투영 최소반지름 = 궤도R × cos(B).
+#     6.611 × cos(62°) = 3.10 > 1 이므로 **B 62 에서는 절대 안 가려진다.** 막 3·4 에 적용.
+#     + 막 4 는 탑뷰 → 오블리크 구도, 이탈 16초 → 8초.
 #
 #  구성 (대본의 시간표를 따른다)
 #    Intro    광활한 우주와 하나의 결심          0:00–0:40
@@ -104,7 +117,7 @@ SLOT_SPACE = 5                # 우주 전용. **영원히 setSize 를 부르지
 SHOW_TEXT = False
 
 # ★★ **이름표**는 자막과 별개다 (2026-08-13 지시).
-#   "로켓에 아리안 5호라고 박기" · "천리안 1호랑 나머지 위성이랑 분간이 안 가"
+#   "로켓에 이름 박기" · "천리안 1호랑 나머지 위성이랑 분간이 안 가"
 #   → 물체 이름만 짧게 띄운다. 자막(SHOW_TEXT)을 꺼도 이건 나온다.
 #   ⚠️ 자막 슬롯 규칙은 그대로 — **지상용/우주용 슬롯을 절대 섞지 않는다.**
 SHOW_LABELS = True
@@ -145,7 +158,7 @@ GRAVE_R = 8.6                           # 10.5 → 8.6 (≈55,000km). GEO 6.611 
 KOREA_LON = 128.2                       # 천리안 1호의 정지궤도 경도
 LON_2A, LON_2B = 133.0, 123.5           # ⚠️ 실제 2A·2B 도 128.2 부근이지만 겹쳐 보여서 벌렸다
 
-B_TOP = 88.0                  # 북극 위. **각도는 건드리지 않는다**(프레이밍이 깨진 건 늘 각도였다)
+B_TOP = 88.0                  # 북극 위(현재 미사용 — 막4 를 오블리크 B_LEAVE 로 바꿨다)
 
 # ★ Intro — 딥 스페이스에서 한반도 상공으로 (동기 프레임 하나로 처리)
 # ⚠️ [2026-08-13 지시] "우리 은하 밖에서 줌인하면서 지구로 도달"
@@ -153,7 +166,19 @@ B_TOP = 88.0                  # 북극 위. **각도는 건드리지 않는다**
 #      R=140 이면 지구가 각지름 0.8° 짜리 점이고 은하수가 돔을 채운다. 화면상 '딥 스페이스'다.
 R_DEEP = 140.0                # 지구는 점, 은하수가 돔을 채운다
 R_MID = 22.0                  # 중간 — 지구가 원반으로 보이기 시작
-R_INTRO_END = 3.4             # 한반도 상공 탑뷰(각지름 약 35°)
+R_INTRO_END = 3.4             # 발사장 상공(각지름 약 35°)
+
+# ⚠️⚠️ [2026-08-13 지시] "장면1에서 장면2(로켓발사)로 갈 때 **암막 효과 빼고 그대로 낙하해서**"
+#   → Intro 와 발사 장면 사이의 암전·reset 을 **없앴다.** 카메라가 발사장 상공에서
+#     **그대로 지면까지 떨어진다**(R 3.4 → 0). 검증된 'Land' 레시피 그대로:
+#       ① `setPositionLBR(Vec(L, B, 0), Anim.cubic(N), -1)`  (R → 0 하강)
+#       ② `setOrientationHPR(Vec(현재 H, 0, 0), Anim.cubic(N))`  (수직하방 → 수평)
+#     **둘을 동시에** 쏘아야 자연스럽다. 착지하면 state 가 SkyView 로 바뀐다(reset 불필요).
+#   ⚠️ 그래서 **지상 세팅(관측지·시각·대기)을 하강 전에 미리** 걸어 둔다 — 착지 후엔 손댈 게 없다.
+LAND_SECONDS = 13.0
+# ⚠️ 지면(terrain)은 **켠 채로** 내려간다. 운영 규칙의 '지면 OFF'는 별을 보는 하늘 쇼 얘기고,
+#    여기는 땅에 내려서는 장면이라 지면이 있어야 한다. 지저분하면 이 값을 0.0 으로.
+GROUND_TERRAIN = 1.0
 
 # ★ Scene 1 — 쿠루에서 정지궤도까지
 # ★★ 아리안 5 로켓 — 직접 구웠다(scripts/study/make_ariane5.py).
@@ -168,9 +193,28 @@ SAT2_MODEL = "chollian2.osg"  # ★ 2A·2B 는 **은색 판** — 1호(금색)�
 #     이제 **쿠루 지상에 서서 올려다본다.** 로켓은 하늘로 올라가며 작아진다 — 진짜 발사 장면이다.
 #   ⚠️ 배율이 1,000배 이상 작아진다: 지상에서는 수백 km 거리라 과장이 거의 필요 없다.
 KOURU_LAT, KOURU_LON = 5.2, -52.8       # 프랑스령 기아나 쿠루 발사장
-ROCKET_SCALE = 3.6e3          # 모델 반지름 28.9m × 3.6e3 ≈ 104km (지상 관측용)
-ROCKET_LON_OFF = 3.0          # 관측자에서 경도 3° 옆(≈333km) — 바로 머리 위면 화면을 덮는다
-ROCKET_R = [1.000, 1.10, 1.28, 1.50]    # 지표 → 고도 3,190km. 올라가며 작아진다
+
+# ⚠️⚠️⚠️ [2026-08-13 사용자 지시] 이름은 **"아리랑 5호"** 로 박는다.
+#   ※ 사실 관계만 적어 둔다(지시는 지시대로 따른다): 천리안 1호를 올린 발사체는
+#     **아리안 5(Ariane 5, 유럽 아리안스페이스)** 이고, '아리랑'은 우리 지구관측위성
+#     KOMPSAT 시리즈의 별칭이라 발사체 이름이 아니다. 되돌리려면 이 한 줄만 고치면 된다.
+ROCKET_NAME = "아리랑 5호"
+
+# ⚠️ 지상 Sky View 에서 Insert3D 가 렌더되는지는 v10 에서 처음 쓴다.
+#    안 보이면 이 한 줄만 False — 로켓 없이 발사장 하늘만 나온다(길이·타이밍 동일).
+LAUNCH_FROM_GROUND = True
+
+# ⚠️⚠️ [2026-08-13 돔 실측] **"아리랑이 무슨 투명하다"** — 모델이 반투명하게 보인 원인은
+#   재질이 아니라 **거리다.** 경도 3° 옆 = **333 km** 떨어져 있었고, 그 거리의 대기 산란
+#   (aerial perspective)이 물체를 통째로 하늘색으로 덮어 씌운다. 그래서 하늘이 비쳐 보였다.
+#   → **가까이·작게.** 6.7 km 앞에 세우면 산란이 거의 없어 색과 윤곽이 살아난다.
+#   ⚠️ 경도 오프셋은 **각도**라 지상에서는 아주 작은 값이어야 한다:
+#      거리 ≈ 지구반지름 × Δ경도(rad) × cos(위도) → 0.06° ≈ 6.6 km.
+ROCKET_SCALE = 50.0           # 모델 높이 56.2m × 50 ≈ 2.8km. 6.6km 앞 → 겉보기 약 23°
+ROCKET_LON_OFF = 0.06         # ≈6.6 km 동쪽. 3.0(=333km)이 '투명'의 원인이었다
+# ⚠️ [지시] "발사 어느 정도 되면 발사 끝내고" → 상승을 **두 단계로 줄였다**(전 4단계).
+#    고도 0 → 12.8 km → 64 km. 돔을 가로질러 위로 오르며 23° → 11° → 2.5° 로 작아진다.
+ROCKET_R = [1.0000, 1.0020, 1.0100]
 
 # ✅ 자세 = `HPR(경도 + 180, 90, 0)` — 확정(바퀴살 프로브 + 돔 재생).
 #   모델 +Z 는 북극을 향하므로 pitch 90 으로 눕히고 heading 을 그 물체의 경도로 준다.
@@ -183,13 +227,28 @@ R_WATCH_A, R_WATCH_B = 10.0, 8.3
 #     8.3 이면 10,800km — 위성이 화면 절반, 뒤로 지구도 들어온다
 
 # ★ Scene 3 — 같이 돈다 (관성 프레임 오블리크라야 낮밤 경계가 보인다)
-B_TOGETHER, R_TOGETHER = 40.0, 9.0
+# ⚠️⚠️ [2026-08-13 지시] "천리안 도는 궤도 좀 줄여야겠다. **남쪽으로 가니까 천리안이 안 보여**"
+#   → 원인은 **가림(occlusion)** 이다. 관성 프레임에서 시간이 흐르면 위성이 지구를 한 바퀴 도는데,
+#     낮은 각도에서 보면 뒤편(관객 기준 '남쪽')으로 갈 때 **지구 뒤에 숨는다.**
+#   ✅ 기하로 풀린다: 위성 궤도 반지름 6.611, 지구 반지름 1 →
+#      **화면에 투영된 궤도의 최소 반지름 = 6.611 × cos(B)**. 이게 1 보다 크면 **절대 안 가려진다.**
+#        B 40° → 5.06 (안전해 보이지만 원근·기울기로 실제로는 스쳐서 가림) · B 62° → 3.10 (넉넉)
+#   → **B 40 → 62.** 여기서도 낮밤 경계는 충분히 비스듬해서 보인다.
+#   ⚠️ 그리고 **도는 양 자체를 줄였다** — 전 판은 3일치(3바퀴, 게다가 과거로)였다. 지금은 1바퀴 남짓.
+B_TOGETHER, R_TOGETHER = 62.0, 9.0
 
 # ★ Scene 4 — 이탈
-# ⚠️ [2026-08-13 지시] "폐기궤도 갈 때 안 보이고 지구 남쪽으로 가니까 또 안 보여.
-#    줌아웃 더 땡기든지 아님 궤도 반지름을 낮추든지" → **둘 다** 했다.
-R_BACK = 16.0                 # 13 → 16 (더 물러나 궤도 두 개가 여유 있게 들어온다)
-R_OUT = 22.0
+# ⚠️⚠️ [2026-08-13 지시] "정지궤도서 폐기궤도로 가는 거 **다른 구도로 좀 빠르게** 볼 수 없나?
+#    너무 느리고 너무 잘 안 보여."
+#   → ① 구도를 **북극 탑뷰(B 88) → 비스듬한 오블리크(B 62)** 로 바꿨다. 고리가 원이 아니라
+#        타원으로 눕고, 위성이 그 위를 **바깥으로 밀려 올라가는 게** 눈에 읽힌다(탑뷰는 평면적이었다).
+#        B 62 = Scene 3 과 같은 이유로 **가림이 없는 각도**다.
+#     ② 카메라를 **16 → 13** 으로 당겨 두 고리가 화면을 채우게 하고,
+#     ③ 이탈 시간을 **16초 → 8초** 로 줄였다.
+B_LEAVE = 62.0
+R_BACK = 13.0                 # 두 고리(6.611 · 8.6)가 화면에 꽉 차는 거리
+R_OUT = 17.0
+LEAVE_SECONDS = 8.0           # 16 → 8 ("너무 느리다")
 
 # ★ Outro — 도시 불빛 → 지상
 # ⚠️ [2026-08-13 지시] "마지막 위성 3개 있는 건 뭐냐" → **그 타블로를 통째로 뺐다.**
@@ -206,6 +265,7 @@ txt = None
 ip = None                     # 관성 — 카메라의 집
 sp = None                     # 동기 — 위성의 집
 sat = None
+rocket = None                 # ⚠️ Intro 에서 만든다(암전 안에서 로딩) — 막이 죽어도 NameError 안 나게
 
 
 def _dark(sec=0.0):
@@ -524,13 +584,35 @@ try:
 
     dm.stop()
     sleep(0.2)
-    dm.setDateTime(2026, 8, 12, 3, 30, 0, tz, Anim(0.0))
+    # ★ 시각을 **실제 발사 시각**으로 처음부터 맞춘다 — 낙하가 끊기지 않으려면
+    #   지상 세팅(시각·관측지·대기)을 **내려가기 전에** 다 걸어 둬야 한다.
+    dm.setDateTime(2010, 6, 26, 21, 41, 0, tz, Anim(0.0))   # 쿠루 현지 18:41, 저녁
     _dark()
     sleep(0.4)
+    Place2D(Place2D.Place2DName(0)).setPosition(Vec(KOURU_LAT, KOURU_LON, 10.0))
+    feat(earth, "setTerrainIntensity", GROUND_TERRAIN, Anim(0.0))
+    feat(earth, "setElevationScale", 0.0)
+    _dark()
 
     Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
     Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.75, Anim(0.0))   # 은하수를 진하게
     feat(earth, "setCloudsIntensity", 0.0, Anim(0.0))
+    _dark()
+
+    # ★ 로켓도 **지금** 실어 둔다(꺼 둔 채로). 모델 로딩은 최대 12초 폴링이라
+    #   낙하 도중에 부르면 화면이 멈춘다 — 암전 안에서 미리 끝낸다.
+    rocket = None
+    if LAUNCH_FROM_GROUND and ROCKET_MODEL:
+        rocket = load_model(ROCKET_SLOT, ROCKET_MODEL)
+        hide(rocket)
+        feat(rocket, "setShadowStrength", 0.0, Anim(0.0))
+        feat(rocket, "setScale", ROCKET_SCALE, Anim(0.0))
+        _rlon = KOURU_LON + ROCKET_LON_OFF
+        feat(rocket, "setOrientationHPR",
+             Vec(_rlon + ROCKET_HEAD_OFF, 90.0, 0.0), Anim(0.0))
+        feat(rocket, "setParent", sp if sp is not None else ip)
+        feat(rocket, "setPositionLBR",
+             Vec(_rlon, KOURU_LAT, ROCKET_R[0]), Anim(0.0))   # 발사대 = 지표(R 1.0)
     _dark()
 
     sat = place_sat(SLOT_SAT, KOREA_LON)     # 미리 올려두되 꺼 둔다
@@ -542,7 +624,7 @@ try:
     _dark()
 
     if sp is not None:
-        stand(Vec(KOREA_LON, 0.0, R_DEEP), sp)   # ★ 아주 멀리 — 은하수만 보인다
+        stand(Vec(KOURU_LON, KOURU_LAT, R_DEEP), sp)   # ★ 아주 멀리 — 은하수만 보인다
     txt = sub_space()
     txt.setText("천리안 1호")
     _dark()
@@ -551,16 +633,16 @@ try:
     sleep(4.0)
     say("기상과 바다를 스스로 볼 수 없던 시절", 5.0)
 
-    # ★ 2단 하강 — 먼저 크게 파고들고(140→22), 이어서 한반도 상공까지(22→3.4)
+    # ★ 2단 하강 — 먼저 크게 파고들고(140→22), 이어서 **발사장 상공**까지(22→3.4)
     if sp is not None:
-        fly(Vec(KOREA_LON, 0.0, R_MID), 14.0, sp)
+        fly(Vec(KOURU_LON, KOURU_LAT, R_MID), 14.0, sp)
     say("우리는 우주에 우리만의 눈을 가지려 했다", 7.0)
     say("저 작은 점이 우리가 사는 곳이다", 7.0)
     if sp is not None:
-        fly(Vec(KOREA_LON, 0.0, R_INTRO_END), 14.0, sp)
+        fly(Vec(KOURU_LON, KOURU_LAT, R_INTRO_END), 14.0, sp)
     feat(earth, "setCloudsIntensity", 0.85, Anim(8.0))
     say("2010년 6월", 4.5)
-    say("대한민국 첫 정지궤도 위성, 천리안 1호의 여정이 시작된다", 8.0)
+    say("남아메리카 북동쪽 끝, 쿠루 우주센터로 내려간다", 7.0)
 except Exception as e:
     print("Intro 오류:", e)
 
@@ -572,79 +654,46 @@ except Exception as e:
 #    ⚠️ 배율이 1,000배 이상 작아진다(3.6e3). 지상에서는 거리가 수백 km 라 과장이 거의 필요 없다.
 #    ⚠️ **미검증**: 지상 Sky View 에서 Insert3D 가 렌더되는지 확인된 적이 없다.
 #       안 보이면 `LAUNCH_FROM_GROUND` 를 False 로 — 로켓 없이 지상 발사 하늘만 나온다.
-LAUNCH_FROM_GROUND = True
 try:
-    _dark()
-    txt.setIntensity(0.0, Anim(0.6))
-    sleep(0.8)
-    label("")
-    _dark()
+    # ★★★ 암전 없음. 앞 장면에서 **그대로 이어서 떨어진다.**
+    #   검증된 'Land' 레시피 = R→0 하강과 pitch→0 을 **동시에** 발사.
+    _cur_h = 0.0
+    try:
+        _cur_h = cam.orientationHPR.x
+    except Exception:
+        pass
+    cam.setPositionLBR(Vec(KOURU_LON, KOURU_LAT, 0.0), Anim.cubic(LAND_SECONDS), -1)
+    cam.setOrientationHPR(Vec(_cur_h, 0.0, 0.0), Anim.cubic(LAND_SECONDS))
+    say("발사장이 눈앞으로 다가온다", 7.0)
+    say("2010년 6월 27일, 쿠루 우주센터", 7.5)
 
-    # 지상으로 — 쿠루, 발사 시각(현지 저녁)
-    SceneGraph().reset(1)
-    _dark(1.5)
-    clear_leftovers()
-    _dark()
+    # 착지 — 관측지를 못 박고(하강이 어디에 내려놓든 여기가 쿠루다) 발사대 쪽으로 돈다.
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(KOURU_LAT, KOURU_LON, 10.0))
-    feat(earth, "setIntensity", 1.0, Anim(0.0))
-    feat(earth, "setAtmosphereIntensity", 1.0, Anim(0.0))   # 지상이니 하늘을 켠다
-    feat(earth, "setTerrainIntensity", 0.0, Anim(0.0))      # 지면은 끈다(운영 규칙)
-    feat(earth, "setElevationScale", 0.0)
-    Stars(Stars.StarsName.StarrySky).setIntensity(0.9, Anim(0.0))
-    _dark()
-    dm.stop()
-    sleep(0.2)
-    dm.setDateTime(2010, 6, 26, 21, 41, 0, tz, Anim(0.0))   # 실제 발사 시각(UTC)
-    _dark()
-    sleep(0.4)
-
-    sp = None
-    for nm in ("EquatorialSynchronous", "EquatorialSync", "Synchronous"):
-        try:
-            sp = earth.portId(getattr(Planet.PlanetPort, nm))
-            break
-        except Exception:
-            continue
-
-    rocket = None
-    if LAUNCH_FROM_GROUND and ROCKET_MODEL:
-        rocket = load_model(ROCKET_SLOT, ROCKET_MODEL)
-        hide(rocket)
-        feat(rocket, "setShadowStrength", 0.0, Anim(0.0))
-        feat(rocket, "setScale", ROCKET_SCALE, Anim(0.0))
-        _rlon = KOURU_LON + ROCKET_LON_OFF
-        feat(rocket, "setOrientationHPR",
-             Vec(_rlon + ROCKET_HEAD_OFF, 90.0, 0.0), Anim(0.0))
-        feat(rocket, "setParent", sp if sp is not None else ip)
-        feat(rocket, "setPositionLBR", Vec(_rlon, KOURU_LAT, ROCKET_R[0]), Anim(0.0))
-
-    # 로켓은 관측지보다 경도 +3° = **동쪽**에 세워 뒀다.
-    # 환산 규칙 H = 180 − 나침반방위 → 동(90) = H 90.
-    cam.setOrientationH(90.0, Anim(0.0))      # 발사대 쪽(동쪽)을 본다
-    _dark()
-    cam.setTargetHeight(30.0, Anim(0.0))      # 🎯 관람 표준 틸트(30)
-    _dark()
-    txt = sub_ground()
+    txt.setIntensity(0.0, Anim(0.8))          # 우주 자막을 내리고
+    txt = sub_ground()                        # ⚠️ 지상 슬롯으로 **갈아탄다**(규칙 1)
     txt.setText("2010년 6월 27일")
-    _dark()
+    # 로켓은 관측지보다 경도 +0.06° = **동쪽**(약 6.6 km)에 서 있다.
+    # 환산 규칙 H = 180 − 나침반방위 → 동(90) = H 90.
+    cam.setOrientationH(90.0, Anim.cubic(3.5))   # 발사대 쪽(동쪽)으로 돈다 — 보이게
+    cam.setTargetHeight(30.0, Anim(0.0))         # 🎯 관람 표준 틸트(30)
+    sleep(4.0)
 
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
-    sleep(2.5)
     if rocket:
-        feat(rocket, "setIntensity", 1.0, Anim(1.0))
-    label("아리안 5호", ground=True)          # ★ 로켓 이름표
-    say("2010년 6월 27일, 쿠루 우주센터", 5.5)
-    say("아리안 5호가 화염을 뿜으며 하늘을 가른다", 6.0)
+        feat(rocket, "setIntensity", 1.0, Anim(1.5))
+    label(ROCKET_NAME, ground=True)              # ★ 로켓 이름표
+    say("%s가 화염을 뿜으며 하늘을 가른다" % ROCKET_NAME, 6.5)
 
-    # ★ 발사 — 로켓이 하늘로 오르며 작아진다(고도 0 → 3,190km)
+    # ★ 발사 — 두 단계로 짧게. 돔을 가로질러 오르며 작아진다(고도 0 → 12.8 → 64 km).
+    #   ⚠️ [지시] "발사 어느 정도 되면 발사 끝내고" — 길게 끌지 않는다.
     for k, rr in enumerate(ROCKET_R[1:]):
         if rocket:
             feat(rocket, "setPositionLBR",
-                 Vec(KOURU_LON + ROCKET_LON_OFF, KOURU_LAT, rr), Anim(7.0))
-        say(["그 정상에 천리안 1호가 실려 있다", "올라간다",
-             "점이 될 때까지, 계속"][k], 7.0)
+                 Vec(KOURU_LON + ROCKET_LON_OFF, KOURU_LAT, rr), Anim(6.5))
+        say(["그 정상에 천리안 1호가 실려 있다", "점이 될 때까지, 계속"][k], 6.5)
+    if rocket:
+        feat(rocket, "setIntensity", 0.0, Anim(2.5))   # 발사 끝 — 조용히 사라진다
     label("")
-    say("지구 상공 3만 6천 킬로미터, 정지궤도를 향한 도약이다", 7.0)
+    say("지구 상공 3만 6천 킬로미터, 정지궤도를 향한 도약이다", 6.5)
 except Exception as e:
     print("Scene 1 오류:", e)
 
@@ -694,9 +743,13 @@ try:
     say("반대편 막대 끝의 반사판이 그 힘을 받아 균형을 잡는다", 6.0)
     say("가운데 접시는 안테나, 아래 두 개가 관측기다", 5.5)
 
-    feat(earth, "setCloudsIntensity", 1.0, Anim(6.0))
-    feat(earth, "setCloudSpeed", 3.0)
-    dm.setDateTime(2011, 4, 6, 3, 30, 0, tz, Anim(26.0))   # 구름만 흐른다(별은 껐다)
+    # ⚠️⚠️ [2026-08-13 지시] "천리안 눈앞에서 돌려놓고 **갑자기 왜 배경은 왜 돌리는 거야**"
+    #   → 별을 껐는데도 배경이 돌아 보인 진짜 이유: **여기서 시간을 5일치 흘렸다.**
+    #     동기 프레임에서는 지구가 고정이라 **태양 각도(터미네이터)만 5바퀴 쓸고 지나간다** =
+    #     지구 표면의 밝은 쪽이 빙빙 도는 것처럼 보인다. 별을 끈 것과는 무관한 별개 원인이었다.
+    #   → **이 장면에서는 시간을 아예 안 흘린다.** 구름은 세기 페이드인만으로 충분히 보인다
+    #     (검증된 사실: '구름이 밀려온다'는 setCloudCoverage 가 아니라 setCloudsIntensity 0→1).
+    feat(earth, "setCloudsIntensity", 1.0, Anim(8.0))
     say("기상 관측기가 구름을 읽고", 5.0)
     say("해양 관측기가 바다를 읽는다", 5.0)
     say("태풍의 길목을 미리 알리고, 적조와 기름 유출을 감시했다", 6.5)
@@ -728,7 +781,10 @@ try:
     say("2017년이면 끝났어야 할 기계다", 5.0)
 
     # ★ 연도 타임랩스 — 지구가 도는 동안 이름표 자리에 연도가 올라간다
-    dm.setDateTime(2011, 4, 3, 3, 30, 0, tz, Anim(48.0))
+    # ⚠️⚠️ [지시] "천리안 도는 궤도 좀 줄여야겠다" → **1.1일치(≈1바퀴)로 줄였다.**
+    #   전 판은 4/6 → 4/3 = **3일치를 거꾸로** 흘려 위성이 3바퀴를 역주행했다. 그래서
+    #   뒤로 갈 때마다 지구에 가려 사라졌다. 지금은 **앞으로 1바퀴**만, 그것도 B62 라 안 가려진다.
+    dm.setDateTime(2011, 4, 2, 6, 30, 0, tz, Anim(48.0))
     say("하지만 천리안 1호는 멈추지 않았다", 4.0)
     for _yr, _hold in (("2011", 3.2), ("2013", 3.2), ("2015", 3.2),
                        ("2017  설계 수명", 4.0), ("2019", 3.2), ("2021", 3.6)):
@@ -764,7 +820,7 @@ try:
     hide(s2b, 1)
     dm.stop()
     sleep(0.2)
-    stand(Vec(0.0, B_TOP, R_BACK), ip)
+    stand(Vec(0.0, B_LEAVE, R_BACK), ip)      # ★ 탑뷰(88) → 오블리크(62). 고리가 타원으로 눕는다
     feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GEO_R), Anim(0.0))
     feat(sat, "setIntensity", 1.0, Anim(0.0))
     txt = sub_space()
@@ -781,15 +837,14 @@ try:
     say("다른 위성과 부딪히지 않도록, 스스로 몸을 일으킨다", 5.5)
 
     # ★★ 이 한 줄이 이 장면의 핵심 — 금색 원에서 회색 원으로 건너간다
-    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(16.0))
-    say("남은 연료를 모두 태우며", 5.5)
-    say("정지궤도보다 높은 폐기궤도로", 5.5)
-    say("천천히, 아주 천천히 올라간다", 5.5)
-    say("(실제로는 300km 남짓 위다. 보이라고 크게 그렸다)", 5.0)
+    # ⚠️ [지시] "너무 느리다" → 16초 → 8초. 오블리크 구도라 '바깥으로 밀려 올라가는' 게 읽힌다.
+    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(LEAVE_SECONDS))
+    say("남은 연료를 모두 태우며, 정지궤도보다 높은 폐기궤도로", 6.5)
+    say("(실제로는 300km 남짓 위다. 보이라고 크게 그렸다)", 5.5)
 
     feat(sat, "setIntensity", 0.30, Anim(7.0))
     label("")
-    fly(Vec(0.0, B_TOP, R_OUT), 14.0, ip)
+    fly(Vec(0.0, B_LEAVE, R_OUT), 12.0, ip)
     say("모든 통신을 차단하고", 5.0)
     say("11년의 임무를 마친 채", 5.0)
     say("영원한 우주의 휴식에 들어간다", 5.5)
