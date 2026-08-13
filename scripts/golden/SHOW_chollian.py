@@ -89,8 +89,13 @@ R_ORBIT = 8.0                 # 막1 도착
 R_ZOOM_A, R_ZOOM_B = 10.0, 8.3  # 막2 줌인 — 동기 프레임(위성과 같은 경도선 위)
 #  ⚠️ 7.6 은 위성까지 6,300km 라 태양전지판 하나가 돔을 다 덮었다(돔 실측).
 #     8.3 이면 10,800km — 위성이 화면 절반, 뒤로 지구도 들어온다.
-R_DIVE = 2.2                  # 막4 — 위성 시점으로 내려간 지구(각지름 54°)
+R_DIVE = 2.2                  # 막4 — 내려간 지구(각지름 54°)
 R_DIVE_START = 9.0            # 막4 하강 출발점
+# ⚠️⚠️ [2026-08-12 지적 "닌 이게 한국이냐"] 위성은 **적도(위도 0)** 에 있어서
+#   그 자리에서 지구를 보면 원반 한가운데가 128.2°E 적도 = **인도네시아 앞바다**다.
+#   한국은 위쪽 가장자리로 밀린다. 물리적으론 맞지만 보여주려는 게 한국이니 틀린 그림이다.
+#   → 내려가면서 **위도를 32°까지 같이 올려** 한반도를 화면 한가운데로 가져온다.
+B_DIVE = 32.0
 B_NEAR = 25.0
 R_BACK = 13.0                 # 막5 — 궤도 두 개가 다 들어오는 거리
 
@@ -223,6 +228,12 @@ def ring(slot, mm, color, thick=3.0):
     feat(o, "setAscendingNodeLongitude", 0.0, Anim(0.0))
     feat(o, "setArgumentOfPeriapsis", 0.0, Anim(0.0))
     feat(o, "setMeanAnomaly", 0.0, Anim(0.0))
+    # ⚠️⚠️ [2026-08-12 원인 확정] **궤도가 나선으로 벌어져 안 닫히던 이유가 이 두 줄이 없어서다.**
+    #   `setBstar` = 대기저항 항. 0 이 아니면 궤도가 감쇠하며 **닫히지 않는 나선**이 된다.
+    #   `setEpochYears` 도 안 걸면 전파 구간이 길어져 더 벌어진다.
+    #   검증된 예제(scripts/study/orbital_satellites.py)는 이 둘을 걸고 있었고 우리는 안 걸었다.
+    feat(o, "setEpochYears", 2026.0, Anim(0.0))
+    feat(o, "setBstar", 0.0, Anim(0.0))
     sleep(0.4)
     feat(o, "setOrbitColor", color)
     feat(o, "setOrbitThickness", thick)
@@ -447,9 +458,10 @@ try:
     sleep(2.0)
 
     if sp is not None:
-        fly(Vec(KOREA_LON, 0.0, R_DIVE), 14.0, sp)        # ★ 보이는 하강 — 한반도는 제자리
+        # ★ 보이는 하강 + 위도 올리기 — 내려가면서 한반도가 한가운데로 온다
+        fly(Vec(KOREA_LON, B_DIVE, R_DIVE), 14.0, sp)
     say("내려가 보자", 4.0)
-    say("천리안이 매일 보던 얼굴이다", 4.0)
+    say("한가운데가 우리나라다", 4.5)
     say("지구가 돌아도 이 그림은 안 바뀐다", 5.5)
 
     feat(earth, "setCloudsIntensity", 1.0, Anim(6.0))    # 0→1 이 구름 렌더의 마스터

@@ -744,6 +744,10 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 ## OrbitalPlace — `OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)` ✅✅ 인공위성 궤도 완성 (2026-07-20 사용자 스샷 확인, orbital_satellites.py)
 - ✅ **지구 둘레 위성 궤도가 렌더됨** — Asteroid 와 같은 궤도 개체지만 '지구 위성용'(TLE 스타일 세터 보유). 슬롯 OrbitalPlace001~007.
 - **위성 TLE 세터(단위 명확 → AU/km 모호성 회피)**: `setMeanMotion`(revs/day) + `setEccentricity`/`setInclination`/`setAscendingNodeLongitude`/`setArgumentOfPeriapsis`(또는 setPeriapsisLongitude)/`setMeanAnomaly` + `setEpochYears`/`setEpochDays`/`setBstar`. (setSemiMajorAxis 도 있으나 mean motion 이 스케일 자동 결정 = 안전.)
+- ⚠️⚠️ **궤도선이 '나선으로 벌어져 안 닫힌다'면 `setBstar`·`setEpochYears` 누락이다 (2026-08-12 확정)**:
+  `setBstar`(대기저항)가 0 이 아니면 궤도가 감쇠하며 **열린 나선**으로 그려진다. 검증된 예제는
+  `setEpochYears(2026.0, Anim(0))` + `setBstar(0.0, Anim(0))` 를 건다 — **요소만 넣고 이 둘을 빼면 궤도가 깨진다.**
+  (천리안 쇼가 이걸 빼먹어 '궤도가 자꾸 끊긴다'로 네 번 헤맸다.)
 - **부모 = 지구**: `op.setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))`. 표시 = `setOrbitColor`(Vec3)/`setOrbitThickness`/`setOrbitIntensity` + `setIntensity`.
 - ✅✅ **레시피 (확정)**: reset → **FadeTo 지구(외부)** → 풀백 `cam.setPositionLBR(Vec(L, 35, 12), Anim, -1)`(R=12 지구반지름=HUD 76538km, B35 오블리크) + `setTargetHeight(30)` → 위성들 TLE 요소 + 시간가속(setDateTime +1일) = 고도별 공전속도 차(케플러). 몰니야(e=0.74)는 찌그러진 타원으로 정확히 렌더.
 - ⚠️ **LEO(ISS/허블 MM≈15.5 = 고도 1.06 지구반지름)는 지구 표면에 붙어 R=12 줌에선 지구에 묻힘** → 잘 보이는 건 GPS(MM2)/GEO(MM1)/몰니야. LEO 강조하려면 근접 줌(R↓).
