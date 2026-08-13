@@ -533,8 +533,18 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · ⚠️⚠️ **Studio 파이썬의 `open(p,"w")` 는 cp949**(한국어 윈도우 기본 코덱)로 쓴다.
     **파일 내용에 ASCII 밖 글자가 하나라도 있으면 통째로 실패**한다(`.obj` 가 헤더의 em-dash 하나 때문에 안 만들어졌고,
     이어진 '로드 시간초과'는 obj 로더 탓이 아니라 **파일이 없어서**였다). → 모델/데이터 파일 내용은 **ASCII 로만**.
-  · ⚠️ **정점 색(`ColorArray`)은 화면에 안 나온다 — 전부 흰색** (2026-08-12 사용자 확인).
-    조명이 켜진 상태라 재질(Material)의 기본 흰색이 이기는 것으로 보인다. 색이 필요하면 재질 문법을 먼저 확인할 것.
+  · ✅✅ **자작 모델에 색 넣는 법 확정 (2026-08-12 사용자 화면 확인)**: `ColorArray` 만으로는 **안 먹는다**(전부 흰색) —
+    조명이 켜져 있어 재질의 기본 흰색이 정점색을 이긴다. **`.osg` ASCII 의 `Geometry` 안에 `StateSet`+`Material` 을 넣으면 색이 나온다**:
+    ```
+    StateSet { DataVariance STATIC
+      rendering_hint DEFAULT_BIN
+      renderBinMode INHERIT
+      GL_LIGHTING ON
+      Material { ColorMode OFF
+        ambientColor .3 .24 .08 1  diffuseColor .86 .68 .24 1
+        specularColor .1 .1 .1 1   emissionColor .1 .08 .03 1  shininess 16 } }
+    ```
+    → 조각(Geometry)마다 다른 `diffuseColor` 를 주면 부위별 색이 된다(천리안 모델 13조각 확인).
   · ⚠️⚠️ **로딩은 폴링**: 고정 `sleep(1.3)` 이면 큰 모델이 `Loading`/`radius=-1.0` 인 채 지나가 **로드 실패로 오판**한다(cassini·ISS·블랙홀 7개 전부 그랬다가 1.6초 주니 Loaded). `Loaded` 뜰 때까지 0.4초씩 최대 12초.
   · **배치** = `setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))` + `setPositionLBR(Vec(L,B,R), Anim)` — **카메라와 달리 track 없는 2인자**. R 단위 = 부모 반지름(지구 6,378km) → 정지궤도 = 6.611.
   · ✅✅ **물체형은 바깥에서 보인다 (확정)** — 지구 궤도에 놓은 상자가 또렷. 아래 "블랙홀은 몰입형" 항목은 **그 모델 하나의 성질**이지 Insert3D 한계가 아니다(옛 판정은 0.05×4.85e7 을 포트 단위에 넣은 단위 실수도 겹쳤다).

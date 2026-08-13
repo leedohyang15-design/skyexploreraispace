@@ -408,7 +408,7 @@ dm.setDateTime(2026, 7, 23, 13, 0, 0, tz, Anim(8.0)); sleep(8.2)   # 목표시�
   · ⚠️⚠️ **로딩은 폴링해라.** 고정 `sleep(1.3)` 이면 큰 모델은 `loadingStatus=Loading` / `modelRadius=-1.0` 인 채 지나간다(실측 7개 전부 오판). `Loaded` 뜰 때까지 0.4초씩 최대 12초.
   · ⚠️ `modelRadius` = **바운딩박스 반대각선의 절반**(원점 거리 아님). `parentRadius` 는 0.0 이라 단위 근거로 못 쓴다.
   · ⚠️⚠️ **파일을 쓸 땐 ASCII 로만.** Studio 파이썬의 `open(p,"w")` 는 **cp949** 라 한글·em-dash 가 하나만 있어도 쓰기가 통째로 실패한다(실측: `.obj` 가 헤더의 `—` 때문에 안 만들어졌다).
-  · ⚠️ **정점색은 안 먹는다 — 모델이 흰색으로 나온다**(조명 ON 상태에서 재질 기본값이 이긴다). 색을 넣으려면 재질 문법 확인이 먼저.
+  · ✅ **색 = `Geometry` 안에 `StateSet{ GL_LIGHTING ON, Material{ diffuseColor r g b 1 } }`** (2026-08-12 확정). `ColorArray` 만으로는 안 먹는다(조명 ON 이라 재질 기본 흰색이 이긴다). 조각마다 diffuseColor 를 달리하면 부위별 색.
   · **배치**: `ins.setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))` → `ins.setPositionLBR(Vec(L,B,R), Anim)` — ⚠️ **카메라와 달리 track 인자 없는 2인자**. R 단위는 부모 반지름(지구=6,378km). 정지궤도 = 6.611.
   · 메서드 19종: setModelFilename/setParent/setPositionLBR/setPositionXYZ/setOrientationHPR/**setScale**/setIntensity/setExposure/setShadowStrength/setPointSize/setUniform/setAnimationName/setAnimationEvolution/setVideoState 등. 읽기: `loadingStatus`/`modelRadius`/`parentRadius`/`scale`/`positionLBR`/`instrospectionOutput`(철자 주의).
   · ✅ **물체형 모델은 바깥에서 보인다** — 지구 궤도에 놓은 상자가 또렷했다. 옛 노트의 "Insert3D 는 몰입형만 된다"는 **블랙홀 모델 하나의 성질**이지 클래스 한계가 아니다(그 모델은 안쪽을 향한 셸).

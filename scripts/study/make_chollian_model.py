@@ -2,7 +2,9 @@
 # ─────────────────────────────────────────────────────────────
 #  검증: 확인 (2026-08-12) — 돔 실행. `chollian.osg` `Loaded`, radius 5.27 m,
 #        모양 확인(사용자 "모델링은 잘했네"), 궤도 배율은 **×1e6** 채택.
-#        ⚠️ 색은 안 나온다(전부 흰색) — 조명이 켜져 있어 정점색이 무시된다. 재질은 다음 과제.
+#  ✅ 색 확정 (2026-08-12) — **`Material { diffuseColor }` 방식이 통한다**(사용자 화면 확인).
+#     `ColorArray` 만으로는 안 먹는다(조명이 켜져 있어 재질 기본 흰색이 이긴다).
+#     → `chollian.osg` 를 Material 판으로 굳혔다. 쇼는 파일명 그대로 쓴다.
 #        ⚠️ `.obj` 는 인코딩 사고로 안 만들어졌었다 → 이 판에서 ASCII 가드로 수정(재확인 필요).
 # ─────────────────────────────────────────────────────────────
 
@@ -247,11 +249,12 @@ if RUN_WRITE:
                 '  num_drawables %d' % len(PARTS)] + body + ['}'])
         w(fname, "\n".join(osg) + "\n")
 
-    # 색 없는 판(대조군) — 지금 쇼가 쓰는 파일 이름 그대로 유지한다
+    # ★ [2026-08-12 확정] **Material 방식이 통한다** — 사용자가 화면에서 색을 확인했다.
+    #   그래서 쇼가 쓰는 `chollian.osg` 를 **Material 판 그대로** 쓴다(대조군은 없앴다).
     body = []
     for nm, col, tris in PARTS:
-        body += geom((0.9, 0.9, 0.92), tris, "mat")
-    osg = (['Geode {', '  DataVariance DYNAMIC', '  name "chollian1w"',
+        body += geom(col, tris, "mat")
+    osg = (['Geode {', '  DataVariance DYNAMIC', '  name "chollian1"',
             '  nodeMask 0xffffffff', '  cullingActive TRUE',
             '  num_drawables %d' % len(PARTS)] + body + ['}'])
     w("chollian.osg", "\n".join(osg) + "\n")
@@ -360,6 +363,8 @@ if RUN_LOOK and GOOD:
         txt = sub()
         dark()
 
+        # ⚠️ 전 판은 **한 모델만** 세 각도로 보여줬다("모델 3개 보낸 거 맞아?" 지적).
+        #    이제 각 각도마다 이름표를 붙여 무엇을 보고 있는지 분명히 한다.
         for label, hpr in (("정면 — 안테나 쪽", (0.0, 0.0, 0.0)),
                            ("옆 — 태양전지판", (90.0, 0.0, 0.0)),
                            ("비스듬히", (140.0, 25.0, 0.0))):
@@ -451,12 +456,12 @@ if RUN_ORBIT and GOOD:
 
 
 line("모델 제작 종료 — 알려주세요")
-print("1) ③ 에서 **어느 판에 색이 들어갔나** — mat / cm / unlit / 없음")
-print("   (본체 금색 · 태양전지판 짙은 남색 · 접시 흰색이 보이면 성공)")
-print("2) 모양이 나아졌나 — 허리띠·보조안테나·렌즈·노즐을 더 넣었다")
-print("3) ④ 궤도 위 크기가 적당한 배율 (×3e5 / 1e6 / 3e6)")
+print("색은 확정됐다 — Material 방식. chollian.osg 가 그 판으로 덮어써졌으니")
+print("이제 쇼(SHOW_chollian.py)를 그대로 돌리면 색이 들어간 천리안이 나온다.")
 print("")
-print("색이 들어간 판을 알려주시면 그 파일을 chollian.osg 로 굳혀 쇼가 바로 씁니다.")
+print("1) 모양이 나아졌나 — 허리띠·보조안테나·렌즈면·추력기 노즐을 더 넣었다")
+print("2) 배색이 괜찮나 — 본체 금색(단열재) / 전지판 짙은 남색 / 접시 흰색")
+print("3) ④ 궤도 위 크기가 적당한 배율 (×3e5 / 1e6 / 3e6)")
 print("만든 파일 %d개:" % len(written))
 for p in written:
     print("   ", p)
