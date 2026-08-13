@@ -70,19 +70,29 @@ MODEL = "chollian.osg"
 SLOT_GROUND = 1               # 지상 전용. setSize 를 거는 유일한 슬롯
 SLOT_SPACE = 5                # 우주 전용. **영원히 setSize 를 부르지 않는다**
 
+# ★ 자막을 통째로 끄는 스위치. 화면만 보고 싶을 때 False.
+#   길이·타이밍은 그대로 유지된다(자막이 없어도 같은 박자로 흘러간다).
+SHOW_TEXT = False
+
 EARTH_R_M = 6378137.0
 GEO_R = 42164000.0 / EARTH_R_M          # 6.611 지구반지름 = 정지궤도
-GRAVE_R = 49840000.0 / EARTH_R_M        # 7.814 — 무덤궤도(과장. 실제는 300km 위)
+# 무덤궤도 — ⚠️ 실제는 정지궤도 300km 위(0.7% 차이 = 화면에서 안 보인다).
+# "이탈할 때 너무 안 보인다"는 지적을 받아 **크게 과장**했다. 나레이션에서 고지한다.
+GRAVE_R = 10.5                          # 지구반지름 단위(≈67,000km) — GEO 6.611 대비 59% 바깥
+GRAVE_MM = 0.50                         # 그 반지름에 대응하는 평균운동(궤도선용)
 KOREA_LON = 128.2                       # 천리안 1호의 정지궤도 경도
 LON_2A, LON_2B = 133.0, 123.5           # ⚠️ 실제 2A·2B 도 128.2 부근이지만 겹쳐 보여서 벌렸다
 
 B_TOP = 88.0                  # 북극 위. **각도는 건드리지 않는다**(프레이밍이 깨진 건 늘 각도였다)
 R_FAR = 20.0                  # 막1 출발 — 지구가 점
 R_ORBIT = 8.0                 # 막1 도착
-R_ZOOM_A, R_ZOOM_B = 9.0, 7.6   # 막2 줌인 — 동기 프레임(위성과 같은 경도선 위)
-R_DIVE = 3.2                  # 막4 지구 클로즈업
+R_ZOOM_A, R_ZOOM_B = 10.0, 8.3  # 막2 줌인 — 동기 프레임(위성과 같은 경도선 위)
+#  ⚠️ 7.6 은 위성까지 6,300km 라 태양전지판 하나가 돔을 다 덮었다(돔 실측).
+#     8.3 이면 10,800km — 위성이 화면 절반, 뒤로 지구도 들어온다.
+R_DIVE = 2.2                  # 막4 — 위성 시점으로 내려간 지구(각지름 54°)
+R_DIVE_START = 9.0            # 막4 하강 출발점
 B_NEAR = 25.0
-R_BACK = 9.0
+R_BACK = 13.0                 # 막5 — 궤도 두 개가 다 들어오는 거리
 
 SCALE_SAT = 1.0e6             # 반지름 5,270km — 처음에 고른 값(v4 의 5e5 는 "너무 작다")
 
@@ -121,8 +131,18 @@ def feat(obj, fn, *args):
         return False
 
 
+class _NoText(object):
+    """SHOW_TEXT=False 일 때 자막 자리에 들어가는 빈 껍데기 — 모든 호출을 삼킨다."""
+    def __getattr__(self, n):
+        def _f(*a, **k):
+            return None
+        return _f
+
+
 def sub_ground():
     """지상 자막 — 슬롯 1. **여기서만** setSize 를 부른다."""
+    if not SHOW_TEXT:
+        return _NoText()
     t = InsertText(InsertText.InsertTextName(SLOT_GROUND))
     cam.addChild(t.id, Camera.CameraPort.FixedForeground)
     t.setPosition(Vec(0, 14, 0))
@@ -135,6 +155,8 @@ def sub_ground():
 
 def sub_space():
     """우주 자막 — 슬롯 5. ⚠️ **setSize 를 절대 부르지 않는다**(부르면 화면에서 사라진다)."""
+    if not SHOW_TEXT:
+        return _NoText()
     t = InsertText(InsertText.InsertTextName(SLOT_SPACE))
     cam.addChild(t.id, Camera.CameraPort.FixedForeground)
     t.setPosition(Vec(0, 14, 0))
@@ -188,6 +210,24 @@ def place_sat(slot, lon, scale=SCALE_SAT):
     feat(ins, "setParent", sp if sp is not None else ip)
     feat(ins, "setPositionLBR", Vec(lon, 0.0, GEO_R), Anim(0.0))
     return ins
+
+
+def ring(slot, mm, color, thick=3.0):
+    """궤도선 — ⚠️ 가까이서는 끊겨 보인다(프로브 C). **마지막 장면(멀리서)에서만** 쓴다.
+    사용자 요청: "궤도선 안 보이는데 마지막은 넣어줬으면". 굵게(3.0) 그린다."""
+    o = OrbitalPlace(OrbitalPlace.OrbitalPlaceName(slot))
+    feat(o, "setParent", ip)
+    feat(o, "setMeanMotion", mm, Anim(0.0))
+    feat(o, "setEccentricity", 0.0002, Anim(0.0))
+    feat(o, "setInclination", 0.1, Anim(0.0))
+    feat(o, "setAscendingNodeLongitude", 0.0, Anim(0.0))
+    feat(o, "setArgumentOfPeriapsis", 0.0, Anim(0.0))
+    feat(o, "setMeanAnomaly", 0.0, Anim(0.0))
+    sleep(0.4)
+    feat(o, "setOrbitColor", color)
+    feat(o, "setOrbitThickness", thick)
+    feat(o, "setOrbitIntensity", 0.0, Anim(0.0))
+    return o
 
 
 def enter_space():
@@ -304,7 +344,7 @@ try:
 
     fly(Vec(0.0, B_TOP, R_ORBIT), 20.0, ip)     # ★ 보이는 접근
     say("다가가 보자", 4.5)
-    say("점이던 게 커진다", 5.0)
+    say("점이던 게 커진다", 4.0)
     feat(sat, "setIntensity", 1.0, Anim(3.0))
     say("저기 하나가 떠 있다", 4.5)
     say("천리안 1호다", 4.0)
@@ -343,7 +383,7 @@ try:
     say("여기서 만든 전기로 16년을 버텼다", 5.5)
     say("가운데 접시는 안테나", 4.5)
     say("이 접시는 늘 아래를 향한다 — 우리나라 쪽으로", 5.5)
-    say("그 옆이 카메라다. 이걸로 우리를 봤다", 5.0)
+    say("그 옆이 카메라다. 이걸로 우리를 봤다", 4.5)
     say("뒤로 보이는 게 지구다. 저 아래가 한반도다", 5.5)
 except Exception as e:
     print("막2 오류:", e)
@@ -367,7 +407,7 @@ try:
 
     say("이렇게 높은데, 왜 안 떨어질까?", 4.0)
     say("사실은 떨어지고 있다 — 다만 옆으로도 아주 빠르게 달린다", 5.5)
-    say("떨어지는 만큼 지구가 둥글게 휘어서, 영영 못 닿는다", 5.5)
+    say("떨어지는 만큼 지구가 둥글게 휘어서, 영영 못 닿는다", 5.0)
     say("하루를 40초로 돌려 보자", 3.0)
 
     # ⚠️ 손으로 밀지 않는다. 시간만 흘리면 엔진이 위성을 데려간다(급발진의 원인이 손 구동이었다)
@@ -381,39 +421,48 @@ try:
 except Exception as e:
     print("막3 오류:", e)
 
-# ══ 막4 : 무엇을 봤나 — 지구로 내려간다 ════════════════════════
+# ══ 막4 : 무엇을 봤나 — 천리안의 자리에서 ══════════════════════
+# ⚠️⚠️ [2026-08-12 지적] "천리안이 볼 거 하면서 정지궤돈데 지구를 돌리면 우야냐.
+#    이건 같이 한반도 보면서 돌아야지" — 맞다. **정지궤도 위성이 보는 지구는 돌지 않는다.**
+#    늘 같은 면, 한반도만 본다. 그런데 이 막에서 지구를 돌리고 있었다.
+#    → 카메라를 **동기 프레임(sp)** 으로 옮긴다. 그러면 카메라도 지구와 함께 돌아
+#      **한반도가 화면에 붙박이고**, 시간이 흘러도 지구는 안 돈다. 움직이는 건 구름뿐이다.
+#      그게 천리안이 16년 동안 본 그림이다.
 try:
     say("천리안은 거기서 무엇을 보고 있었을까", 3.0)
-    feat(sat, "setIntensity", 0.0, Anim(6.0))
-    fly(Vec(0.0, B_TOP, R_DIVE), 12.0, ip)      # ★ 보이는 하강
-    say("내려가 보자", 4.5)
-    say("천리안이 매일 보던 얼굴이다", 4.0)
-    sleep(3.0)
-
     _dark()
     txt.setIntensity(0.0, Anim(0.4))
     sleep(0.5)
     _dark()
-    fly(Vec(0.0, B_NEAR, R_DIVE), 0.0, ip)      # 각도만 암전에서 바꾼다
-    _dark()
-    cam.setTargetHeight(30.0, Anim(0.0))
+    feat(sat, "setIntensity", 0.0, Anim(0.0))
+    if sp is not None:
+        fly(Vec(KOREA_LON, 0.0, R_DIVE_START), 0.0, sp)   # 위성과 같은 경도선 = 한반도 정면
+        _dark()
+        cam.setTargetHeight(30.0, Anim(0.0))
     _dark()
     txt = sub_space()
     txt.setText("천리안이 본 것")
     _dark()
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
-    sleep(2.5)
+    sleep(2.0)
+
+    if sp is not None:
+        fly(Vec(KOREA_LON, 0.0, R_DIVE), 14.0, sp)        # ★ 보이는 하강 — 한반도는 제자리
+    say("내려가 보자", 4.0)
+    say("천리안이 매일 보던 얼굴이다", 4.0)
+    say("지구가 돌아도 이 그림은 안 바뀐다", 5.5)
 
     feat(earth, "setCloudsIntensity", 1.0, Anim(6.0))    # 0→1 이 구름 렌더의 마스터
     feat(earth, "setCloudSpeed", 3.0)
+    # ⚠️ 동기 프레임이라 시간이 흘러도 **지구는 안 돈다** — 구름만 흐른다
     dm.setDateTime(2026, 8, 16, 3, 30, 0, tz, Anim(35.0))
-    say("구름이 몰려온다")
+    say("바뀌는 건 구름뿐이다")
     say("천리안이 한 일은 세 가지였다")
     say("첫째, 날씨를 봤다")
     say("태풍이 어디로 갈지, 비가 언제 올지")
     say("둘째, 통신을 이어 줬다")
     say("그리고 셋째 — 바다를 봤다")
-    say("하루 여덟 번, 한반도 둘레 바다를 찍었다")
+    say("하루 여덟 번, 이 바다를 찍었다")
     say("500m 크기까지 알아볼 만큼 또렷하게")
     say("정지궤도에서 바다를 관측한 건 세계에서 처음이었다")
     say("천리안 1호가 처음 한 일이다")
@@ -437,24 +486,33 @@ try:
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.0)
 
-    fly(Vec(0.0, B_TOP, R_BACK), 10.0, ip)      # ★ 보이는 후퇴
+    fly(Vec(0.0, B_TOP, R_BACK), 12.0, ip)      # ★ 보이는 후퇴 — 궤도가 다 들어올 때까지
     feat(sat, "setIntensity", 1.0, Anim(6.0))
+    # 궤도선 — 마지막 장면에서만 쓴다(가까이선 끊겨 보인다). 사용자 요청.
+    r_geo = ring(0, 1.0027, Vec(1.0, 0.80, 0.30))
+    feat(r_geo, "setOrbitIntensity", 0.95, Anim(4.0))
     say("설계 수명은 7년이었다", 4.0)
     say("7년만 버티면 되는 기계였다", 4.0)
     say("그런데 16년을 일했다", 4.0)
     say("2010년에 태어난 아기가 고등학생이 될 만큼")
     say("2025년 12월, 임무가 끝났다")
 
-    # 무덤궤도 — 위성이 눈에 띄게 위로 올라간다 (궤도선 없이 위성만으로)
-    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(9.0))
-    say("마지막 연료로 조금 더 위로 올라갔다", 4.0)
-    say("일하는 자리를 다음 위성에게 비켜 준 것이다", 4.0)
+    # ★ 무덤궤도 — "이탈할 때 너무 안 보인다"는 지적을 받아 **크게·느리게** 고쳤다.
+    #   ① 목표 궤도선(회색)을 먼저 그려 어디로 가는지 보이게 하고
+    #   ② 위성을 GEO 6.611 → 10.5 로 **14초에 걸쳐** 천천히 밀어 올린다(전엔 7.8 까지 9초였다)
+    r_grave = ring(1, GRAVE_MM, Vec(0.60, 0.60, 0.66), 2.5)
+    feat(r_grave, "setOrbitIntensity", 0.85, Anim(3.0))
+    say("저 회색 원이 갈 곳이다", 4.0)
+    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(11.0))
+    say("마지막 연료로 위로 올라간다", 4.5)
+    say("천천히, 아주 천천히", 4.0)
+    say("일하는 자리를 다음 위성에게 비켜 준 것이다", 4.5)
     say("(실제로는 아주 조금 위다. 보이라고 크게 그렸다)", 4.0)
 
     # ⚠️ 불은 꺼지되 **사라지지 않는다**("마지막엔 천리안 보여주지도 않는다"는 지적)
     feat(sat, "setIntensity", 0.35, Anim(6.0))
-    say("그리고 전원을 껐다", 3.5)
-    say("천리안 1호는 지금도 저기 있다", 3.5)
+    say("그리고 전원을 껐다", 3.0)
+    say("천리안 1호는 지금도 저기 있다", 3.0)
 
     # 후계 — 같은 자리에 둘이 더 (⚠️ 실제로도 128.2 부근이지만 겹쳐 보여 벌려 놨다)
     s2a = place_sat(6, LON_2A, SCALE_SAT * 0.8)
@@ -463,12 +521,12 @@ try:
     s2b = place_sat(7, LON_2B, SCALE_SAT * 0.8)
     feat(s2b, "setIntensity", 1.0, Anim(2.5))
     say("2020년, 2B 가 바다와 공기를 이어받았다")
-    say("셋 다 천리안 1호가 처음 열어 둔 자리에 서 있다")
+    feat(r_geo, "setOrbitIntensity", 1.0, Anim(2.0))
     say("7년만 버티면 되던 기계가, 16년을 벌어 준 자리다")
 
     txt.setIntensity(0.0, Anim(3.0))
     uni.setGlobalIntensity(0.0, Anim.cubic(4.0))
-    sleep(3.5)
+    sleep(3.0)
 except Exception as e:
     print("막5 오류:", e)
 

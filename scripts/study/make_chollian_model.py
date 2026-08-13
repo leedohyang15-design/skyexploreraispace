@@ -142,23 +142,28 @@ def dish(cx, cy, cz, radius, depth, seg=18):
 
 #  ── 천리안 1호 조립 (단위 = 미터, 실제 치수에 가깝게) ──────────────
 #     +Z = 지구를 향하는 면(안테나 쪽) / +X = 태양전지판이 뻗는 쪽
+#  ⚠️ 색 배합 = 실제 정지궤도 위성의 전형: **금색 단열재(MLI) 본체 + 짙은 남색 태양전지판 +
+#     흰 안테나 접시**. 어린이가 한눈에 '위성'으로 알아보는 조합이다.
+GOLD   = (0.86, 0.68, 0.24)     # 다층 단열재 — 실제 위성의 금박
+NAVY   = (0.10, 0.14, 0.36)     # 태양전지 셀 — 실제로 짙은 남색이다
+SILVER = (0.62, 0.62, 0.68)
+WHITE  = (0.92, 0.92, 0.95)
+DARK   = (0.22, 0.22, 0.26)
+
 PARTS = []
-PARTS.append(("body", (0.88, 0.88, 0.92),                       # 본체 — 은백색
-              box(0.0, 0.0, 0.0, 2.4, 2.2, 3.0)))
-PARTS.append(("boom", (0.55, 0.55, 0.58),                       # 태양전지판 붐
-              box(1.9, 0.0, 0.0, 1.4, 0.25, 0.25)))
-PARTS.append(("panel", (0.95, 0.72, 0.20),                      # 태양전지판 — 금색(한쪽만!)
-              box(5.1, 0.0, 0.0, 5.0, 2.3, 0.10)))              # 전체 폭 ≈ 8.8 m 에 맞춘 길이
-PARTS.append(("panel_hinge", (0.35, 0.35, 0.40),                # 판 가운데 이음매(두 장처럼 보이게)
-              box(5.1, 0.0, 0.0, 0.12, 2.4, 0.16)))
-PARTS.append(("dish", (0.80, 0.80, 0.84),                       # 통신 안테나 접시
-              dish(0.0, 0.35, 2.30, 1.05, 0.50)))
-PARTS.append(("dish_arm", (0.55, 0.55, 0.58),                   # 접시 지지대
-              box(0.0, 0.35, 1.75, 0.14, 0.14, 0.8)))
-PARTS.append(("horn", (0.80, 0.80, 0.84),                       # 작은 관측 센서(GOCI 쪽)
-              box(0.0, -0.75, 1.85, 0.7, 0.7, 0.8)))
-PARTS.append(("mast", (0.45, 0.45, 0.50),                       # 반대쪽 마스트
-              box(0.0, 0.0, -2.2, 0.16, 0.16, 1.4)))
+PARTS.append(("body", GOLD, box(0.0, 0.0, 0.0, 2.4, 2.2, 3.0)))          # 본체 — 금색 단열재
+PARTS.append(("body_belt", DARK, box(0.0, 0.0, 0.0, 2.5, 2.3, 0.35)))    # 허리 띠(디테일)
+PARTS.append(("boom", SILVER, box(1.9, 0.0, 0.0, 1.4, 0.25, 0.25)))      # 태양전지판 붐
+PARTS.append(("panel", NAVY, box(5.1, 0.0, 0.0, 5.0, 2.3, 0.10)))        # 전지판(한쪽만!)
+PARTS.append(("panel_frame", SILVER, box(5.1, 0.0, 0.0, 5.1, 2.42, 0.05)))   # 테두리
+PARTS.append(("panel_hinge", SILVER, box(5.1, 0.0, 0.0, 0.12, 2.44, 0.16)))  # 가운데 이음매
+PARTS.append(("dish", WHITE, dish(0.0, 0.35, 2.30, 1.05, 0.50)))         # 통신 안테나
+PARTS.append(("dish_arm", SILVER, box(0.0, 0.35, 1.75, 0.14, 0.14, 0.8)))
+PARTS.append(("dish2", WHITE, dish(0.85, -0.55, 1.95, 0.42, 0.22)))      # 작은 보조 안테나
+PARTS.append(("horn", DARK, box(0.0, -0.75, 1.85, 0.7, 0.7, 0.8)))       # 관측 센서(GOCI 쪽)
+PARTS.append(("horn_lens", WHITE, box(0.0, -0.75, 2.28, 0.42, 0.42, 0.08)))  # 렌즈면
+PARTS.append(("mast", SILVER, box(0.0, 0.0, -2.2, 0.16, 0.16, 1.4)))
+PARTS.append(("nozzle", DARK, dish(0.0, 0.0, -2.95, 0.30, 0.45)))        # 추력기 노즐
 
 written = []
 
@@ -196,117 +201,66 @@ if RUN_WRITE:
     span = max(abs(v[0]) for _, _, ts in PARTS for tri, _ in ts for v in tri)
     print("   삼각형 %d개, X 최대 %.2f m (태양전지판 끝)" % (nt, span))
 
-    # ── (a) OSG — 색 + 법선. 조각마다 Geometry 하나. 제일 좋아 보이지만 스키마 위험도 제일 크다
-    body = []
-    for nm, col, tris in PARTS:
+    # ⚠️⚠️ [2026-08-12 돔 실측] `ColorArray` 만으로는 **색이 안 나온다 — 전부 흰색**이다.
+    #   조명이 켜져 있어 재질(Material)의 기본 흰색이 정점색을 이긴다.
+    #   그래서 색을 먹이는 방식 **세 가지를 다 만들어** 어느 게 통하는지 화면으로 가른다:
+    #     (a) mat   — StateSet 안에 Material{diffuseColor}   ← 가장 표준
+    #     (b) cm    — Material{ColorMode DIFFUSE} + ColorArray (색배열이 diffuse 로)
+    #     (c) unlit — GL_LIGHTING OFF + ColorArray            (조명을 꺼서 정점색을 그대로)
+    def geom(col, tris, mode):
         verts, norms = [], []
         for tri, n in tris:
             for v in tri:
                 verts.append("        %.4f %.4f %.4f" % v)
                 norms.append("        %.4f %.4f %.4f" % n)
-        body += [
-            '    Geometry {',
-            '      DataVariance DYNAMIC',
-            '      useDisplayList TRUE',
-            '      useVertexBufferObjects FALSE',
-            '      PrimitiveSets 1',
-            '      {',
-            '        DrawArrays TRIANGLES 0 %d' % len(verts),
-            '      }',
-            '      VertexArray Vec3Array %d' % len(verts),
-            '      {',
-        ] + verts + [
-            '      }',
-            '      NormalBinding PER_VERTEX',
-            '      NormalArray Vec3Array %d' % len(norms),
-            '      {',
-        ] + norms + [
-            '      }',
-            '      ColorBinding OVERALL',
-            '      ColorArray Vec4Array 1',
-            '      {',
-            '        %.3f %.3f %.3f 1' % col,
-            '      }',
-            '    }',
-        ]
-    osg = ([
-        'Geode {',
-        '  DataVariance DYNAMIC',
-        '  name "chollian1"',
-        '  nodeMask 0xffffffff',
-        '  cullingActive TRUE',
-        '  num_drawables %d' % len(PARTS),
-    ] + body + ['}'])
+        if mode == "unlit":
+            st = ['      StateSet {', '        DataVariance STATIC',
+                  '        GL_LIGHTING OFF', '      }']
+        else:
+            st = ['      StateSet {', '        DataVariance STATIC',
+                  '        rendering_hint DEFAULT_BIN', '        renderBinMode INHERIT',
+                  '        GL_LIGHTING ON',
+                  '        Material {', '          DataVariance STATIC',
+                  '          ColorMode %s' % ("DIFFUSE" if mode == "cm" else "OFF"),
+                  '          ambientColor %.3f %.3f %.3f 1' % tuple(c * 0.35 for c in col),
+                  '          diffuseColor %.3f %.3f %.3f 1' % col,
+                  '          specularColor 0.10 0.10 0.10 1',
+                  '          emissionColor %.3f %.3f %.3f 1' % tuple(c * 0.12 for c in col),
+                  '          shininess 16', '        }', '      }']
+        return (['    Geometry {', '      DataVariance DYNAMIC',
+                 '      useDisplayList TRUE', '      useVertexBufferObjects FALSE'] + st +
+                ['      PrimitiveSets 1', '      {',
+                 '        DrawArrays TRIANGLES 0 %d' % len(verts), '      }',
+                 '      VertexArray Vec3Array %d' % len(verts), '      {'] + verts +
+                ['      }', '      NormalBinding PER_VERTEX',
+                 '      NormalArray Vec3Array %d' % len(norms), '      {'] + norms +
+                ['      }', '      ColorBinding OVERALL', '      ColorArray Vec4Array 1',
+                 '      {', '        %.3f %.3f %.3f 1' % col, '      }', '    }'])
+
+    for mode, fname in (("mat", "chollian_mat.osg"), ("cm", "chollian_cm.osg"),
+                        ("unlit", "chollian_unlit.osg")):
+        body = []
+        for nm, col, tris in PARTS:
+            body += geom(col, tris, mode)
+        osg = (['Geode {', '  DataVariance DYNAMIC', '  name "chollian1"',
+                '  nodeMask 0xffffffff', '  cullingActive TRUE',
+                '  num_drawables %d' % len(PARTS)] + body + ['}'])
+        w(fname, "\n".join(osg) + "\n")
+
+    # 색 없는 판(대조군) — 지금 쇼가 쓰는 파일 이름 그대로 유지한다
+    body = []
+    for nm, col, tris in PARTS:
+        body += geom((0.9, 0.9, 0.92), tris, "mat")
+    osg = (['Geode {', '  DataVariance DYNAMIC', '  name "chollian1w"',
+            '  nodeMask 0xffffffff', '  cullingActive TRUE',
+            '  num_drawables %d' % len(PARTS)] + body + ['}'])
     w("chollian.osg", "\n".join(osg) + "\n")
-
-    # ── (b) OSG 단순판 — v1 에서 실제로 로드된 스키마 그대로(법선 없음, 색만). 보험
-    body2 = []
-    for nm, col, tris in PARTS:
-        verts = []
-        for tri, n in tris:
-            for v in tri:
-                verts.append("        %.4f %.4f %.4f" % v)
-        body2 += [
-            '    Geometry {',
-            '      DataVariance DYNAMIC',
-            '      useDisplayList TRUE',
-            '      useVertexBufferObjects FALSE',
-            '      PrimitiveSets 1',
-            '      {',
-            '        DrawArrays TRIANGLES 0 %d' % len(verts),
-            '      }',
-            '      VertexArray Vec3Array %d' % len(verts),
-            '      {',
-        ] + verts + [
-            '      }',
-            '      ColorBinding OVERALL',
-            '      ColorArray Vec4Array 1',
-            '      {',
-            '        %.3f %.3f %.3f 1' % col,
-            '      }',
-            '    }',
-        ]
-    osg2 = ([
-        'Geode {',
-        '  DataVariance DYNAMIC',
-        '  name "chollian1s"',
-        '  nodeMask 0xffffffff',
-        '  cullingActive TRUE',
-        '  num_drawables %d' % len(PARTS),
-    ] + body2 + ['}'])
-    w("chollian_simple.osg", "\n".join(osg2) + "\n")
-
-    # ── (c) OBJ + MTL — 평문이라 제일 안전. 색은 mtl 로
-    mtl = []
-    for nm, col, _ in PARTS:
-        mtl += ["newmtl %s" % nm,
-                "Kd %.3f %.3f %.3f" % col,
-                "Ka %.3f %.3f %.3f" % tuple(c * 0.4 for c in col),
-                "Ks 0.15 0.15 0.15", "Ns 12", "d 1.0", ""]
-    w("chollian.mtl", "\n".join(mtl) + "\n")
-
-    # ⚠️ 파일 내용은 ASCII 만 (위 w() 주석 참조 — cp949 로 저장돼 한글/em-dash 가 못 들어간다)
-    obj = ["# Chollian-1 (COMS-1) geostationary satellite", "mtllib chollian.mtl"]
-    vi = 1
-    for nm, col, tris in PARTS:
-        obj.append("usemtl %s" % nm)
-        obj.append("g %s" % nm)
-        base = vi
-        for tri, n in tris:
-            for v in tri:
-                obj.append("v %.4f %.4f %.4f" % v)
-                vi += 1
-        for k in range(len(tris)):
-            a = base + k * 3
-            obj.append("f %d %d %d" % (a, a + 1, a + 2))
-    w("chollian.obj", "\n".join(obj) + "\n")
-
 
 # ══ ② 어느 포맷이 살아있나 ════════════════════════════════════
 GOOD = None
 if RUN_LOAD and USER:
     line("② 로드 판정 — 폴링으로 (고정 sleep 은 Loading 인 채 지나간다)")
-    for nm in ("chollian.osg", "chollian_simple.osg", "chollian.obj"):
+    for nm in ("chollian_mat.osg", "chollian_cm.osg", "chollian_unlit.osg", "chollian.osg"):
         p = os.path.join(USER, nm)
         try:
             ins = Insert3D(Insert3D.Insert3DName(3))
@@ -497,11 +451,12 @@ if RUN_ORBIT and GOOD:
 
 
 line("모델 제작 종료 — 알려주세요")
-print("1) ② 에서 ✅ 가 뜬 포맷 (chollian.osg / chollian_simple.osg / chollian.obj)")
-print("2) ③ 에서 **천리안처럼 보였나** — 본체+한쪽 태양전지판+안테나 접시가 구분되나")
-print("   (색이 나왔나: 본체 은백 / 전지판 금색 / 접시 회백)")
-print("3) ④ 에서 궤도 위 위성 크기가 적당한 배율 (×1e5 / 3e5 / 1e6)")
+print("1) ③ 에서 **어느 판에 색이 들어갔나** — mat / cm / unlit / 없음")
+print("   (본체 금색 · 태양전지판 짙은 남색 · 접시 흰색이 보이면 성공)")
+print("2) 모양이 나아졌나 — 허리띠·보조안테나·렌즈·노즐을 더 넣었다")
+print("3) ④ 궤도 위 크기가 적당한 배율 (×3e5 / 1e6 / 3e6)")
 print("")
+print("색이 들어간 판을 알려주시면 그 파일을 chollian.osg 로 굳혀 쇼가 바로 씁니다.")
 print("만든 파일 %d개:" % len(written))
 for p in written:
     print("   ", p)
