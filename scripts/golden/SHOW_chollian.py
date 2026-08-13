@@ -140,18 +140,26 @@ R_INTRO_END = 3.4             # 한반도 상공 탑뷰(각지름 약 35°)
 #    실물 치수: 높이 53m · 부스터 포함 폭 11.9m · 주황 EPC + 흰 부스터 2기 + 페어링.
 ROCKET_MODEL = "ariane5.osg"
 ROCKET_SLOT = 9
-ROCKET_SCALE = 1.8e5          # 모델 반지름 28.9m × 1.8e5 ≈ 5,200km (천리안 5,270km 와 비슷)
+ROCKET_SCALE = 7.0e4          # 모델 반지름 28.9m × 7e4 ≈ 2,020km
+#   ⚠️⚠️ [2026-08-13 돔] 1.8e5 + 경도 9° 고정은 **출발 때 겉보기 146°** — 돔을 통째로 덮었다.
+#      경도 오프셋은 각도라서 **R 이 작을수록 실제 거리가 짧아진다**(R=1.6·9° = 겨우 1,600km).
+#      → 배율을 낮추고, 아래처럼 **올라가며 경도를 좁혀** 실제 거리를 6,000km 근처로 유지한다.
 KOURU_LON = -52.8             # 프랑스령 기아나 쿠루 발사장 경도
-ROCKET_LON_OFF = -9.0         # 카메라 경도에서 이만큼 옆에 둔다(정면이면 화면을 다 덮는다)
-ROCKET_LON = KOURU_LON + ROCKET_LON_OFF
-# ✅✅ **로켓을 하늘로 세우는 자세 = `HPR(경도, 90, 0)` — 확정** (2026-08-13 probe_rocket_hpr.py)
-#   모델은 +Z 로 서 있고 그 +Z 는 **북극**을 향한다(고리 실측과 일치). 적도에서 바깥(하늘)을
-#   향하려면 **pitch 90 으로 눕히고 heading 을 그 물체의 경도와 같게** 두면 된다.
-#   판별: 같은 공식을 경도 8곳에 걸고 북극 위에서 봤다 — **1번(H=L)만 바퀴살**이 됐고
-#   2번(H=−L)은 바람개비, 3·4번(H=L±90)은 접선 방향으로 누웠다.
-#   ⚠️ **교훈**: 1차 판별은 로켓 **하나만 옆에서** 봐서 못 갈랐다(어안 왜곡 + 카메라가 로켓
-#      근처라 정답인 자세가 오히려 끝면처럼 보였다). **여러 개를 동시에 놓고 패턴으로 볼 것.**
-ROCKET_HPR = Vec(ROCKET_LON, 90.0, 0.0)
+
+# ★ 로켓 항로 — (경도 오프셋, R). 올라갈수록 오프셋을 좁혀 **거리를 일정하게** 유지한다.
+#   계산: 거리 = 2·R·sin(Δ/2). 아래 값이면 5,800~7,100km, 겉보기 32~38° 로 내내 일정하다.
+ROCKET_WAY = [(-33.0, 1.6), (-20.0, 3.2), (-12.0, 4.9), (-8.0, GEO_R)]
+ROCKET_LON = KOURU_LON + ROCKET_WAY[0][0]   # 시작 경도
+# ✅✅ **자세 = `HPR(경도 + 180, 90, 0)` — 확정** (2026-08-13, 바퀴살 프로브 + 돔 재생)
+#   모델의 +Z 는 부모 프레임의 **북극**을 향한다. 적도에서 반지름 방향으로 세우려면
+#   **pitch 90 으로 눕히고 heading 을 그 물체의 경도**로 준다 → 축이 반지름 방향에 놓인다.
+#   ⚠️⚠️ **그런데 그것만으론 부족했다 — 축은 맞았지만 코가 지구를 향했다**(돔 실측).
+#      바퀴살 프로브는 **축이 반지름 방향인지**만 갈랐지 **어느 쪽 끝이 바깥인지**는 못 갈랐다
+#      (스포크는 뒤집어도 똑같이 스포크다). 실제로 프로브 사진에서도 **어두운 노즐이 바깥**이었다.
+#      → **heading 에 180 을 더해** 코를 바깥으로 돌린다.
+#   ⚠️ **교훈: 대칭인 판별은 방향의 '축'만 알려 주고 '부호'는 못 알려 준다.** 앞뒤가 다른 물체는
+#      판별 도형에 **앞뒤를 구분할 표식**(코/노즐 색 대비)이 보이는 구도까지 확인할 것.
+ROCKET_HEAD_OFF = 180.0       # ⚠️ 코가 지구를 향하면 이 값을 0 으로 (지금은 바깥이 정답)
 R_LAUNCH = 1.6                # 이륙 고도(≈3,800km). 지구가 발밑을 채운다
 #   ⚠️ 1순위 조정 손잡이. 지표가 뭉개지거나 화면이 비면 1.9~2.2 로 올릴 것
 
@@ -545,7 +553,8 @@ try:
         hide(rocket)
         feat(rocket, "setShadowStrength", 0.0, Anim(0.0))
         feat(rocket, "setScale", ROCKET_SCALE, Anim(0.0))
-        feat(rocket, "setOrientationHPR", ROCKET_HPR, Anim(0.0))
+        feat(rocket, "setOrientationHPR",
+             Vec(ROCKET_LON + ROCKET_HEAD_OFF, 90.0, 0.0), Anim(0.0))
         feat(rocket, "setParent", sp if sp is not None else ip)
         feat(rocket, "setPositionLBR", Vec(ROCKET_LON, 0.0, R_LAUNCH), Anim(0.0))
     txt = sub_space()
@@ -561,12 +570,18 @@ try:
 
     if sp is not None:
         fly(Vec(KOURU_LON, 0.0, GEO_R), 22.0, sp)    # ★ 로켓을 따라 고속 상승
-    if rocket:                                        # ★ 로켓도 같이 솟아오른다
-        feat(rocket, "setPositionLBR", Vec(ROCKET_LON, 0.0, GEO_R), Anim(22.0))
-    say("그 정상에 천리안 1호가 실려 있다", 5.5)
-    say("올라간다", 4.5)
-    say("3,000km … 10,000km … 20,000km", 6.0)
-    say("지구 상공 3만 6천 킬로미터", 6.0)
+    # ★ 로켓도 같이 솟아오른다 — ⚠️ **올라가며 경도를 좁혀** 카메라와의 거리를 일정하게 유지한다.
+    #   자세(heading)도 경도를 따라가야 하므로 **위치와 자세를 같은 시간으로 함께 애니메이션**한다
+    #   (구간마다 뚝 끊으면 큰 물체가 각도를 홱 트는 게 보인다).
+    LINES = ["그 정상에 천리안 1호가 실려 있다", "올라간다", "3,000km … 10,000km … 20,000km"]
+    for k, way in enumerate(ROCKET_WAY[1:]):
+        if rocket:
+            lon = KOURU_LON + way[0]
+            feat(rocket, "setPositionLBR", Vec(lon, 0.0, way[1]), Anim(7.4))
+            feat(rocket, "setOrientationHPR",
+                 Vec(lon + ROCKET_HEAD_OFF, 90.0, 0.0), Anim(7.4))
+        say(LINES[k], 7.4)
+    say("지구 상공 3만 6천 킬로미터", 5.5)
     say("정지궤도를 향한 도약이다", 5.0)
     if rocket:
         hide(rocket, 1)          # 도착하면 로켓은 분리돼 사라진다

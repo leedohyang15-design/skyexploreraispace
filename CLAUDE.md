@@ -573,6 +573,15 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
       ✅ **정답 = 같은 공식을 여러 위치(경도 8곳)에 동시에 걸고 극에서 내려다본다.**
       맞으면 **바퀴살**, 틀리면 **바람개비/접선**. **눈금을 잴 필요 없이 모양이 갈린다.**
       → 방향·자세를 가르는 프로브는 앞으로 **패턴으로 갈리게** 설계할 것.
+    ⚠️⚠️⚠️ **그런데 바퀴살만으로는 '부호'를 못 가른다 — 실제로 이걸로 한 번 더 틀렸다.**
+      바퀴살은 **축이 반지름 방향인지**만 말해 준다. **뒤집어도 똑같이 바퀴살**이다.
+      로켓이 축은 맞았는데 **코가 지구를 향한 채** 올라갔다(돔 실측). 프로브 사진을 다시 보니
+      어두운 노즐이 바깥에 있었는데 작아서 못 알아봤다. → **heading + 180** 이 최종 정답.
+      **교훈: 앞뒤가 다른 물체는 판별 도형에 앞뒤를 구분할 표식이 보이는 구도까지 확인할 것.**
+    ⚠️⚠️ **경도 오프셋은 각도라서 R 이 작을수록 실제 거리가 짧아진다** — 같이 올라가는 물체를
+      '옆에 두려고' 경도를 고정하면 **저고도에서 화면을 통째로 덮는다**(R=1.6·9° = 겨우 1,600km,
+      겉보기 146° 실측). 거리 = 2·R·sin(Δ/2). **올라가며 Δ 를 좁혀** 거리를 일정하게 유지할 것
+      (위치와 자세를 같은 Anim 으로 함께 애니메이션 — 구간마다 끊으면 각도를 홱 트는 게 보인다).
   · **메서드 19종(dir 실측)**: setModelFilename · setParent · setPositionLBR · setPositionXYZ · setOrientationHPR · **setScale** · setIntensity · setIntensityIDV · setExposure · setShadowStrength · setPointSize/setPointSizeFactor/setPointExposure · setUniform · setAnimationName/setAnimationStartTime/setAnimationEvolution · setVideoState/setVideoSpeed.
     읽기: `loadingStatus`(Loaded/Loading/Error/LoadedPendingDependencies) · `modelRadius` · **`parentRadius`** · `scale` · `positionLBR` · `orientationHPR` · `modelFilename` · `instrospectionOutput`(철자) · `modifyUniform` · `rotateMatrix`/`translateMatrix`/`scaleMatrix`.
   · **유저 폴더에 모델 파일 1,282개**(우주선 .osg/.ive 151개): `Metaspace\cassini\cassini.osg` · `ISS2019\...\ISS_2019_IVX_4.3_01.osg` · `Metaspace\...\ISS_2020_Full_Lite_HD_v1.ive` · 허블/아폴로/새턴V/셔틀/바이킹(.3DS 다수). ⚠️ **천리안·COMS 계열은 0개** — 만들어야 한다.
