@@ -218,9 +218,14 @@ from Initialization import *      # DateManager 등 매니저 클래스
 - **인공위성/ISS 궤도 — 지구만 나오고 궤도 안 뜸 방지**: `SceneGraph().reset(1)` → `data(PlanetType,"Earth").action(FadeTo)`; sleep(4) →
   풀백 `cam.setPositionLBR(Vec(cam.positionLBR.x, 35, 12), Anim.cubic(3), -1)` + `cam.setTargetHeight(30)` →
   `op = OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)`; `op.setParent(Planet(Planet.PlanetName.Earth).portId(Planet.PlanetPort.EquatorialJ2000))`;
-  ⚠️⚠️ **[2026-08-12] 궤도선이 '나선으로 벌어져 안 닫히면' `setBstar`·`setEpochYears` 를 안 건 것이다.**
-  `setBstar` = 대기저항 항 — 0 이 아니면 궤도가 감쇠해 **닫히지 않는 나선**으로 그려진다.
-  검증된 예제는 `setEpochYears(2026.0, Anim(0))` + `setBstar(0.0, Anim(0))` 를 건다. **요소만 넣고 이 둘을 빼면 궤도가 깨진다.**
+  🛑🛑 **[2026-08-13 사망 확정] `OrbitalPlace` 궤도선은 '닫힌 원'을 못 그린다 — 늘 나선이다.**
+  판별 프로브의 A 단계 = **검증된 예제 코드 그대로**였는데 그것도 나선(사용자 "다 나선").
+  카메라 프레임·단독 렌더·`semiMajorAxis`·**bstar 0 vs 0.05 대조**까지 전부 나선 → **감쇠항이 원인이 아니다.**
+  (2026-08-12 자 "`setBstar` 누락이 원인" 기록은 **오진, 폐기**.)
+  ✅ **대안 = 고리를 직접 구워 `Insert3D` 로 올린다**(`make_orbit_ring.py`): 반지름 1.0 m 고리 →
+  `setScale(궤도반지름[m])` + `setParent(관성 포트)` + `setPositionLBR(Vec(0,0,0))`. 전파기가 없으니 나선이 불가능하다.
+  ⚠️⚠️ **교훈: '핸들이 살아 있고 화면에 뭔가 그려진다' ≠ '된다'.** 예전에 이걸 ✅로 적은 건 궤도 5개가
+  겹쳐 있어 나선인 걸 못 알아본 것이다. **개체를 하나만 띄워 모양을 확인**하고 나서 ✅를 붙일 것.
   TLE `op.setMeanMotion(15.5, Anim(0.0))`(ISS)·`setEccentricity(0.0007,..)`·`setInclination(51.6,..)`·`setMeanAnomaly(0,..)` + `op.setOrbitColor(Vec3(0.3,0.8,1.0),..)`+`op.setOrbitIntensity(1,..)` → 시간가속 `dm.setDateTime(+1일, Anim(12))`.
   ⚠️⚠️ **OrbitalPlace = '궤도선 전용' 클래스 (전체 API 덤프로 확정)**: 있는 세터 = 궤도요소들 + `setOrbitColor/setOrbitIntensity/setOrbitThickness` + `setParent` **뿐**.
   **`setIntensity`·`setLabelNameOverride`·`setLabelIntensity` 등 본체/라벨 API 전무**(호출 시 AttributeError로 스크립트 사망). 위성 이름 표시는 **InsertText 자막**으로 대체할 것.

@@ -756,10 +756,19 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 ## OrbitalPlace — `OrbitalPlace(OrbitalPlace.OrbitalPlaceName.OrbitalPlace001)` ✅✅ 인공위성 궤도 완성 (2026-07-20 사용자 스샷 확인, orbital_satellites.py)
 - ✅ **지구 둘레 위성 궤도가 렌더됨** — Asteroid 와 같은 궤도 개체지만 '지구 위성용'(TLE 스타일 세터 보유). 슬롯 OrbitalPlace001~007.
 - **위성 TLE 세터(단위 명확 → AU/km 모호성 회피)**: `setMeanMotion`(revs/day) + `setEccentricity`/`setInclination`/`setAscendingNodeLongitude`/`setArgumentOfPeriapsis`(또는 setPeriapsisLongitude)/`setMeanAnomaly` + `setEpochYears`/`setEpochDays`/`setBstar`. (setSemiMajorAxis 도 있으나 mean motion 이 스케일 자동 결정 = 안전.)
-- ⚠️⚠️ **궤도선이 '나선으로 벌어져 안 닫힌다'면 `setBstar`·`setEpochYears` 누락이다 (2026-08-12 확정)**:
-  `setBstar`(대기저항)가 0 이 아니면 궤도가 감쇠하며 **열린 나선**으로 그려진다. 검증된 예제는
-  `setEpochYears(2026.0, Anim(0))` + `setBstar(0.0, Anim(0))` 를 건다 — **요소만 넣고 이 둘을 빼면 궤도가 깨진다.**
-  (천리안 쇼가 이걸 빼먹어 '궤도가 자꾸 끊긴다'로 네 번 헤맸다.)
+- 🛑🛑🛑 **[사망 확정 2026-08-13] `OrbitalPlace` 궤도선은 이 빌드에서 '닫힌 원'을 못 그린다 — 항상 나선으로 벌어진다.**
+  판별 프로브(`scripts/study/probe_orbit_spiral.py`)의 **A 단계 = 위 `orbital_satellites.py` 코드 그대로**였는데
+  **그것도 나선**이었다(사용자 확인 "다 나선"). B(카메라 프레임)·C(단독)·D(semiMajorAxis)·**E(bstar 0 vs 0.05)** 전부 나선.
+  ⚠️⚠️ **즉 `setBstar`·`setEpochYears`·슬롯 번호·시계 상태 — 내가 짚었던 원인은 전부 틀렸다.** E 에서 bstar 를
+  0 과 0.05 로 나란히 놓아도 구분이 안 됐으니 **감쇠항이 원인이 아니다.** (아래 2026-08-12 자 '원인 확정' 기록은 폐기.)
+  ⚠️⚠️ **위 '✅ 렌더됨' 기록도 정정한다** — 궤도 5개가 겹쳐 있어 나선인 걸 둘 다 못 알아본 것이다.
+  **핸들이 살아 있고 화면에 뭔가 그려진다고 '된다'가 아니다.** 개체 하나만 띄워 모양을 봐야 한다.
+  ✅✅ **대안(확정 경로) = 궤도선을 '직접 구운 고리 모델'로 그린다** (`scripts/study/make_orbit_ring.py`):
+  반지름 1.0(미터) 짜리 얇은 고리를 OSG 로 구워 `Insert3D` 로 올리고 **`setScale(궤도반지름[m])`** —
+  정지궤도 42,164 km → `setScale(4.2164e7)`. `setParent(관성 포트)` + `setPositionLBR(Vec(0,0,0))` = 지구 중심.
+  **계산으로 그린 원이라 전파기가 없다 = 나선이 될 수가 없다.** 색은 `Material{emissionColor}` 로 스스로 빛나게.
+  ⚠️ 남는 미지수는 **고리를 적도면에 눕히는 `setOrientationHPR`** 하나 — `probe_ring_model.py` 로 (0,0,0)/(0,90,0)/(90,0,0) A/B.
+  ⚠️ (구 기록, 폐기) "궤도선이 나선이면 `setBstar`·`setEpochYears` 누락" — **틀렸다.** 위 판별 결과 참조.
 - **부모 = 지구**: `op.setParent(earth.portId(Planet.PlanetPort.EquatorialJ2000))`. 표시 = `setOrbitColor`(Vec3)/`setOrbitThickness`/`setOrbitIntensity` + `setIntensity`.
 - ✅✅ **레시피 (확정)**: reset → **FadeTo 지구(외부)** → 풀백 `cam.setPositionLBR(Vec(L, 35, 12), Anim, -1)`(R=12 지구반지름=HUD 76538km, B35 오블리크) + `setTargetHeight(30)` → 위성들 TLE 요소 + 시간가속(setDateTime +1일) = 고도별 공전속도 차(케플러). 몰니야(e=0.74)는 찌그러진 타원으로 정확히 렌더.
 - ⚠️ **LEO(ISS/허블 MM≈15.5 = 고도 1.06 지구반지름)는 지구 표면에 붙어 R=12 줌에선 지구에 묻힘** → 잘 보이는 건 GPS(MM2)/GEO(MM1)/몰니야. LEO 강조하려면 근접 줌(R↓).

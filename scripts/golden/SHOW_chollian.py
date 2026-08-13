@@ -5,11 +5,12 @@
 #      ✅ A 관성 프레임 + **재조준 두 줄** → 지구가 돈다(하늘이 아니라)
 #      ✅ B **동기 프레임 경도 128.2** 에 놓은 위성이 한반도 위에 붙어 지구와 함께 돈다
 #      ✅ D 동기 프레임에서 위성으로 **진짜 줌인**이 된다(중앙 유지)
-#      ❌ C **궤도선(OrbitalPlace)이 나선으로 벌어져 안 닫힌다** — 3차까지 못 고쳤다.
-#         1차 "가까워서 끊긴다"(오진) → 2차 `setBstar` 누락(넣었는데도 그대로, 사용자 스샷)
-#         → 3차는 `ring()` 주석 참조. **로그에 bstar 읽은 값이 찍히니 이번엔 원인이 남는다.**
-#    ⚠️ **v8 에서 아직 돔에서 못 본 것**: 이륙 고도 R=1.6 · 랑데부 구도(막1) ·
-#       막3 그림자 ON + 오블리크(B40) 낮밤 · 막5 이탈(금색→회색).
+#      🛑 C **`OrbitalPlace` 궤도선은 못 쓴다 — 2026-08-13 판별 완료.**
+#         판별 프로브의 A 단계가 **검증된 예제 코드 그대로**였는데 그것도 나선이었다
+#         → 클래스 자체가 이 빌드에서 닫힌 원을 못 그린다(내 쇼의 버그가 아니다).
+#         **궤도선은 직접 구운 고리 모델로 바꿨다**(make_orbit_ring.py).
+#    ⚠️ **v9 에서 아직 돔에서 못 본 것**: 이륙 고도 R=1.6 · 랑데부 구도(막1) ·
+#       막3 그림자 ON + 오블리크(B40) 낮밤 · **고리 모델의 방향(RING_HPR)** · 막5 이탈.
 # ─────────────────────────────────────────────────────────────
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -55,7 +56,8 @@
 #     정지궤도를 설명하는 그 자리에서 **지구가 돌며 낮밤이 두 번 지나간다** = 설명과 그림이 한 화면에
 #  ④ **마감이 '정지궤도 → 폐기궤도 이탈'이다** — 금색·회색 원을 먼저 둘 다 켜고,
 #     위성이 금색에서 회색으로 **14초에 걸쳐 건너간다**. 그게 막5 의 전부다
-#  ⑤ **궤도선 3차 대응** — `ring()` 주석 참조(슬롯 0 회피 · 시계 정지 상태에서 생성 · 값 읽어 확인)
+#  ⑤ **궤도선의 기계를 바꿨다(v9)** — `OrbitalPlace` 를 버리고 **직접 구운 고리 모델**로.
+#     계산으로 그린 원이라 전파기가 없다 = 나선이 될 수가 없다. 남은 미지수는 방향(RING_HPR) 하나
 #
 #  구성
 #    막0  올려다보기 (관객의 눈)                     (~38초)
@@ -84,23 +86,30 @@ SLOT_SPACE = 5                # 우주 전용. **영원히 setSize 를 부르지
 #   길이·타이밍은 그대로 유지된다(자막이 없어도 같은 박자로 흘러간다).
 SHOW_TEXT = False
 
-# ★ 궤도선 스위치. ⚠️ 궤도선이 **아직 나선으로 벌어진다**(세 번 고쳤고 세 번 실패).
-#   원인 판별은 scripts/study/probe_orbit_spiral.py 로 따로 한다.
-#   → **보기 싫으면 이 한 줄만 False.** 궤도선이 없어도 막5 의 이탈은 그대로 보인다
-#     (위성이 지구에서 멀어지는 것으로 읽힌다). 길이·타이밍도 안 바뀐다.
+# ★ 궤도선 스위치. 보기 싫으면 이 한 줄만 False (길이·타이밍은 안 바뀐다).
 SHOW_RINGS = True
+
+# ⚠️⚠️⚠️ [2026-08-13 확정] **`OrbitalPlace` 는 이 빌드에서 닫힌 원을 못 그린다 — 버렸다.**
+#   판별 프로브(probe_orbit_spiral.py)의 A 단계가 **검증된 예제(orbital_satellites.py) 코드 그대로**
+#   였는데 **그것도 나선**이었다. 즉 내 쇼의 버그가 아니라 클래스 자체가 안 되는 것이다
+#   (SkySurvey·VideoPlayer 와 같은 '호스트/엔진 소관' 부류).
+#   ⚠️ 예전에 "궤도 렌더됨"으로 적어 둔 기록은 궤도 5개가 겹쳐 있어 나선인 걸 못 알아본 것이다.
+#   → **궤도선을 직접 구운 3D 모델로 바꿨다**(scripts/study/make_orbit_ring.py).
+#     계산으로 그린 원이라 **전파기가 없다 = 나선이 될 수가 없다.**
+RING_GOLD, RING_GRAY = "ring_gold.osg", "ring_gray.osg"
+RING_HPR = Vec(0.0, 0.0, 0.0)   # ⚠️ 고리를 적도면에 눕히는 방향.
+#   probe_ring_model.py 로 확인한다 — (0,0,0) / (0,90,0) / (90,0,0) 중 하나다.
+#   ⚠️ 화면에서 고리가 '선'으로 서 있으면 이 값만 바꾸면 된다. 다른 건 건드릴 필요 없다.
+RING_SLOT_GOLD, RING_SLOT_GRAY = 41, 42
 
 EARTH_R_M = 6378137.0
 GEO_R = 42164000.0 / EARTH_R_M          # 6.611 지구반지름 = 정지궤도
 # 무덤궤도 — ⚠️ 실제는 정지궤도 300km 위(0.7% 차이 = 화면에서 안 보인다).
 # "이탈할 때 너무 안 보인다"는 지적을 받아 **크게 과장**했다. 나레이션에서 고지한다.
 GRAVE_R = 10.5                          # 지구반지름 단위(≈67,000km) — GEO 6.611 대비 59% 바깥
-GRAVE_MM = 0.50                         # 그 반지름에 대응하는 평균운동(궤도선용)
 KOREA_LON = 128.2                       # 천리안 1호의 정지궤도 경도
 LON_2A, LON_2B = 133.0, 123.5           # ⚠️ 실제 2A·2B 도 128.2 부근이지만 겹쳐 보여서 벌렸다
 
-EPOCH_YEAR = 2026.0           # ⚠️ 궤도 요소의 기준 시각. **쇼의 날짜와 같은 해**로 맞춘다
-EPOCH_DAYS = 224.0            #    2026-08-12 = 연중 224일. 쇼 날짜를 바꾸면 이 값도 같이 바꾼다
 B_TOP = 88.0                  # 북극 위. **각도는 건드리지 않는다**(프레이밍이 깨진 건 늘 각도였다)
 R_ZOOM_A, R_ZOOM_B = 10.0, 8.3  # 막2 모델 클로즈업 — 동기 프레임(위성과 같은 경도선 위)
 #  ⚠️ 7.6 은 위성까지 6,300km 라 태양전지판 하나가 돔을 다 덮었다(돔 실측).
@@ -214,15 +223,16 @@ def stand(pos, port, target=30.0):
     _dark()
 
 
-def load_model(slot):
+def load_model(slot, model=None):
     """⚠️ 고정 sleep 으로 기다리면 Loading 인 채 지나간다(실측) — Loaded 뜰 때까지 폴링."""
     ins = Insert3D(Insert3D.Insert3DName(slot))
-    path = MODEL
+    model = model or MODEL
+    path = model
     try:
         import os
         u = Configuration.configuration().localUserFolder
         if u:
-            path = os.path.join(u, MODEL)
+            path = os.path.join(u, model)
     except Exception:
         pass
     ins.setModelFilename(path)
@@ -253,63 +263,23 @@ def place_sat(slot, lon, scale=SCALE_SAT):
     return ins
 
 
-def ring(slot, mm, color, thick=3.0):
-    """궤도선 하나.
+def ring(slot, model, radius_m):
+    """궤도선 하나 — **직접 구운 고리 모델**을 지구 중심에 놓고 반지름만큼 키운다.
 
-    ⚠️⚠️⚠️ **[2026-08-13] 나선 문제 3차 대응 — 앞선 두 번의 진단이 다 틀렸다.**
-      · 1차: "가까워서 끊긴다"(프로브 C) → 궤도선을 통째로 뺐다. **오진.**
-      · 2차: `setBstar`·`setEpochYears` 누락 → 두 줄 넣었다. **그래도 나선이었다(사용자 스샷).**
-      3차는 추측을 그만두고 **검증된 예제(scripts/study/orbital_satellites.py)와 한 줄씩 대조**했다.
-      요소 세터·시그니처는 완전히 같았고, **다른 것은 아래 셋뿐이었다**:
-
-      ① **슬롯 번호** — 예제는 `OrbitalPlaceName(1..5)`, 나는 **0** 부터 썼다.
-         0번은 다른 클래스에서 Invalid/프리셋인 전례가 있다(Nebula(134)=id -1, Mark 프리셋).
-         프리셋 슬롯이면 **내가 안 건 요소는 프리셋 값이 남는다** → 큰 bstar 가 남으면 정확히 이 나선이 나온다.
-      ② **생성 시점** — 예제는 `dm.stop()` 상태에서 만든다. 나는 **앞 막의 35초짜리 시계 애니가
-         아직 돌고 있는 중**에 만들었다. 요소가 흐르는 시각 위에서 반영된다.
-      ③ **확인** — 예제도 나도 `feat()` 로 예외를 삼킨다. **정말 먹었는지 아무도 안 봤다.**
-
-      → ①②를 고치고, ③은 **읽어서 찍는다.** 그래도 나선이면 로그에 원인이 그대로 남는다.
-
-    ⚠️ 한 바퀴 도는 동안 반지름이 눈에 띄게 변하려면 감쇠항(bstar)이 커야 한다.
-       금색(1일 주기)·회색(2일 주기)이 **둘 다 비슷하게 1.2바퀴쯤 벌어진** 스샷이
-       그 증거다(고정 '시간'이 아니라 고정 '바퀴수'를 그리는데도 안 닫힘)."""
+    ⚠️ `OrbitalPlace` 를 안 쓴다(위 주석 참조 — 이 빌드에서 닫힌 원을 못 그린다).
+       고리는 반지름 1.0(미터) 짜리로 구워져 있으므로 `setScale(반지름[m])` 이 곧 궤도 반지름이다.
+       정지궤도 42,164 km → setScale(4.2164e7).
+    ⚠️ 부모는 **관성 프레임(ip)** — 궤도는 별에 대해 고정된 것이지 지면에 붙은 게 아니다."""
     if not SHOW_RINGS:
-        return _NoText()            # 모든 호출을 삼키는 빈 껍데기
-    o = OrbitalPlace(OrbitalPlace.OrbitalPlaceName(slot))
-    feat(o, "setParent", ip)
-    feat(o, "setMeanMotion", mm, Anim(0.0))
-    feat(o, "setEccentricity", 0.0002, Anim(0.0))
-    feat(o, "setInclination", 0.1, Anim(0.0))
-    feat(o, "setAscendingNodeLongitude", 0.0, Anim(0.0))
-    feat(o, "setArgumentOfPeriapsis", 0.0, Anim(0.0))
-    feat(o, "setMeanAnomaly", 0.0, Anim(0.0))
-    feat(o, "setEpochYears", EPOCH_YEAR, Anim(0.0))
-    # ⚠️ 기준일을 **쇼 날짜(8/12 = 연중 224일)에 붙인다** — 기준일에서 멀수록 전파 구간이 길어지고
-    #   그 사이 쌓이는 세차/감쇠가 궤도를 벌린다. 붙여 두면 그 여지가 사라진다.
-    feat(o, "setEpochDays", EPOCH_DAYS, Anim(0.0))
-    feat(o, "setBstar", 0.0, Anim(0.0))
-    sleep(0.4)
-
-    # ★ 읽어서 확인한다. bstar 가 0 이 아니면 Anim 없는 형태로 한 번 더 때린다.
-    try:
-        b = o.bstar
-        print("   궤도 슬롯%d: bstar=%s epochYears=%s meanMotion=%s" %
-              (slot, b, o.epochYears, o.meanMotion))
-        if abs(float(b)) > 1e-12:
-            print("   ⚠️ bstar 가 0 이 아니다 — Anim 없이 재시도")
-            feat(o, "setBstar", 0.0)
-            sleep(0.3)
-            print("   재시도 후 bstar=%s" % o.bstar)
-    except Exception as e:
-        print("   ⚠️ 궤도 값 읽기 실패: %s" % e)
-
-    # ⚠️ 검증된 예제와 **호출 형태까지 맞춘다**(예제는 색·굵기에도 Anim 을 넘긴다).
-    feat(o, "setOrbitColor", color, Anim(0.0)) or feat(o, "setOrbitColor", color)
-    feat(o, "setOrbitThickness", thick, Anim(0.0)) or feat(o, "setOrbitThickness", thick)
-    feat(o, "setIntensity", 1.0, Anim(0.0))
-    feat(o, "setOrbitIntensity", 0.0, Anim(0.0))
-    return o
+        return _NoText()
+    ins = load_model(slot, model)
+    feat(ins, "setIntensity", 0.0, Anim(0.0))
+    feat(ins, "setShadowStrength", 0.0, Anim(0.0))   # 그림자로 반쪽이 어두워지지 않게
+    feat(ins, "setScale", radius_m, Anim(0.0))
+    feat(ins, "setOrientationHPR", RING_HPR, Anim(0.0))
+    feat(ins, "setParent", ip)
+    feat(ins, "setPositionLBR", Vec(0.0, 0.0, 0.0), Anim(0.0))   # 지구 중심
+    return ins
 
 
 def shadows(on):
@@ -432,8 +402,8 @@ try:
     # ★★ 궤도선을 **여기서 미리 만든다** — 시계가 완전히 멈춰 있고 아무 애니메이션도 없는 지금이
     #    유일하게 안전한 시점이다(막5 에서 만들면 앞 막의 시계 애니가 아직 돌고 있다).
     #    슬롯은 1·2 — 0번은 쓰지 않는다(프리셋 슬롯 의심). 켜는 건 막5 에서.
-    r_geo = ring(1, 1.0027, Vec(1.0, 0.80, 0.30))
-    r_grave = ring(2, GRAVE_MM, Vec(0.60, 0.60, 0.66), 2.5)
+    r_geo = ring(RING_SLOT_GOLD, RING_GOLD, GEO_R * EARTH_R_M)
+    r_grave = ring(RING_SLOT_GRAY, RING_GRAY, GRAVE_R * EARTH_R_M)
     _dark()
 
     if sp is not None:
@@ -586,13 +556,13 @@ try:
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.0)
 
-    feat(r_geo, "setOrbitIntensity", 0.95, Anim(3.0))     # ★ 금색 = 일하던 자리
+    feat(r_geo, "setIntensity", 1.0, Anim(3.0))           # ★ 금색 = 일하던 자리
     say("천리안이 16년을 돈 자리다", 4.5)
     say("설계 수명은 7년이었는데", 4.0)
     say("2010년에 태어난 아기가 고등학생이 될 때까지 일했다", 5.0)
     say("2025년 12월, 임무가 끝났다", 4.5)
 
-    feat(r_grave, "setOrbitIntensity", 0.85, Anim(3.0))   # ★ 회색 = 갈 곳
+    feat(r_grave, "setIntensity", 0.9, Anim(3.0))         # ★ 회색 = 갈 곳
     say("저 바깥 회색 원이 갈 곳이다", 4.5)
     # ★★ 이 한 줄이 이 막의 핵심 — 금색에서 회색으로 건너간다
     feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(14.0))
