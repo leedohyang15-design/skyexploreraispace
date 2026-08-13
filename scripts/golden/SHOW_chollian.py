@@ -111,6 +111,25 @@
 #     → Scene 3 도 **동기 프레임**으로 옮기고 카메라 경도를 위성과 같게(128.2). B 62 → **16**,
 #       R 9.0 → **8.6** = 위성 겉보기 **11.4° → 31.9°**.
 #
+#  ══ v14 — "로켓 아직 안 보인다" (2026-08-13) ══
+#  ⚠️⚠️⚠️ 사용자 지적이 정확했다: **"로켓을 미리 만들어 놓고 그곳으로 land·이동하면 되는 걸
+#     왜 이렇게 복잡하게 생각하냐"** — 세 판(v11·v12·v13) 동안 배율·거리만 만졌는데,
+#     진짜 문제는 **조준이었다.** 착지 후 카메라 heading 이 얼마인지 모르는 채
+#     `setOrientationH(90)`('동쪽을 봐라')을 밀어넣었고, 그게 낙하가 남긴 자세와 싸웠다.
+#  ✅ **뒤집었다 — 조준을 아예 안 한다.**
+#     착지 후 **카메라가 실제로 보고 있는 heading 을 읽어서**(`cam.orientationHPR.x`),
+#     방위 = 180 − H 로 환산해 **그 방향 11 km 앞에 로켓을 세운다.**
+#     조준 명령이 없으니 싸울 것도 없고, 값이 뭐가 나오든 **로켓은 반드시 화면 안**이다.
+#     (heading 을 못 읽으면 기존 '동쪽 기본값'으로 떨어진다 — 로그에 찍힌다.)
+#  ✅ 관측자 고도 10 m → **300 m**. 10 m 면 지평선이 11 km 라 로켓 밑동이 걸린다(62 km 로 늘어난다).
+#  ✅ **부품 설명을 화살표로** — `DomePointer`(검증된 돔 화살표)를 부품마다 찍고 이름을 그 옆에.
+#     회전은 **설명 전에 끝낸다**(도는 물체에 화살표를 대면 가리키는 게 어긋난다).
+#     ⚠️ **미검증**: DomePointer 는 지상에서만 확인됐다. 우주 프레임에서 안 뜨면 `SHOW_POINTERS = False`
+#        → 이름만 뜨는 v13 방식으로 돌아간다. 화살표가 부품에서 어긋나면 `PART_AZ0`/`PART_H0` 두 값만 옮긴다.
+#  ✅ **막4 를 '지구 옆'으로** — "지구를 태양처럼 가운데 두고 궤도가 옆으로 이동하는" 그림.
+#     `B_LEAVE` 24 → **8**(거의 궤도면 안). 위성 겉보기 19.2° → 27.2°, 지구 중심에서 19.7° → 38.7° 로
+#     **옆으로 19° 를 가로지른다.** 고리는 옆에서 보니 가는 선이 되지만 '밀려 나가는' 건 이 각도가 제일 또렷.
+#
 #  구성 (대본의 시간표를 따른다)
 #    Intro    광활한 우주와 하나의 결심          0:00–0:40
 #    Scene 1  쿠루 우주센터와 카운트다운          0:40–1:20
@@ -122,6 +141,7 @@
 from skyExplorer import *
 from studio import *
 from Initialization import *
+import math
 
 cam = Camera(Camera.CameraName.MainCamera)
 uni = Universe(Universe.UniverseName.MainUniverse)
@@ -240,7 +260,11 @@ LAUNCH_FROM_GROUND = True
 #   11 km 앞 · 높이 8.4 km → **겉보기 앙각 0 → 37°, 폭 약 9°** = 돔에서 크고 또렷하다.
 #   (v10 의 333 km 보다 30배 가까워 산란은 문제없다.)
 ROCKET_SCALE = 150.0          # 모델 높이 56.2m × 150 ≈ 8.4 km
-ROCKET_LON_OFF = 0.10         # ≈11 km 동쪽
+ROCKET_DIST_KM = 11.0         # ★ v14 — 카메라가 보는 방향으로 이만큼 앞에 세운다
+ROCKET_LON_OFF = 0.10         # (heading 을 못 읽었을 때 쓰는 기본값 = 동쪽 ≈11 km)
+# ⚠️ 관측자 고도 10 m 면 지평선까지 겨우 11 km — 로켓 밑동이 지평선에 걸린다.
+#    300 m 로 올리면 지평선이 62 km 라 밑동까지 다 보인다. (발사대 언덕이라고 치면 된다.)
+GROUND_ALT_M = 300.0
 # ⚠️ [지시] "발사 어느 정도 되면 발사 끝내고" → 상승을 **두 단계로 줄였다**(전 4단계).
 #    고도 0 → 12.8 km → 64 km. 돔을 가로질러 위로 오르며 23° → 11° → 2.5° 로 작아진다.
 ROCKET_R = [1.0000, 1.0035, 1.0150]
@@ -282,7 +306,11 @@ B_TOGETHER, R_TOGETHER = 16.0, 8.6
 #     동기 프레임이라 위성(경도 128.2)이 화면에 붙박이고, 카메라를 경도 20° 옆에 두면
 #     **위성이 앞에, 지구가 아래에, 두 고리가 옆으로 눕는** 그림이 된다.
 #   ⚠️ B 24 = 여전히 가림 없음(6.611 × cos24° = 6.04 ≫ 1). 옆에서 보면서도 안 숨는다.
-B_LEAVE = 24.0                # 88(탑뷰) → 62 → **24(옆)**
+# ⚠️ [v14 지시] "그냥 아예 **지구 옆에서** 보는 게 구도가 더 나아 보여 — 정지궤도서 폐기로 가는 게"
+#   → B 24 → **8**. 거의 궤도면 안에서 옆으로 본다.
+#     계산: 위성 겉보기 19.2° → 27.2°(다가오며 커진다), 지구 중심에서 19.7° → 38.7° 로 **19° 를 가로지른다.**
+#     고리 두 개는 옆에서 보니 **가느다란 선**이 되지만, '바깥으로 밀려 나가는' 움직임은 이 각도가 제일 또렷하다.
+B_LEAVE = 8.0                 # 88(탑뷰) → 62 → 24 → **8(완전 옆)**
 LON_LEAVE = KOREA_LON - 12.0  # 위성 경도에서 12° 옆
 #   계산 확인(v13): 위성 겉보기 16.0° → 18.4°, 지구 중심에서 30° → 49° 로 **19° 를 가로질러** 밀려난다.
 #   (오프셋 20° 는 끝에서 51° 까지 벌어져 화면 가장자리로 밀렸다.)
@@ -397,10 +425,26 @@ def label(text, ground=False):
 
 SLOT_TAG_GEO, SLOT_TAG_GRAVE = 7, 8      # ⚠️ 우주 전용 — setSize 를 영원히 안 부른다
 SLOT_PART = 9                            # ★ [v13] 위성 '부품 이름' 전용 슬롯
+
+# ★★ [2026-08-13 v14 지시] "자막을 그 **화살표 같은 걸로 가리키면서** 해야지"
+#   → `DomePointer`(검증된 돔 화살표)를 부품마다 찍고, 이름을 그 옆에 붙인다.
+#   ⚠️ **돔 좌표 규약(실측)**: az = 180 − 나침반방위 · **h = 돔 Target 좌표**(하늘 고도 아님).
+#      Scene 2 는 카메라가 위성을 정면으로 보고 Target 30 이라 **위성 중심 ≈ (az 0, h 30)**.
+#      → 화면에서 어긋나면 **아래 두 값만** 옮기면 다섯 개가 통째로 따라간다.
+SHOW_POINTERS = True
+PART_AZ0, PART_H0 = 0.0, 30.0
+#   (이름, 중심에서의 az 오프셋, h 오프셋) — 모델에서 그 부품이 붙은 쪽에 맞춰 놓았다.
+PARTS = (
+    ("태양전지판",          -13.0,  6.0),
+    ("솔라세일 — 균형추",    13.0,  6.0),
+    ("Ka 대역 주안테나",      0.0,  1.5),
+    ("기상 관측기 (MI)",     -5.5, -8.0),
+    ("해양 관측기 (GOCI)",    5.5, -8.0),
+)
 _tags = {}
 
 
-def side_tag(slot, text, height, color):
+def side_tag(slot, text, height, color, az=0.0):
     """★ 화면에 짧게 붙이는 보조 태그 — **궤도 이름**(v12)과 **위성 부품 이름**(v13)에 쓴다.
     ⚠️ 자막(1·5)·물체 이름표(2·6)와 **또 다른 슬롯**이다(규칙 1). 빈 문자열이면 지운다."""
     if not SHOW_LABELS:
@@ -409,12 +453,41 @@ def side_tag(slot, text, height, color):
     if t is None:
         t = InsertText(InsertText.InsertTextName(slot))
         cam.addChild(t.id, Camera.CameraPort.FixedForeground)
-        t.setPosition(Vec(0, height, 0))
         t.setColor(color)
         t.setDistance(20.0, Anim(0.0))    # 우주 전용 — 크기는 건드리지 않는다
         _tags[slot] = t
+    t.setPosition(Vec(az, height, 0))     # 화살표를 따라다닐 수 있게 매번 갱신
     t.setText(text)
     t.setIntensity(0.0 if not text else 0.95, Anim(0.8))
+
+
+_ptr = [None]
+
+
+def point_at(name, daz, dh):
+    """★ [v14] 부품을 **화살표로 가리키고** 이름을 그 옆에 띄운다.
+    이름만 덩그러니 띄우던 걸(v13) 화살표+이름으로 바꾼 것. name="" 이면 둘 다 끈다."""
+    if not SHOW_LABELS:
+        return
+    az, h = PART_AZ0 + daz, PART_H0 + dh
+    if SHOW_POINTERS:
+        d = _ptr[0]
+        if d is None:
+            d = DomePointer(DomePointer.DomePointerName.DomePointer001)
+            for nm in ("Model3Bold", "Model3", "Model1Bold", "Model1"):
+                try:
+                    feat(d, "setPointerType", getattr(Body.PointerType, nm))
+                    break
+                except Exception:
+                    continue
+            feat(d, "setColor", Vec(0.55, 0.90, 1.0))
+            feat(d, "setApparentSize", 7.0)
+            _ptr[0] = d
+        if name:
+            feat(d, "setPosition", Vec(az, h, 0.0))
+        feat(d, "setPointerIntensity", 0.0 if not name else 1.0, Anim(0.5))
+    # 이름은 화살표 **바로 옆**(같은 돔 좌표에서 살짝 위)에 놓는다 — 떨어져 있으면 뭘 가리키는지 모른다.
+    side_tag(SLOT_PART, name, h + 4.0, Vec(0.70, 0.92, 1.0), az)
 
 
 def fly(pos, seconds, port):
@@ -736,17 +809,36 @@ try:
     cam.setOrientationHPR(Vec(_cur_h, 0.0, 0.0), Anim.cubic(LAND_B))
     say("발사장이 눈앞으로 다가온다", LAND_B)
 
-    # 착지 — 관측지를 못 박고(하강이 어디에 내려놓든 여기가 쿠루다) 발사대 쪽으로 돈다.
-    Place2D(Place2D.Place2DName(0)).setPosition(Vec(KOURU_LAT, KOURU_LON, 10.0))
+    # 착지 — 관측지를 못 박는다(하강이 어디에 내려놓든 여기가 쿠루다).
+    Place2D(Place2D.Place2DName(0)).setPosition(Vec(KOURU_LAT, KOURU_LON, GROUND_ALT_M))
     txt.setIntensity(0.0, Anim(0.8))          # 우주 자막을 내리고
     txt = sub_ground()                        # ⚠️ 지상 슬롯으로 **갈아탄다**(규칙 1)
     txt.setText("2010년 6월 27일")
-    # 로켓은 관측지보다 경도 +0.10° = **동쪽**(약 11 km)에 서 있다.
-    # 환산 규칙 H = 180 − 나침반방위 → 동(90) = H 90.
-    cam.setOrientationH(90.0, Anim.cubic(3.0))   # 발사대 쪽(동쪽)으로 돈다 — 보이게
-    cam.setTargetHeight(30.0, Anim(0.0))         # 🎯 관람 표준 틸트(30)
-    # ★ 로켓을 **여기서 켠다** — 돌아서면 발사대가 이미 서 있다.
+    cam.setTargetHeight(30.0, Anim(0.0))      # 🎯 관람 표준 틸트(30)
+    sleep(0.6)                                # 자세가 반영될 한 박자
+
+    # ★★★ [2026-08-13 v14 지시] "로켓을 미리 만들어 놓고 **그곳으로 land·이동**하면 되는 걸
+    #   왜 이렇게 복잡하게 생각하냐" — 맞는 말이다. **조준을 아예 안 한다.**
+    #   ⚠️ 여태 실패한 이유: 착지 후 카메라 heading 이 얼마인지 모르는데 `setOrientationH(90)` 로
+    #      '동쪽을 봐라'고 밀어넣었다. 낙하가 남긴 자세와 싸우니 어디를 보는지 알 수 없었다.
+    #   ✅ **뒤집는다 — 카메라가 실제로 보고 있는 방향을 읽어서, 그 자리에 로켓을 세운다.**
+    #      조준 명령이 없으니 싸울 것도 없고, 어떤 값이 나오든 로켓은 반드시 화면 안에 있다.
+    _lat, _lon = KOURU_LAT, KOURU_LON + ROCKET_LON_OFF     # 못 읽으면 쓰는 기본값(동쪽)
+    try:
+        _h = cam.orientationHPR.x                # 돔 heading
+        _az = math.radians(180.0 - _h)           # 검증된 환산: 방위 = 180 − H
+        _dd = ROCKET_DIST_KM / 6378.0            # 지구반지름 단위 각거리
+        _lat = KOURU_LAT + math.degrees(_dd * math.cos(_az))
+        _lon = KOURU_LON + math.degrees(_dd * math.sin(_az) /
+                                        max(0.2, math.cos(math.radians(KOURU_LAT))))
+        print("   로켓 배치 — 카메라 H %.1f (방위 %.1f) → 위도 %.4f 경도 %.4f"
+              % (_h, 180.0 - _h, _lat, _lon))
+    except Exception as e:
+        print("   ⚠️ heading 을 못 읽었다 — 기본 동쪽에 세운다: %s" % e)
+
     if rocket:
+        feat(rocket, "setOrientationHPR", Vec(_lon + ROCKET_HEAD_OFF, 90.0, 0.0), Anim(0.0))
+        feat(rocket, "setPositionLBR", Vec(_lon, _lat, ROCKET_R[0]), Anim(0.0))
         feat(rocket, "setIntensity", 1.0, Anim(2.0))
     label(ROCKET_NAME, ground=True)              # ★ 로켓 이름표
     say("2010년 6월 27일, 쿠루 우주센터", 6.0)
@@ -756,8 +848,7 @@ try:
     #   ⚠️ [지시] "발사 어느 정도 되면 발사 끝내고" — 길게 끌지 않는다.
     for k, rr in enumerate(ROCKET_R[1:]):
         if rocket:
-            feat(rocket, "setPositionLBR",
-                 Vec(KOURU_LON + ROCKET_LON_OFF, KOURU_LAT, rr), Anim(6.5))
+            feat(rocket, "setPositionLBR", Vec(_lon, _lat, rr), Anim(6.5))
         say(["그 정상에 천리안 1호가 실려 있다", "점이 될 때까지, 계속"][k], 6.5)
     if rocket:
         feat(rocket, "setIntensity", 0.0, Anim(2.5))   # 발사 끝 — 조용히 사라진다
@@ -802,20 +893,22 @@ try:
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.5)
     label("천리안 1호")                        # ★ 이름표
-    feat(sat, "setOrientationHPR", Vec(500.0, 20.0, 0.0), Anim(30.0))
+    # ★ 회전은 **부품 설명 전에 끝낸다** — 도는 물체에 화살표를 대면 가리키는 게 어긋난다.
+    feat(sat, "setOrientationHPR", Vec(500.0, 20.0, 0.0), Anim(15.0))
     if sp is not None:
-        fly(Vec(KOREA_LON, 0.0, R_WATCH_B), 16.0, sp)
+        fly(Vec(KOREA_LON, 0.0, R_WATCH_B), 15.0, sp)
     say("동경 128.2도", 4.0)
     say("지구가 도는 속도에 딱 맞춰 함께 돈다", 5.5)
     say("그래서 24시간 한반도를 내려다본다", 5.5)
 
-    # ★★ [v13 지시] "가운데에서 천리안 돌릴 때 **각각의 부품 명칭을 자막으로**"
-    #   위성이 도는 동안 부품 이름을 차례로 띄운다. 나레이션과 같은 박자로 넘어간다.
-    side_tag(SLOT_PART, "태양전지판", 46.0, Vec(0.70, 0.88, 1.0))
+    # ★★ [v14 지시] "자막을 그 **화살표 같은 걸로 가리키면서** 해야지"
+    #   → 회전이 멈춘 위성에 화살표를 하나씩 대고, 이름을 그 옆에 띄운다.
+    label("")                                  # 위성 이름표는 내리고 부품으로 넘어간다
+    point_at(PARTS[0][0], PARTS[0][1], PARTS[0][2])
     say("한쪽에만 날개가 달렸다 — 태양전지판이다", 5.5)
-    side_tag(SLOT_PART, "솔라세일 — 반대편 균형추", 46.0, Vec(0.70, 0.88, 1.0))
+    point_at(PARTS[1][0], PARTS[1][1], PARTS[1][2])
     say("반대편 막대 끝의 반사판이 그 힘을 받아 균형을 잡는다", 6.0)
-    side_tag(SLOT_PART, "Ka 대역 주안테나", 46.0, Vec(0.70, 0.88, 1.0))
+    point_at(PARTS[2][0], PARTS[2][1], PARTS[2][2])
     say("가운데 접시는 안테나, 아래 두 개가 관측기다", 5.5)
 
     # ⚠️⚠️ [2026-08-13 지시] "천리안 눈앞에서 돌려놓고 **갑자기 왜 배경은 왜 돌리는 거야**"
@@ -825,11 +918,11 @@ try:
     #   → **이 장면에서는 시간을 아예 안 흘린다.** 구름은 세기 페이드인만으로 충분히 보인다
     #     (검증된 사실: '구름이 밀려온다'는 setCloudCoverage 가 아니라 setCloudsIntensity 0→1).
     feat(earth, "setCloudsIntensity", 1.0, Anim(8.0))
-    side_tag(SLOT_PART, "기상 관측기 (MI)", 46.0, Vec(0.70, 0.88, 1.0))
+    point_at(PARTS[3][0], PARTS[3][1], PARTS[3][2])
     say("기상 관측기가 구름을 읽고", 5.0)
-    side_tag(SLOT_PART, "해양 관측기 (GOCI)", 46.0, Vec(0.70, 0.88, 1.0))
+    point_at(PARTS[4][0], PARTS[4][1], PARTS[4][2])
     say("해양 관측기가 바다를 읽는다", 5.0)
-    side_tag(SLOT_PART, "", 46.0, Vec(0.70, 0.88, 1.0))
+    point_at("", 0.0, 0.0)                     # 화살표·이름 내린다
     say("태풍의 길목을 미리 알리고, 적조와 기름 유출을 감시했다", 6.5)
     say("가장 높은 곳에서 우리를 지켜보는 눈이었다", 5.5)
 except Exception as e:
