@@ -89,6 +89,18 @@
 #     6.611 × cos(62°) = 3.10 > 1 이므로 **B 62 에서는 절대 안 가려진다.** 막 3·4 에 적용.
 #     + 막 4 는 탑뷰 → 오블리크 구도, 이탈 16초 → 8초.
 #
+#  ══ v12 — 돔 재생 지적 5건 반영 (2026-08-13) ══
+#  ① **로켓 이름을 "아리안 5호"로 되돌렸다** (v11 의 '아리랑'을 사용자 지시로 원복).
+#  ② **"지구로 들어간 다음 아리안이 안 보인다"** → 낙하를 **2단**으로 쪼개고(대기권 → 로켓 옆),
+#     **로켓을 착지 직후 바로 켠다**(돌아서면 발사대가 이미 서 있다). 배율 50 → **150**,
+#     거리 6.6 → **11 km** = 겉보기 앙각 0→37°. v11 은 산란을 피하려다 **너무 작게** 만들었다.
+#  ③ **"궤도마다 자막을 달아 줘"** → `ring_tag()` 신설. 금색 = "정지궤도 · 3만 6천 km",
+#     회색 = "폐기궤도 — 여기로 비켜난다". ⚠️ 자막(1·5)·이름표(2·6)와 **또 다른 슬롯(7·8)**.
+#  ④ **"마지막 화면을 위에서 말고 옆에서 위성 기준으로"** → Scene 4 를 **동기 프레임**으로 옮기고
+#     B 62 → **24**(옆), 경도를 위성에서 20° 벌려 위성이 앞에 잡히게. 고리는 옆으로 눕는다.
+#  ⑤ **"마지막에 지구 야간 화면은 뭥미"** → **그 비트를 뺐다.** 밤면 정면 + R 3.4 라 거의 캄캄한
+#     원반만 남았다(도시광 몇 점). 이제 이탈에서 **바로 청주 밤하늘로 착지**한다.
+#
 #  구성 (대본의 시간표를 따른다)
 #    Intro    광활한 우주와 하나의 결심          0:00–0:40
 #    Scene 1  쿠루 우주센터와 카운트다운          0:40–1:20
@@ -175,7 +187,12 @@ R_INTRO_END = 3.4             # 발사장 상공(각지름 약 35°)
 #       ② `setOrientationHPR(Vec(현재 H, 0, 0), Anim.cubic(N))`  (수직하방 → 수평)
 #     **둘을 동시에** 쏘아야 자연스럽다. 착지하면 state 가 SkyView 로 바뀐다(reset 불필요).
 #   ⚠️ 그래서 **지상 세팅(관측지·시각·대기)을 하강 전에 미리** 걸어 둔다 — 착지 후엔 손댈 게 없다.
-LAND_SECONDS = 13.0
+# ⚠️ [v12 지시] "지구 대기 어느 정도 들어간 다음에 아리안 위치로 이동해서 보여야 한다"
+#   → 낙하를 **두 단계**로 나눈다. ① 대기권 상단까지 곧장 내려가고(R 3.4 → 1.05 ≈ 320 km)
+#     ② 거기서 **로켓이 서 있는 자리 옆으로** 이동하며 지면에 닿는다(R 1.05 → 0).
+#   ⚠️ 로켓은 **①이 끝나는 시점에 이미 켜 둔다** — 내려가면서 발사대가 보이는 게 목적이다.
+R_ATMO = 1.05                 # 약 320 km — 대기권 상단
+LAND_A, LAND_B = 8.0, 7.0     # ① 대기권까지 / ② 지면까지
 # ⚠️ 지면(terrain)은 **켠 채로** 내려간다. 운영 규칙의 '지면 OFF'는 별을 보는 하늘 쇼 얘기고,
 #    여기는 땅에 내려서는 장면이라 지면이 있어야 한다. 지저분하면 이 값을 0.0 으로.
 GROUND_TERRAIN = 1.0
@@ -194,11 +211,9 @@ SAT2_MODEL = "chollian2.osg"  # ★ 2A·2B 는 **은색 판** — 1호(금색)�
 #   ⚠️ 배율이 1,000배 이상 작아진다: 지상에서는 수백 km 거리라 과장이 거의 필요 없다.
 KOURU_LAT, KOURU_LON = 5.2, -52.8       # 프랑스령 기아나 쿠루 발사장
 
-# ⚠️⚠️⚠️ [2026-08-13 사용자 지시] 이름은 **"아리랑 5호"** 로 박는다.
-#   ※ 사실 관계만 적어 둔다(지시는 지시대로 따른다): 천리안 1호를 올린 발사체는
-#     **아리안 5(Ariane 5, 유럽 아리안스페이스)** 이고, '아리랑'은 우리 지구관측위성
-#     KOMPSAT 시리즈의 별칭이라 발사체 이름이 아니다. 되돌리려면 이 한 줄만 고치면 된다.
-ROCKET_NAME = "아리랑 5호"
+# 로켓 이름. ⚠️ v11 에서 "아리랑"으로 바꿨다가 v12 에서 **"아리안 5호"로 되돌렸다**(사용자 지시).
+#   실제 발사체가 아리안 5(Ariane 5)라 이게 맞다. 바꾸려면 이 한 줄만 고치면 된다.
+ROCKET_NAME = "아리안 5호"
 
 # ⚠️ 지상 Sky View 에서 Insert3D 가 렌더되는지는 v10 에서 처음 쓴다.
 #    안 보이면 이 한 줄만 False — 로켓 없이 발사장 하늘만 나온다(길이·타이밍 동일).
@@ -210,11 +225,15 @@ LAUNCH_FROM_GROUND = True
 #   → **가까이·작게.** 6.7 km 앞에 세우면 산란이 거의 없어 색과 윤곽이 살아난다.
 #   ⚠️ 경도 오프셋은 **각도**라 지상에서는 아주 작은 값이어야 한다:
 #      거리 ≈ 지구반지름 × Δ경도(rad) × cos(위도) → 0.06° ≈ 6.6 km.
-ROCKET_SCALE = 50.0           # 모델 높이 56.2m × 50 ≈ 2.8km. 6.6km 앞 → 겉보기 약 23°
-ROCKET_LON_OFF = 0.06         # ≈6.6 km 동쪽. 3.0(=333km)이 '투명'의 원인이었다
+# ⚠️⚠️ [2026-08-13 v12] "지구로 들어간 다음 아리안이 안 보인다" — v11 에서 72배를 줄였더니
+#   이번엔 **너무 작아졌다.** 산란(멀면 반투명)과 크기(가까우면 안 보임) 사이를 다시 잡는다:
+#   11 km 앞 · 높이 8.4 km → **겉보기 앙각 0 → 37°, 폭 약 9°** = 돔에서 크고 또렷하다.
+#   (v10 의 333 km 보다 30배 가까워 산란은 문제없다.)
+ROCKET_SCALE = 150.0          # 모델 높이 56.2m × 150 ≈ 8.4 km
+ROCKET_LON_OFF = 0.10         # ≈11 km 동쪽
 # ⚠️ [지시] "발사 어느 정도 되면 발사 끝내고" → 상승을 **두 단계로 줄였다**(전 4단계).
 #    고도 0 → 12.8 km → 64 km. 돔을 가로질러 위로 오르며 23° → 11° → 2.5° 로 작아진다.
-ROCKET_R = [1.0000, 1.0020, 1.0100]
+ROCKET_R = [1.0000, 1.0035, 1.0150]
 
 # ✅ 자세 = `HPR(경도 + 180, 90, 0)` — 확정(바퀴살 프로브 + 돔 재생).
 #   모델 +Z 는 북극을 향하므로 pitch 90 으로 눕히고 heading 을 그 물체의 경도로 준다.
@@ -245,9 +264,15 @@ B_TOGETHER, R_TOGETHER = 62.0, 9.0
 #        B 62 = Scene 3 과 같은 이유로 **가림이 없는 각도**다.
 #     ② 카메라를 **16 → 13** 으로 당겨 두 고리가 화면을 채우게 하고,
 #     ③ 이탈 시간을 **16초 → 8초** 로 줄였다.
-B_LEAVE = 62.0
-R_BACK = 13.0                 # 두 고리(6.611 · 8.6)가 화면에 꽉 차는 거리
-R_OUT = 17.0
+# ⚠️⚠️ [v12 지시] "마지막 화면을 위에서 보지 말고 **옆에서 위성을 기준으로** 보는 화면으로"
+#   → 관성 프레임 위에서 내려다보던 구도를 버리고 **동기 프레임에 옆으로 선다.**
+#     동기 프레임이라 위성(경도 128.2)이 화면에 붙박이고, 카메라를 경도 20° 옆에 두면
+#     **위성이 앞에, 지구가 아래에, 두 고리가 옆으로 눕는** 그림이 된다.
+#   ⚠️ B 24 = 여전히 가림 없음(6.611 × cos24° = 6.04 ≫ 1). 옆에서 보면서도 안 숨는다.
+B_LEAVE = 24.0                # 88(탑뷰) → 62 → **24(옆)**
+LON_LEAVE = KOREA_LON - 20.0  # 위성 경도에서 20° 옆 = 위성이 화면 안쪽에 잡힌다
+R_BACK = 11.0
+R_OUT = 15.0
 LEAVE_SECONDS = 8.0           # 16 → 8 ("너무 느리다")
 
 # ★ Outro — 도시 불빛 → 지상
@@ -353,6 +378,28 @@ def label(text, ground=False):
         box[0] = t
     box[0].setText(text)
     box[0].setIntensity(0.0 if not text else 0.95, Anim(0.6))
+
+
+SLOT_TAG_GEO, SLOT_TAG_GRAVE = 7, 8      # ⚠️ 우주 전용 — setSize 를 영원히 안 부른다
+_tags = {}
+
+
+def ring_tag(slot, text, height, color):
+    """★ [v12 지시] "궤도마다 자막을 좀 달아 줘 — 이게 뭐가 뭔지 모를 수도 있겠네"
+    금색 원이 정지궤도이고 회색 원이 폐기궤도라는 걸 화면에 적어 준다.
+    ⚠️ 자막(1·5)·이름표(2·6)와 **또 다른 슬롯**이다(규칙 1). 빈 문자열이면 지운다."""
+    if not SHOW_LABELS:
+        return
+    t = _tags.get(slot)
+    if t is None:
+        t = InsertText(InsertText.InsertTextName(slot))
+        cam.addChild(t.id, Camera.CameraPort.FixedForeground)
+        t.setPosition(Vec(0, height, 0))
+        t.setColor(color)
+        t.setDistance(20.0, Anim(0.0))    # 우주 전용 — 크기는 건드리지 않는다
+        _tags[slot] = t
+    t.setText(text)
+    t.setIntensity(0.0 if not text else 0.95, Anim(0.8))
 
 
 def fly(pos, seconds, port):
@@ -662,25 +709,32 @@ try:
         _cur_h = cam.orientationHPR.x
     except Exception:
         pass
-    cam.setPositionLBR(Vec(KOURU_LON, KOURU_LAT, 0.0), Anim.cubic(LAND_SECONDS), -1)
-    cam.setOrientationHPR(Vec(_cur_h, 0.0, 0.0), Anim.cubic(LAND_SECONDS))
-    say("발사장이 눈앞으로 다가온다", 7.0)
-    say("2010년 6월 27일, 쿠루 우주센터", 7.5)
+
+    # ① 대기권까지 (R 3.4 → 1.05 ≈ 320 km). 아직 위에서 내려다보는 그림이다.
+    cam.setPositionLBR(Vec(KOURU_LON, KOURU_LAT, R_ATMO), Anim.cubic(LAND_A), -1)
+    say("지구의 대기 안으로 들어간다", LAND_A)
+
+    # ② ★ 여기서 **로켓이 서 있는 자리로** 옮겨 앉으며 지면에 닿는다.
+    #    ⚠️ [v12 지시] "아리안 위치로 이동해서 보여야 한다" — 착지점을 로켓 바로 옆으로 못 박는다.
+    #    자세도 같이 일으킨다(수직하방 → 수평).
+    cam.setPositionLBR(Vec(KOURU_LON, KOURU_LAT, 0.0), Anim.cubic(LAND_B), -1)
+    cam.setOrientationHPR(Vec(_cur_h, 0.0, 0.0), Anim.cubic(LAND_B))
+    say("발사장이 눈앞으로 다가온다", LAND_B)
 
     # 착지 — 관측지를 못 박고(하강이 어디에 내려놓든 여기가 쿠루다) 발사대 쪽으로 돈다.
     Place2D(Place2D.Place2DName(0)).setPosition(Vec(KOURU_LAT, KOURU_LON, 10.0))
     txt.setIntensity(0.0, Anim(0.8))          # 우주 자막을 내리고
     txt = sub_ground()                        # ⚠️ 지상 슬롯으로 **갈아탄다**(규칙 1)
     txt.setText("2010년 6월 27일")
-    # 로켓은 관측지보다 경도 +0.06° = **동쪽**(약 6.6 km)에 서 있다.
+    # 로켓은 관측지보다 경도 +0.10° = **동쪽**(약 11 km)에 서 있다.
     # 환산 규칙 H = 180 − 나침반방위 → 동(90) = H 90.
-    cam.setOrientationH(90.0, Anim.cubic(3.5))   # 발사대 쪽(동쪽)으로 돈다 — 보이게
+    cam.setOrientationH(90.0, Anim.cubic(3.0))   # 발사대 쪽(동쪽)으로 돈다 — 보이게
     cam.setTargetHeight(30.0, Anim(0.0))         # 🎯 관람 표준 틸트(30)
-    sleep(4.0)
-
+    # ★ 로켓을 **여기서 켠다** — 돌아서면 발사대가 이미 서 있다.
     if rocket:
-        feat(rocket, "setIntensity", 1.0, Anim(1.5))
+        feat(rocket, "setIntensity", 1.0, Anim(2.0))
     label(ROCKET_NAME, ground=True)              # ★ 로켓 이름표
+    say("2010년 6월 27일, 쿠루 우주센터", 6.0)
     say("%s가 화염을 뿜으며 하늘을 가른다" % ROCKET_NAME, 6.5)
 
     # ★ 발사 — 두 단계로 짧게. 돔을 가로질러 오르며 작아진다(고도 0 → 12.8 → 64 km).
@@ -820,7 +874,10 @@ try:
     hide(s2b, 1)
     dm.stop()
     sleep(0.2)
-    stand(Vec(0.0, B_LEAVE, R_BACK), ip)      # ★ 탑뷰(88) → 오블리크(62). 고리가 타원으로 눕는다
+    # ★★ [v12 지시] "위에서 보지 말고 **옆에서 위성을 기준으로**"
+    #   → 동기 프레임(sp)에 선다. 이 프레임의 경도 = 지구 경도라 **위성(128.2)이 화면에 붙박이**고,
+    #     카메라를 20° 옆·B 24 에 두면 위성이 앞에, 지구가 아래에, 두 고리가 옆으로 눕는다.
+    stand(Vec(LON_LEAVE, B_LEAVE, R_BACK), sp if sp is not None else ip)
     feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GEO_R), Anim(0.0))
     feat(sat, "setIntensity", 1.0, Anim(0.0))
     txt = sub_space()
@@ -830,10 +887,13 @@ try:
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.0)
     feat(r_geo, "setIntensity", 1.0, Anim(3.0))
+    # ★ [v12 지시] "궤도마다 자막을 좀 달아 줘 — 뭐가 뭔지 모를 수도 있겠네"
+    ring_tag(SLOT_TAG_GEO, "정지궤도 · 3만 6천 km", 46.0, Vec(1.0, 0.85, 0.35))
     label("천리안 1호")
     say("2021년 4월, 임무가 끝났다", 4.5)
     say("저 금색 원이 11년을 돈 자리다", 5.0)
     feat(r_grave, "setIntensity", 0.9, Anim(3.0))
+    ring_tag(SLOT_TAG_GRAVE, "폐기궤도 — 여기로 비켜난다", 54.0, Vec(0.80, 0.84, 0.88))
     say("다른 위성과 부딪히지 않도록, 스스로 몸을 일으킨다", 5.5)
 
     # ★★ 이 한 줄이 이 장면의 핵심 — 금색 원에서 회색 원으로 건너간다
@@ -844,51 +904,41 @@ try:
 
     feat(sat, "setIntensity", 0.30, Anim(7.0))
     label("")
-    fly(Vec(0.0, B_LEAVE, R_OUT), 12.0, ip)
+    fly(Vec(LON_LEAVE, B_LEAVE, R_OUT), 12.0, sp if sp is not None else ip)
     say("모든 통신을 차단하고", 5.0)
     say("11년의 임무를 마친 채", 5.0)
     say("영원한 우주의 휴식에 들어간다", 5.5)
 except Exception as e:
     print("Scene 4 오류:", e)
 
-# ══ Outro : 유산과 기억 (4:20–5:00) ════════════════════════════
-# ⚠️ [2026-08-13 지시] "마지막 위성 3개 있는 건 뭐냐" → **그 타블로를 통째로 뺐다.**
-#    도시 불빛 → 지상 복귀, 두 비트만 남긴다.
+# ══ Outro : 유산과 기억 ════════════════════════════════════════
+# ⚠️⚠️ [2026-08-13 v12 지시] "마지막에 지구 야간 화면은 뭥미"
+#   → **그 비트를 통째로 뺐다.** 원래 의도는 '천리안이 11년간 지켜본 그 땅의 불빛'이었는데,
+#     화면에는 **거의 캄캄한 원반**만 남았다. 그림자를 최대로 켜고(밤면 칠흑) R 3.4 까지 붙은
+#     구도라 도시광 몇 점 말고는 읽을 게 없었다 — 마무리로 쓰기엔 화면이 비어 있었다.
+#   → 이제 Scene 4 의 이탈에서 **바로 청주 밤하늘로 착지**한다. 비트가 하나 줄고 흐름이 붙는다.
+#     (도시 불빛 장면을 되살리고 싶으면 이 자리에 shadows(True) + stand(Vec(KOREA_LON, 28, 3.4), sp)
+#      를 넣고 낮/밤 경계 근처 시각으로 맞출 것 — 정면 밤면은 캄캄해서 안 된다.)
 try:
     _dark()
     txt.setIntensity(0.0, Anim(0.5))
     sleep(0.6)
-    shadows(True)                                    # ★ 밤면 = 도시 불빛
+    label("")
+    ring_tag(SLOT_TAG_GEO, "", 46.0, Vec(1.0, 0.85, 0.35))
+    ring_tag(SLOT_TAG_GRAVE, "", 54.0, Vec(0.80, 0.84, 0.88))
     hide(sat, 1)
     hide(r_geo, 1)
     hide(r_grave, 1)
-    stand(Vec(KOREA_LON, B_CITY, R_CITY), sp)
-    dm.stop()
-    sleep(0.2)
-    dm.setDateTime(2026, 8, 12, 13, 0, 0, tz, Anim(0.0))   # 한반도 밤(22시 KST)
     _dark()
-    txt = sub_space()
-    txt.setText("그 길을 따라")
-    _dark()
-
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
-    sleep(2.5)
-    say("저 아래 불빛 하나하나가 우리가 사는 곳이다", 6.0)
-    say("천리안 1호가 열어 준 길을 따라", 5.5)
-    if sp is not None:
-        fly(Vec(KOREA_LON, B_CITY, R_LAND), 12.0, sp)
-    say("더 나은 위성들이 그 자리를 이어받고 있다", 6.0)
-    say("우리 우주 역사의 첫 장을 연 이름 — 천리안 1호", 6.0)
-
-    _dark()
-    txt.setIntensity(0.0, Anim(0.5))
-    sleep(0.8)
     ground_night()                                   # 청주 밤하늘 — 관객의 자리로
     txt = sub_ground()
     txt.setText("천리안 1호")
     _dark()
     uni.setGlobalIntensity(1.0, Anim.cubic(3.0))
     sleep(2.5)
+    say("천리안 1호가 열어 준 길을 따라", 5.5)
+    say("더 나은 위성들이 그 자리를 이어받고 있다", 6.0)
+    say("우리 우주 역사의 첫 장을 연 이름 — 천리안 1호", 6.0)
     say("그 별은 지금도 저 높은 곳에서", 5.0)
     say("우리의 다음 도전을 내려다보고 있다", 5.5)
 
