@@ -336,6 +336,23 @@ if RUN_WRITE:
             '  num_drawables %d' % len(PARTS)] + body + ['}'])
     w("chollian.osg", "\n".join(osg) + "\n")
 
+    # ★★ [2026-08-13] **2A·2B 용 은색 판을 따로 굽는다.**
+    #    사용자 지적: "천리안 1호랑 나머지 위성이랑 분간이 안 간다".
+    #    같은 모델을 세 번 쓰면 화면에서 셋이 똑같아 보인다 → **색을 바꾼 판**을 하나 더 만든다.
+    #    1호 = 금색 본체 / 2A·2B = **은회색 본체 + 청록 전지판**. 멀리서도 바로 갈린다.
+    RECOLOR = {GOLD: (0.72, 0.74, 0.78),     # 금색 → 은회색
+               NAVY: (0.10, 0.30, 0.34),     # 남색 → 청록
+               WHITE: (0.90, 0.94, 0.96),
+               SILVER: (0.55, 0.57, 0.62),
+               DARK: (0.20, 0.22, 0.24)}
+    body = []
+    for nm, col, tris in PARTS:
+        body += geom(RECOLOR.get(col, col), tris, "mat")
+    osg2 = (['Geode {', '  DataVariance DYNAMIC', '  name "chollian2"',
+             '  nodeMask 0xffffffff', '  cullingActive TRUE',
+             '  num_drawables %d' % len(PARTS)] + body + ['}'])
+    w("chollian2.osg", "\n".join(osg2) + "\n")
+
 # ══ ② 어느 포맷이 살아있나 ════════════════════════════════════
 GOOD = None
 if RUN_LOAD and USER:
