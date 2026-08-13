@@ -12,12 +12,13 @@
 #         (make_orbit_ring.py). **`RING_HPR = Vec(0,0,0)` 이 적도면에 눕는다**
 #         (0,90,0 은 옆으로 섬 / 90,0,0 도 누움 — 같은 평면). **닫힌 원**으로 렌더되고,
 #         **천리안이 그 고리 위에 정확히 얹힌다**(축척도 검증). 옆에서 보면 '선'이 된다.
-#    ⚠️ **v9 에서 아직 돔에서 못 본 것**: 이륙 고도 R=1.6 · 랑데부 구도(막1) ·
-#       막3 그림자 ON + 오블리크(B40) 낮밤 · 막5 이탈(금색→회색 건너가기).
+#    ⚠️ **v9 에서 아직 돔에서 못 본 것**: Intro 하강(R 26→3.4) · Scene 1 이륙 고도 R=1.6 ·
+#       Scene 3 돔 시계 HUD(우주 프레임에서의 distance 미검증) · Outro 도시 불빛 + 지상 복귀 ·
+#       그리고 **디테일을 넣은 새 모델**(35조각 — 솔라세일·관측기 두 대·안테나 3종).
 # ─────────────────────────────────────────────────────────────
 
 # ══════════════════════════════════════════════════════════════════════════
-#  "천리안 1호 — 여정과 마감"   (약 5분)
+#  "지구를 바라보는 하나의 눈 — 천리안 1호의 11년"   (약 5분)
 #
 #  ★ 어린이·가족 관람객.  ★ 스크립트는 **무음** — 나레이션·음악은 오퍼레이터가 입힌다.
 #    대본과 큐시트: docs/27_chollian_narration.md
@@ -42,33 +43,31 @@
 #        급발진**했다. 이제 `RATE`·`tick()` 기계장치가 통째로 없다.)
 #
 #
-#  ⚠️⚠️⚠️ 규칙 3 — 위성의 눈(1인칭)과 밖에서 보기(3인칭)를 **의도적으로** 나눈다
-#     v6 까지는 여섯 막 중 다섯 막이 "밖에서 천리안을 구경하는" 구도였다("너무 관조하는 느낌").
-#     · **1인칭 막에서는 위성 모델을 끈다**(우리가 그것이므로 화면에 보이면 안 된다).
-#       카메라의 집이 **동기 프레임(sp)** — 정지궤도 위성의 눈은 지구와 함께 돌기 때문에
-#       **지구가 안 도는 게 정상이다.** 도는 것처럼 보이면 그건 관성 프레임(=3인칭)이다.
-#     · **3인칭이 꼭 필요한 것 두 가지**: ① 천리안의 모습(모델) ② 정지궤도의 원리
-#       (지구가 돌고 위성이 따라가는 그림은 **밖에서 봐야만** 성립한다) ③ 궤도 이탈.
+#  ⚠️⚠️⚠️ 규칙 3 — 위성의 눈(동기 프레임)과 밖에서 보기(관성 프레임)를 **의도적으로** 나눈다
+#     · **동기(sp)** 에 서면 지구가 안 도는 게 정상이다 — 정지궤도 위성이 보는 그림.
+#     · **관성(ip)** 에 서야 지구가 도는 게 보인다 — 낮밤·정지궤도 설명은 여기서만 성립한다.
 #
-#  ══ v8 에서 바뀐 것 (2026-08-13 지시 5건) ══
+#  ══ v9 — 사용자 대본으로 전면 재구성 (2026-08-13) ══
 #
-#  ① **순서를 바꿨다** — 한반도를 보기 **전에** 천리안 모습부터 보여준다(막2 → 막4 순서 교체)
-#  ② **쿠루·동쪽 표류를 뺐다** — 그냥 지구에서 이륙해 천리안 자리까지 올라가고,
-#     올라가는 동안 **천리안이 화면에 들어온다**(랑데부). 카메라 경도를 12° 벌려 모델을 안 뚫는다
-#  ③ **낮밤을 막3(같이 도는 장면)으로 옮겼다** — 끝에 있던 '16년 낮과 밤' 막은 없앴다.
-#     정지궤도를 설명하는 그 자리에서 **지구가 돌며 낮밤이 두 번 지나간다** = 설명과 그림이 한 화면에
-#  ④ **마감이 '정지궤도 → 폐기궤도 이탈'이다** — 금색·회색 원을 먼저 둘 다 켜고,
-#     위성이 금색에서 회색으로 **14초에 걸쳐 건너간다**. 그게 막5 의 전부다
-#  ⑤ **궤도선의 기계를 바꿨다(v9)** — `OrbitalPlace` 를 버리고 **직접 구운 고리 모델**로.
-#     계산으로 그린 원이라 전파기가 없다 = 나선이 될 수가 없다. **돔에서 확인 완료**
+#  대본 "지구를 바라보는 하나의 눈, 천리안 1호의 11년" 5장 구성을 그대로 옮겼다.
 #
-#  구성
-#    막0  올려다보기 (관객의 눈)                     (~38초)
-#    막1  이륙 — 천리안을 만나러 올라간다            (~57초)
-#    막2  천리안 모습 — 가까이서 한 바퀴             (~47초)
-#    막3  같이 돈다 — 낮과 밤이 지나간다             (~62초)
-#    막4  ★1인칭 — 천리안의 눈으로 한반도를 본다     (~53초)
-#    막5  마감 — 정지궤도에서 폐기궤도로 떠난다      (~60초)
+#  ⚠️⚠️ **사실 정정 — 16년이 아니라 11년이다.**
+#     전 판은 "16년 / 2025년 12월 임무 종료"로 썼는데 **틀렸다.**
+#     천리안 1호는 **2010-06-27 발사 → 2021년 4월 폐기궤도 이동**, 약 **11년** 운용이다.
+#     (기상 임무는 2018년 2A, 해양은 2020년 2B 로 이관.) 대본이 맞고 내가 틀렸다.
+#     → 스크립트·대본·패키지 문서의 연수와 날짜를 전부 11년/2021년 4월로 고쳤다.
+#
+#  ⚠️ **대본대로 못 하는 것 하나 — 로켓**: 발사대와 화염은 이 빌드에서 못 그린다
+#     (지상 3D 자산이 없다). Scene 1 은 **로켓에 올라탄 시점의 상승**으로 대체했다.
+#     실제로 로켓을 보여주려면 고리처럼 모델을 하나 더 구우면 된다(가능하다).
+#
+#  구성 (대본의 시간표를 따른다)
+#    Intro    광활한 우주와 하나의 결심          0:00–0:40
+#    Scene 1  쿠루 우주센터와 카운트다운          0:40–1:20
+#    Scene 2  3만 6천 km 상공의 파수꾼           1:20–2:20
+#    Scene 3  임무 연장과 헌신                   2:20–3:20
+#    Scene 4  마지막 여정, 폐기궤도로의 이동      3:20–4:20
+#    Outro    유산과 기억                        4:20–5:00
 # ══════════════════════════════════════════════════════════════════════════
 from skyExplorer import *
 from studio import *
@@ -105,6 +104,11 @@ RING_HPR = Vec(0.0, 0.0, 0.0)   # ✅ **확정** (2026-08-13 probe_ring_model.py
 #   (0,0,0) = 적도면에 눕는다 ✅ / (0,90,0) = 옆으로 선다 ✗ / (90,0,0) = 누움(같은 평면) ✅
 #   같은 프로브에서 **천리안이 고리 위에 정확히 얹히는 것**까지 확인 = 축척도 맞다.
 RING_SLOT_GOLD, RING_SLOT_GRAY = 41, 42
+SLOT_SAT, SLOT_2A, SLOT_2B = 5, 6, 7    # Insert3D 슬롯 — 위성 세 대
+
+# ★ 돔 시계 — Scene 3 의 '수명 7년 타임랩스'. 시간가속을 걸면 바늘이 실제로 돈다(검증됨).
+#   ⚠️ 우주 프레임에서의 setDistance 값은 미검증이다. 시계가 안 보이면 이 스위치를 False 로.
+SHOW_CLOCK = True
 
 EARTH_R_M = 6378137.0
 GEO_R = 42164000.0 / EARTH_R_M          # 6.611 지구반지름 = 정지궤도
@@ -115,28 +119,31 @@ KOREA_LON = 128.2                       # 천리안 1호의 정지궤도 경도
 LON_2A, LON_2B = 133.0, 123.5           # ⚠️ 실제 2A·2B 도 128.2 부근이지만 겹쳐 보여서 벌렸다
 
 B_TOP = 88.0                  # 북극 위. **각도는 건드리지 않는다**(프레이밍이 깨진 건 늘 각도였다)
-R_ZOOM_A, R_ZOOM_B = 10.0, 8.3  # 막2 모델 클로즈업 — 동기 프레임(위성과 같은 경도선 위)
+
+# ★ Intro — 딥 스페이스에서 한반도 상공으로 (동기 프레임 하나로 처리)
+R_DEEP = 26.0                 # 지구가 먼 점. 은하수가 돔을 채운다
+R_INTRO_END = 3.4             # 한반도 상공 탑뷰(각지름 약 35°)
+
+# ★ Scene 1 — 쿠루에서 정지궤도까지
+KOURU_LON = -52.8             # 프랑스령 기아나 쿠루 발사장 경도
+R_LAUNCH = 1.6                # 이륙 고도(≈3,800km). 지구가 발밑을 채운다
+#   ⚠️ 1순위 조정 손잡이. 지표가 뭉개지거나 화면이 비면 1.9~2.2 로 올릴 것
+
+# ★ Scene 2 — 파수꾼 (위성 옆에서 지구를 함께 본다)
+R_WATCH_A, R_WATCH_B = 10.0, 8.3
 #  ⚠️ 7.6 은 위성까지 6,300km 라 태양전지판 하나가 돔을 다 덮었다(돔 실측).
-#     8.3 이면 10,800km — 위성이 화면 절반, 뒤로 지구도 들어온다.
+#     8.3 이면 10,800km — 위성이 화면 절반, 뒤로 지구도 들어온다
 
-# ★ 막1 이륙·랑데부 — 지구에서 곧장 천리안 자리까지 올라가며 **천리안을 보면서** 간다.
-#   ⚠️ 카메라 경도를 위성보다 **12° 서쪽**에 둔다. 같은 경도선으로 올라가면 R=6.611 에서
-#      모델을 뚫고 지나간다. 12° 벌리면 도착점(R=10)에서 위성이 지구 옆 **21.5°** 에 놓인다(계산).
-LON_CLIMB = 116.0
-R_LAUNCH = 1.6                # 이륙 고도(≈3,800km). 지구 각지름 84° = 발밑을 채운다
-#   ⚠️ 첫 번째 조정 손잡이. 너무 가까워 지표가 뭉개지면 1.9~2.2 로 올릴 것.
-R_MEET = 10.0                 # 랑데부 지점 — 위성(6.611) 바깥. 위성이 지구 앞에 놓인다
-#   ⚠️ 올라가는 동안 위성은 처음엔 **뒤쪽**에 있다(저궤도에서 정지궤도는 지구 반대편).
-#      R≈8 을 지나며 화면에 들어온다 — 물리적으로 맞는 그림이라 그대로 쓴다.
+# ★ Scene 3 — 같이 돈다 (관성 프레임 오블리크라야 낮밤 경계가 보인다)
+B_TOGETHER, R_TOGETHER = 40.0, 9.0
 
-B_TOGETHER, R_TOGETHER = 40.0, 9.0   # 막3 '같이 돈다' — 오블리크라야 낮밤 경계가 보인다
-R_DIVE = 2.2                  # 막4 — 카메라로 당긴 지구(각지름 54°)
-# ⚠️⚠️ [2026-08-12 지적 "닌 이게 한국이냐"] 위성은 **적도(위도 0)** 에 있어서
-#   그 자리에서 지구를 보면 원반 한가운데가 128.2°E 적도 = **인도네시아 앞바다**다.
-#   한국은 위쪽 가장자리로 밀린다. 물리적으론 맞지만 보여주려는 게 한국이니 틀린 그림이다.
-#   → 당기면서 **위도를 32°까지 같이 올려** 한반도를 화면 한가운데로 가져온다.
-B_DIVE = 32.0
-R_BACK = 13.0                 # 막5 — 궤도 두 개가 다 들어오는 거리
+# ★ Scene 4 — 이탈
+R_BACK = 13.0                 # 궤도 두 개가 다 들어오는 거리
+R_OUT = 20.0                  # 줌아웃 도착점 — 지구가 멀어진다
+
+# ★ Outro — 도시 불빛 → 지상
+B_CITY, R_CITY = 28.0, 4.2    # 한반도 밤 쪽을 내려다보는 자리
+R_LAND = 2.0                  # 지상 전환 직전까지 내려온다
 
 SCALE_SAT = 1.0e6             # 반지름 5,270km — 처음에 고른 값(v4 의 5e5 는 "너무 작다")
 
@@ -286,6 +293,51 @@ def ring(slot, model, radius_m):
     return ins
 
 
+def clock_hud():
+    """돔 시계 HUD — 수명을 세는 시계. ⚠️ `setModelset` 을 안 걸면 아무것도 안 그려진다."""
+    if not SHOW_CLOCK:
+        return None
+    try:
+        c = Clock(Clock.ClockName.Clock001)
+        feat(c, "setModelset", Clock.Modelset.SystemClock001)
+        cam.addChild(c.id, Camera.CameraPort.FixedForeground)
+        feat(c, "setPosition", Vec(0.0, 62.0, 0.0))
+        feat(c, "setSize", 0.34)
+        feat(c, "setDistance", 1.0)
+        feat(c, "setDisplaySecondsHand", True)
+        feat(c, "setSecondsHandColor", Vec(0.95, 0.35, 0.25))
+        feat(c, "setIntensity", 0.9, Anim(1.5))
+        return c
+    except Exception as e:
+        print("   시계 실패: %s" % e)
+        return None
+
+
+def ground_night():
+    """우주 → 지상 복귀. ⚠️ 검증된 경로는 **암전 속 reset(1) 후 지상 전체 재세팅**이다
+    (좌표만 바꾸면 카메라가 우주 프레임에 남는다)."""
+    _dark()
+    SceneGraph().reset(1)
+    _dark(1.5)
+    Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))   # 청주
+    feat(earth, "setIntensity", 1.0, Anim(0.0))
+    feat(earth, "setAtmosphereIntensity", 0.0, Anim(0.0))    # 지상 하늘 쇼 = 대기 OFF
+    feat(earth, "setTerrainIntensity", 0.0, Anim(0.0))       #               + 지면 OFF
+    feat(earth, "setElevationScale", 0.0)
+    Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+    Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.55, Anim(0.0))
+    _dark()
+    dm.stop()
+    sleep(0.2)
+    dm.setDateTime(2026, 8, 12, 13, 0, 0, tz, Anim(0.0))     # 청주 22:00 KST
+    _dark()
+    sleep(0.4)
+    cam.setOrientationH(H_SOUTH, Anim(0.0))
+    _dark()
+    cam.setTargetHeight(TILT_SOUTH, Anim(0.0))
+    _dark()
+
+
 def shadows(on):
     """지구 그림자 — 끄면 원반 전체가 밝고(운영 표준), 켜면 낮과 밤이 갈린다.
     ⚠️ 막4 는 **낮밤 자체가 주제**라 운영 표준(그림자 OFF)의 예외로 켠다(위상·일식과 같은 부류)."""
@@ -338,261 +390,263 @@ def enter_space():
     _dark()
 
 
-# ══ 막0 : 올려다보기 ═══════════════════════════════════════════
-_dark()
+# ══ Intro : 광활한 우주와 하나의 결심 (0:00–0:40) ══════════════
+# 대본: "깊은 밤하늘과 은하수 → 시점이 서서히 한반도 상공으로 내려온다.
+#        한반도 주변으로 어두운 구름이 밀려드는 연출. 딥 스페이스 뷰 → 한반도 탑뷰."
+# ⚠️ 프레임 전환 없이 **동기 프레임 하나로** 처리한다 — 한반도 경도에 선 채 R 만 줄이면
+#    '딥 스페이스에서 한반도 상공으로 내려오는' 하강이 그대로 된다(전환 슬루가 없어 깨끗하다).
 try:
+    _dark()
     SceneGraph().reset(1)
     _dark(1.5)
-
-    Place2D(Place2D.Place2DName(0)).setPosition(Vec(36.64, 127.49, 200.0))   # 청주
-    earth.setIntensity(1.0, Anim(0.0))
-    earth.setAtmosphereIntensity(0.0, Anim(0.0))    # 지상 하늘 쇼 = 대기 OFF
-    earth.setTerrainIntensity(0.0, Anim(0.0))       #               + 지면 OFF
-    earth.setElevationScale(0.0)
-    Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
-    Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.55, Anim(0.0))
-    _dark()
+    enter_space()
 
     dm.stop()
     sleep(0.2)
-    dm.setDateTime(2026, 8, 12, 13, 0, 0, tz, Anim(0.0))    # 청주 22:00 KST = 13:00 UTC
+    dm.setDateTime(2026, 8, 12, 3, 30, 0, tz, Anim(0.0))    # 한반도가 낮
     _dark()
     sleep(0.4)
 
-    cam.setOrientationH(H_SOUTH, Anim(0.0))
-    _dark()
-    cam.setTargetHeight(TILT_SOUTH, Anim(0.0))
-    _dark()
-
-    txt = sub_ground()
-    txt.setText("천리안 1호")
+    Stars(Stars.StarsName.StarrySky).setIntensity(1.0, Anim(0.0))
+    Galaxy(Galaxy.GalaxyName.MilkyWay).setIntensity(0.6, Anim(0.0))   # 은하수
+    feat(earth, "setCloudsIntensity", 0.0, Anim(0.0))
     _dark()
 
-    uni.setGlobalIntensity(1.0, Anim.cubic(3.0))
-    dm.setDateTime(2026, 8, 12, 15, 0, 0, tz, Anim(35.0))   # 별이 천천히 돈다
-    sleep(4.0)
-    say("2010년 6월 27일")
-    say("남아메리카 쿠루에서 로켓 하나가 하늘로 올라갔다")
-    say("우리가 만든 위성이 실려 있었다")
-    say("천리안 1호")
-    say("지금 남쪽 하늘 저 높이, 16년 동안 자리를 뜨지 않은 것이 있다")
-    say("눈에는 안 보인다 — 36,000km 밖이니까")
-    # ★ 우주로 넘어가는 문. 막1~3 은 만나러 가서 보고, 막4 부터 관객이 천리안이 된다.
-    say("직접 만나러 가 보자")
-    say("이륙한다")
-except Exception as e:
-    print("막0 오류:", e)
-
-# ══ 막1 : 이륙 — 천리안을 만나러 올라간다 ══════════════════════
-# ⚠️ [2026-08-13 지시] 쿠루 발사장·동쪽 표류를 뺐다. **그냥 지구에서 이륙해 천리안 자리까지**
-#    올라가고, 올라가는 동안 **천리안을 보면서** 간다. 랑데부다.
-#    카메라 경도는 위성보다 12° 서쪽 — 같은 경도선이면 도중에 모델을 뚫고 지나간다.
-try:
-    _dark()
-    txt.setIntensity(0.0, Anim(0.8))
-    sleep(1.0)
-    _dark()
-    enter_space()
-
-    dm.stop()                       # ★ 궤도선을 만들기 전에 시계를 반드시 멈춘다
-    sleep(0.2)
-    dm.setDateTime(2026, 8, 12, 3, 30, 0, tz, Anim(0.0))    # 한국이 낮
-    _dark()
-    sleep(0.4)
-
-    sat = place_sat(5, KOREA_LON)   # 천리안은 제 자리(정지궤도)에 미리 놓는다
+    sat = place_sat(SLOT_SAT, KOREA_LON)     # 미리 올려두되 꺼 둔다
     feat(sat, "setIntensity", 0.0, Anim(0.0))
-
-    # ★★ 궤도선을 **여기서 미리 만든다** — 시계가 완전히 멈춰 있고 아무 애니메이션도 없는 지금이
-    #    유일하게 안전한 시점이다(막5 에서 만들면 앞 막의 시계 애니가 아직 돌고 있다).
-    #    슬롯은 1·2 — 0번은 쓰지 않는다(프리셋 슬롯 의심). 켜는 건 막5 에서.
-    r_geo = ring(RING_SLOT_GOLD, RING_GOLD, GEO_R * EARTH_R_M)
+    r_geo = ring(RING_SLOT_GOLD, RING_GOLD, GEO_R * EARTH_R_M)     # 시계 멈춘 지금 만든다
     r_grave = ring(RING_SLOT_GRAY, RING_GRAY, GRAVE_R * EARTH_R_M)
     _dark()
 
     if sp is not None:
-        stand(Vec(LON_CLIMB, 0.0, R_LAUNCH), sp)    # ★ 이륙 지점 — 지구가 발밑을 채운다
-    txt = sub_space()               # ★ 슬롯 5 — 크기를 한 번도 안 건드린 슬롯
-    txt.setText("이륙")
-    _dark()
-
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
-    sleep(3.0)
-    say("우리는 지금 로켓 위에 있다", 4.0)
-    say("발밑이 지구다", 3.5)
-
-    if sp is not None:
-        fly(Vec(LON_CLIMB, 0.0, R_MEET), 24.0, sp)  # ★ 이륙 → 정지궤도까지, 눈앞에서
-    feat(sat, "setIntensity", 1.0, Anim(8.0))       # 올라가는 동안 서서히 드러난다
-    say("올라간다", 4.0)
-    say("지구가 점점 작아진다", 4.5)
-    say("3,000km … 10,000km … 20,000km", 5.5)
-    say("저 앞에 뭔가 보이기 시작한다", 5.5)
-    say("36,000km — 다 왔다", 4.5)
-    say("천리안 1호다", 4.0)
-    say("한반도 바로 위, 이 자리에 16년을 있었다", 5.0)
-except Exception as e:
-    print("막1 오류:", e)
-
-# ══ 막2 : 천리안 모습 — 가까이서 한 바퀴 ═══════════════════════
-# ⚠️ [2026-08-13 지시] "한반도를 계속 보기 전에 천리안 모습부터 보여줘라" — 순서를 앞으로 당겼다.
-#    카메라가 **위성 쪽으로 날아간다**(모델을 부풀리는 게 아니다).
-try:
-    say("가까이 가 보자", 2.5)
-    _dark()
-    txt.setIntensity(0.0, Anim(0.4))
-    sleep(0.5)
-    if sp is not None:
-        # 위성과 같은 경도선 바깥쪽 → 위성이 카메라와 지구 사이에 놓인다
-        stand(Vec(KOREA_LON, 0.0, R_ZOOM_A), sp)
+        stand(Vec(KOREA_LON, 0.0, R_DEEP), sp)   # ★ 딥 스페이스 — 지구가 먼 점
     txt = sub_space()
     txt.setText("천리안 1호")
     _dark()
-    uni.setGlobalIntensity(1.0, Anim.cubic(1.8))
-    sleep(2.5)
+
+    uni.setGlobalIntensity(1.0, Anim.cubic(3.0))
+    sleep(3.5)
+    say("기상과 바다를 스스로 볼 수 없던 시절", 5.0)
+    say("우리는 우주에 우리만의 눈을 가지려 했다", 5.0)
 
     if sp is not None:
-        fly(Vec(KOREA_LON, 0.0, R_ZOOM_B), 14.0, sp)    # ★ 진짜 줌인
-    feat(sat, "setOrientationHPR", Vec(500.0, 20.0, 0.0), Anim(26.0))   # 천천히 한 바퀴
-    say("이렇게 생겼다", 4.5)
-    say("한쪽에만 날개가 달렸다 — 태양전지판이다", 5.0)
-    say("여기서 만든 전기로 16년을 버텼다", 5.0)
-    say("가운데 접시는 안테나, 그 옆이 지구를 보는 카메라다", 5.5)
-    say("무게 2.5톤, 펼친 길이 8.8m — 승용차 두 대쯤이다", 5.5)
-    say("(화면에서는 보이라고 아주 크게 그렸다)", 4.5)
+        fly(Vec(KOREA_LON, 0.0, R_INTRO_END), 20.0, sp)   # ★ 한반도 상공으로 하강
+    feat(earth, "setCloudsIntensity", 0.85, Anim(8.0))    # 어두운 구름이 밀려든다
+    feat(earth, "setCloudSpeed", 3.0)
+    say("2010년 6월", 4.5)
+    say("대한민국 첫 정지궤도 위성", 5.0)
+    say("천리안 1호의 여정이 시작된다", 6.0)
 except Exception as e:
-    print("막2 오류:", e)
+    print("Intro 오류:", e)
 
-# ══ 막3 : 같이 돈다 — 낮과 밤이 지나간다 ═══════════════════════
-# ⚠️ [2026-08-13 지시] "마지막 낮밤은 버리고 처음 같이 돌 때 낮밤 반복으로."
-#    → 정지궤도를 설명하는 이 막에 낮밤을 얹었다. 여기서 두 가지가 한 화면에 있다:
-#      **지구가 돌고(=낮밤이 지나가고) 천리안이 그걸 따라간다.**
-# ⚠️ 프레임은 **관성(ip)** 이어야 한다 — 동기 프레임에서는 지구가 안 돌아 설명이 성립하지 않는다.
-# ⚠️ 그림자를 켠다(이 막은 낮밤 자체가 주제라 운영 표준의 예외) + 오블리크(B40)라야 경계가 보인다.
+# ══ Scene 1 : 쿠루 우주센터와 카운트다운 (0:40–1:20) ════════════
+# 대본: "아리안 5호 발사 → 로켓을 따라 돔 최상단으로 고속 상승."
+# ⚠️⚠️ **로켓 모델이 없다.** 발사대·화염은 이 빌드에서 못 그린다(지상 3D 자산이 없다).
+#    → 대신 **로켓에 올라탄 시점**으로 간다: 쿠루 상공(-52.8°E) 저고도에서 정지궤도까지
+#      22초에 걸쳐 솟아오른다. 관객이 보는 것은 '발밑의 지구가 멀어지는' 상승 그 자체다.
+#    (로켓을 실제로 보여주려면 모델을 하나 더 구워야 한다 — 고리처럼 가능은 하다.)
 try:
     _dark()
-    txt.setIntensity(0.0, Anim(0.4))
-    sleep(0.5)
-    stand(Vec(0.0, B_TOGETHER, R_TOGETHER), ip)
-    shadows(True)
-    _dark()
-    txt = sub_space()
-    txt.setText("하루")
-    _dark()
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
-    sleep(2.0)
-
-    say("이렇게 높은데 왜 안 떨어질까?", 4.0)
-    say("떨어지고는 있다 — 다만 옆으로도 빨라서, 휘어진 지구에 영영 못 닿는다", 5.5)
-    say("시간을 빠르게 돌려 보자", 3.5)
-    # ⚠️ 손으로 밀지 않는다. 시간만 흘리면 엔진이 위성을 데려간다(급발진의 원인이 손 구동이었다)
-    dm.setDateTime(2026, 8, 14, 3, 30, 0, tz, Anim(42.0))    # 이틀 = 낮밤 두 번
-    say("지구가 돈다 — 낮이 가고 밤이 온다", 6.0)
-    say("밤이 되면 아래에 불이 켜진다", 6.0)
-    say("저 불빛 하나하나가 사람이 사는 곳이다", 6.5)
-    say("그런데 천리안은 한반도를 안 놓친다", 6.5)
-    say("지구가 한 바퀴 도는 동안 천리안도 딱 한 바퀴", 6.5)
-    say("같은 속도로 도니까 늘 같은 자리다 — 이걸 정지궤도라고 한다", 6.0)
-except Exception as e:
-    print("막3 오류:", e)
-
-# ══ 막4 : ★1인칭 — 천리안의 눈으로 한반도를 본다 ═══════════════
-# ★ 여기서부터 관객이 천리안이 된다. 동기 프레임 = 위성의 눈이라 **지구가 안 도는 게 정상**이다.
-#   ⚠️ 위성은 적도(위도 0)에 있어서 그 자리에서 지구를 보면 원반 한가운데가 인도네시아 앞바다다.
-#      → 당기면서 위도를 32°까지 같이 올려 한반도를 화면 한가운데로 가져온다.
-try:
-    say("이번엔 천리안의 눈으로 보자", 3.0)
-    _dark()
-    txt.setIntensity(0.0, Anim(0.4))
-    sleep(0.5)
-    shadows(False)                                  # 원반 전체를 밝게 — 한반도가 잘 보이게
-    feat(sat, "setIntensity", 0.0, Anim(0.0))       # ★ 1인칭 = 우리가 그것이므로 안 보인다
-    if sp is not None:
-        stand(Vec(KOREA_LON, 0.0, GEO_R), sp)
+    txt.setIntensity(0.0, Anim(0.6))
+    sleep(0.8)
+    feat(earth, "setCloudsIntensity", 0.35, Anim(0.0))
     dm.stop()
     sleep(0.2)
-    dm.setDateTime(2026, 8, 12, 3, 30, 0, tz, Anim(0.0))
+    dm.setDateTime(2010, 6, 26, 21, 41, 0, tz, Anim(0.0))   # 실제 발사 시각(UTC)
     _dark()
-    txt = sub_space()
-    txt.setText("천리안이 본 것")
-    _dark()
-    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
-    sleep(2.0)
-
-    say("여기가 16년 동안 우리 자리다", 4.0)
+    sleep(0.4)
     if sp is not None:
-        fly(Vec(KOREA_LON, B_DIVE, R_DIVE), 15.0, sp)   # ★ 당기면서 한반도를 한가운데로
-    say("우리 눈은 카메라다. 당겨 보자", 5.0)
-    say("한가운데가 우리나라다", 5.0)
-    say("16년 동안 한 번도 놓치지 않은 그림이다", 5.0)
+        stand(Vec(KOURU_LON, 0.0, R_LAUNCH), sp)     # 쿠루 상공, 발밑이 지구
+    txt = sub_space()
+    txt.setText("2010년 6월 27일")
+    _dark()
 
-    feat(earth, "setCloudsIntensity", 1.0, Anim(6.0))    # 0→1 이 구름 렌더의 마스터
-    feat(earth, "setCloudSpeed", 3.0)
-    # ⚠️ 동기 프레임이라 시간이 흘러도 **지구는 안 돈다** — 구름만 흐른다
-    dm.setDateTime(2026, 8, 17, 3, 30, 0, tz, Anim(30.0))
-    say("바뀌는 건 구름뿐이다", 4.0)
-    say("우리가 한 일은 세 가지였다", 4.0)
-    say("첫째, 날씨 — 태풍이 어디로 갈지, 비가 언제 올지", 5.0)
-    say("둘째, 통신을 이어 줬다", 4.0)
-    say("셋째, 바다를 봤다 — 하루 여덟 번", 4.5)
-    say("정지궤도에서 바다를 본 건 세계에서 우리가 처음이었다", 5.0)
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
+    sleep(2.5)
+    say("2010년 6월 27일, 쿠루 우주센터", 5.0)
+    say("아리안 5호가 화염을 뿜으며 하늘을 가른다", 5.5)
+
+    if sp is not None:
+        fly(Vec(KOURU_LON, 0.0, GEO_R), 22.0, sp)    # ★ 로켓을 따라 고속 상승
+    say("그 정상에 천리안 1호가 실려 있다", 5.5)
+    say("올라간다", 4.5)
+    say("3,000km … 10,000km … 20,000km", 6.0)
+    say("지구 상공 3만 6천 킬로미터", 6.0)
+    say("정지궤도를 향한 도약이다", 5.0)
 except Exception as e:
-    print("막4 오류:", e)
+    print("Scene 1 오류:", e)
 
-# ══ 막5 : 마감 — 정지궤도에서 폐기궤도로 떠난다 ════════════════
-# ⚠️ [2026-08-13 지시] "정지궤도에 있다가 폐기궤도로 떠나는 걸 보여줘야지."
-#    → 두 궤도선을 **먼저 둘 다** 켜서 어디서 어디로 가는지 보이게 한 뒤,
-#      위성이 금색 원에서 회색 원까지 **14초에 걸쳐 건너간다**. 그게 이 막의 전부다.
+# ══ Scene 2 : 3만 6천 km 상공의 파수꾼 (1:20–2:20) ══════════════
+# 대본: "지구가 돔 중앙에 거대하게, 천리안이 태양전지판을 펼치며 서서히 회전.
+#        위성 바로 옆에서 지구를 함께 바라보는 3인칭 광각 뷰."
+# ★ 동기 프레임이라 **지구가 안 도는 게 정상**이다 — 정지궤도 위성이 보는 그림 그대로.
 try:
     _dark()
-    txt.setIntensity(0.0, Anim(0.4))
-    sleep(0.5)
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.6)
+    dm.stop()
+    sleep(0.2)
+    dm.setDateTime(2011, 4, 1, 3, 30, 0, tz, Anim(0.0))    # 정규 서비스 시작 무렵, 한반도 낮
+    _dark()
+    if sp is not None:
+        stand(Vec(KOREA_LON, 0.0, R_WATCH_A), sp)   # 위성이 카메라와 지구 사이
+    feat(sat, "setIntensity", 1.0, Anim(0.0))
+    txt = sub_space()
+    txt.setText("동경 128.2도")
+    _dark()
+
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
+    sleep(2.5)
+    # ★ 태양전지판을 펼치듯 천천히 한 바퀴 (카메라를 안 건드려 프레이밍 위험 0)
+    feat(sat, "setOrientationHPR", Vec(500.0, 20.0, 0.0), Anim(30.0))
+    if sp is not None:
+        fly(Vec(KOREA_LON, 0.0, R_WATCH_B), 16.0, sp)      # 위성 쪽으로 다가간다
+    say("동경 128.2도", 4.0)
+    say("지구가 도는 속도에 딱 맞춰 함께 돈다", 5.5)
+    say("그래서 24시간 한반도를 내려다본다", 5.5)
+    say("한쪽에만 날개가 달렸다 — 태양전지판이다", 5.5)
+    say("반대편 막대 끝의 반사판이 그 힘을 받아 균형을 잡는다", 6.0)
+    say("가운데 접시는 안테나, 아래 두 개가 관측기다", 5.5)
+
+    feat(earth, "setCloudsIntensity", 1.0, Anim(6.0))
+    dm.setDateTime(2011, 4, 6, 3, 30, 0, tz, Anim(26.0))   # 구름이 흐른다(지구는 안 돈다)
+    say("기상 관측기가 구름을 읽고", 5.0)
+    say("해양 관측기가 바다를 읽는다", 5.0)
+    say("태풍의 길목을 미리 알리고, 적조와 기름 유출을 감시했다", 6.5)
+    say("가장 높은 곳에서 우리를 지켜보는 눈이었다", 5.5)
+except Exception as e:
+    print("Scene 2 오류:", e)
+
+# ══ Scene 3 : 임무 연장과 헌신 (2:20–3:20) ══════════════════════
+# 대본: "수명 7년을 가리키는 시계 타임랩스. 2017년이 지나도 계속 도는 천리안.
+#        2A·2B 가 등장해 바통을 넘겨받는다."
+# ★ 돔 시계(Clock)는 검증된 HUD 다 — 시간가속을 걸면 바늘이 실제로 돈다.
+# ★ 프레임을 **관성(ip)** 으로 바꾼다 — 여기서만 지구가 도는 게 보이고, 낮밤이 지나간다.
+try:
+    _dark()
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.6)
+    stand(Vec(0.0, B_TOGETHER, R_TOGETHER), ip)
+    shadows(True)                       # 낮밤 — 이 막은 그림자가 주제라 운영 표준의 예외
+    _dark()
+    clk = clock_hud()                   # ★ 수명을 세는 시계
+    txt = sub_space()
+    txt.setText("설계 수명 7년")
+    _dark()
+
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
+    sleep(2.0)
+    say("당초 설계된 수명은 7년", 4.5)
+    say("2017년이면 끝났어야 할 기계다", 5.0)
+
+    # ⚠️ 손으로 밀지 않는다. 시간만 흘리면 엔진이 위성을 데려간다
+    dm.setDateTime(2011, 4, 8, 3, 30, 0, tz, Anim(48.0))   # 이틀 = 낮밤 두 번 + 시계 회전
+    say("하지만 천리안 1호는 멈추지 않았다", 5.5)
+    say("낮이 가고 밤이 오고, 다시 낮이 오는 동안", 6.0)
+    say("한 자리에서 데이터를 계속 보냈다", 6.0)
+    say("설계 수명을 넘긴 뒤로도 4년을 더", 5.5)
+    say("모두 합쳐 11년", 5.0)
+
+    s2a = place_sat(SLOT_2A, LON_2A, SCALE_SAT * 0.8)
+    feat(s2a, "setIntensity", 1.0, Anim(2.5))
+    say("2018년, 천리안 2A 가 기상을 이어받고", 5.0)
+    s2b = place_sat(SLOT_2B, LON_2B, SCALE_SAT * 0.8)
+    feat(s2b, "setIntensity", 1.0, Anim(2.5))
+    say("2020년, 2B 가 해양과 환경을 이어받았다", 5.0)
+    say("후배들에게 바통을 넘길 때까지, 제자리를 지켰다", 5.5)
+except Exception as e:
+    print("Scene 3 오류:", e)
+
+# ══ Scene 4 : 마지막 여정, 폐기궤도로의 이동 (3:20–4:20) ════════
+# 대본: "추진기가 미세하게 점화. 정지궤도 ring 을 벗어나 더 높은 폐기궤도로.
+#        전원이 차례로 꺼지며 어두워진다. 지구가 멀어지는 줌아웃."
+try:
+    _dark()
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.6)
+    if clk:
+        feat(clk, "setIntensity", 0.0, Anim(0.5))    # 시계는 여기서 내린다
+    shadows(False)                                   # 원반 전체를 밝게 = 궤도가 잘 보인다
     feat(earth, "setCloudsIntensity", 0.4, Anim(0.0))
-    dm.stop()                       # ★ 궤도선을 켜기 전에 시계를 멈춘다
+    dm.stop()
     sleep(0.2)
     stand(Vec(0.0, B_TOP, R_BACK), ip)
-    # 위성을 제 자리(정지궤도)에 되돌려 놓고 다시 보이게 한다
     feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GEO_R), Anim(0.0))
     feat(sat, "setIntensity", 1.0, Anim(0.0))
     txt = sub_space()
-    txt.setText("2025년 12월")
+    txt.setText("2021년 4월")
     _dark()
+
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.0)
+    feat(r_geo, "setIntensity", 1.0, Anim(3.0))      # ★ 금색 = 11년을 돈 자리
+    say("2021년 4월, 임무가 끝났다", 5.0)
+    say("저 금색 원이 11년을 돈 자리다", 5.5)
+    feat(r_grave, "setIntensity", 0.9, Anim(3.0))    # ★ 회색 = 갈 곳
+    say("다른 위성과 부딪히지 않도록", 5.0)
+    say("스스로 몸을 일으킨다", 4.5)
 
-    feat(r_geo, "setIntensity", 1.0, Anim(3.0))           # ★ 금색 = 일하던 자리
-    say("천리안이 16년을 돈 자리다", 4.5)
-    say("설계 수명은 7년이었는데", 4.0)
-    say("2010년에 태어난 아기가 고등학생이 될 때까지 일했다", 5.0)
-    say("2025년 12월, 임무가 끝났다", 4.5)
+    # ★★ 이 한 줄이 이 장면의 핵심 — 금색에서 회색으로 건너간다
+    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(16.0))
+    say("남은 연료를 모두 태우며", 5.5)
+    say("정지궤도보다 높은 폐기궤도로", 5.5)
+    say("천천히, 아주 천천히 올라간다", 5.5)
+    say("(실제로는 300km 남짓 위다. 보이라고 크게 그렸다)", 5.0)
 
-    feat(r_grave, "setIntensity", 0.9, Anim(3.0))         # ★ 회색 = 갈 곳
-    say("저 바깥 회색 원이 갈 곳이다", 4.5)
-    # ★★ 이 한 줄이 이 막의 핵심 — 금색에서 회색으로 건너간다
-    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(14.0))
-    say("남은 마지막 연료로 위로 올라간다", 5.0)
-    say("천천히, 아주 천천히", 5.0)
-    say("일하던 자리를 다음 위성에게 비켜 주는 것이다", 5.5)
-    say("(실제로는 아주 조금 위다. 보이라고 크게 그렸다)", 4.0)
+    feat(sat, "setIntensity", 0.30, Anim(7.0))       # 전원이 차례로 꺼진다
+    if sp is not None or True:
+        fly(Vec(0.0, B_TOP, R_OUT), 14.0, ip)        # ★ 지구가 멀어지는 줌아웃
+    say("모든 통신을 차단하고", 5.0)
+    say("11년의 임무를 마친 채", 5.0)
+    say("영원한 우주의 휴식에 들어간다", 5.5)
+except Exception as e:
+    print("Scene 4 오류:", e)
 
-    # ⚠️ 불은 꺼지되 **사라지지 않는다**("마지막엔 천리안 보여주지도 않는다"는 지적)
-    feat(sat, "setIntensity", 0.35, Anim(6.0))
-    say("그리고 전원을 껐다", 4.0)
-    say("천리안 1호는 지금도 저기 있다", 4.0)
+# ══ Outro : 유산과 기억 (4:20–5:00) ════════════════════════════
+# 대본: "폐기궤도에 잠든 천리안 아래로 2A·2B, 그리고 대한민국 도시의 불빛.
+#        우주에서 지상으로 천천히 내려와 관객의 시선과 맞닿는 착륙 연출."
+try:
+    _dark()
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.6)
+    shadows(True)                                    # ★ 밤면 = 도시 불빛
+    stand(Vec(KOREA_LON, B_CITY, R_CITY), sp)        # 한반도 밤 쪽을 내려다본다
+    dm.stop()
+    sleep(0.2)
+    dm.setDateTime(2026, 8, 12, 13, 0, 0, tz, Anim(0.0))   # 한반도 밤(22시 KST)
+    _dark()
+    txt = sub_space()
+    txt.setText("그 길을 따라")
+    _dark()
 
-    # 후계 — 비워 준 그 금색 원 위에 둘이 더
-    s2a = place_sat(6, LON_2A, SCALE_SAT * 0.8)
-    feat(s2a, "setIntensity", 1.0, Anim(2.5))
-    say("2018년, 천리안 2A 가 날씨를 이어받았고", 4.0)
-    s2b = place_sat(7, LON_2B, SCALE_SAT * 0.8)
-    feat(s2b, "setIntensity", 1.0, Anim(2.5))
-    say("2020년, 2B 가 바다와 공기를 이어받았다", 4.0)
-    say("7년만 버티면 되던 기계가, 16년을 벌어 준 자리다", 5.0)
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
+    sleep(2.5)
+    say("천리안 1호가 열어 준 길을 따라", 5.5)
+    say("더 나은 위성들이 그 자리를 이어받고 있다", 5.5)
+    say("저 아래 불빛 하나하나가 우리가 사는 곳이다", 6.0)
+
+    # ★ 지상으로 내려온다 — 보이는 하강 뒤에 암전으로 지상 시점 전환
+    if sp is not None:
+        fly(Vec(KOREA_LON, B_CITY, R_LAND), 12.0, sp)
+    say("우리 우주 역사의 첫 장을 연 이름", 6.0)
+    say("천리안 1호", 5.0)
+
+    _dark()
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.8)
+    ground_night()                                   # 청주 밤하늘 — 관객의 자리로
+    txt = sub_ground()
+    txt.setText("천리안 1호")
+    _dark()
+    uni.setGlobalIntensity(1.0, Anim.cubic(3.0))
+    sleep(2.5)
+    say("그 별은 지금도 저 높은 곳에서", 5.0)
+    say("우리의 다음 도전을 내려다보고 있다", 5.5)
 
     txt.setIntensity(0.0, Anim(3.0))
     uni.setGlobalIntensity(0.0, Anim.cubic(4.0))
     sleep(3.0)
 except Exception as e:
-    print("막5 오류:", e)
+    print("Outro 오류:", e)
 
-print("쇼 종료 — 천리안 1호, 여정과 마감")
+print("쇼 종료 — 지구를 바라보는 하나의 눈, 천리안 1호의 11년")

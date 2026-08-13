@@ -6,6 +6,19 @@
 #     `ColorArray` 만으로는 안 먹는다(조명이 켜져 있어 재질 기본 흰색이 이긴다).
 #     → `chollian.osg` 를 Material 판으로 굳혔다. 쇼는 파일명 그대로 쓴다.
 #        ⚠️ `.obj` 는 인코딩 사고로 안 만들어졌었다 → 이 판에서 ASCII 가드로 수정(재확인 필요).
+#
+#  ★★ 2026-08-13 — **실물 사진과 대조해 디테일을 넣었다** (13조각 → 35조각, 1,020 삼각형).
+#     사용자 지적: "천리안 1호 위성 사진 보니까 우리 모델이랑 많이 다르다".
+#     ⚠️⚠️ **제일 큰 누락 = 솔라세일**. 천리안 1호는 태양전지판이 **한쪽에만** 있어서
+#        태양광압이 위성을 계속 비튼다 → **반대편에 긴 붐을 뻗고 끝에 반사판**을 달아 상쇄한다.
+#        실물 사진에서 "왜 한쪽은 날개, 반대쪽은 막대기 하나?" 하게 만드는 바로 그 부품인데
+#        우리 모델엔 아예 없었다. 이제 있다.
+#     그 밖에 실물에 맞춘 것:
+#       · 태양전지판을 **3장 마디 + 셀 격자**로 (한 장짜리 판때기 아님)
+#       · 안테나가 **하나가 아니다** — Ka 주반사판 + 보조 반사판 + S 대역 혼
+#       · **관측기 두 대(MI 기상 · GOCI 해양)가 지구 지향면에 나란히**, 각각 원통 차광통
+#       · 원지점 엔진 + 자세제어 추력기 4기
+#     치수: 폭 **8.88 m**(실물 8.8 m) · modelRadius **5.25 m**(전과 같아 쇼 배율 그대로 유효)
 # ─────────────────────────────────────────────────────────────
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -142,6 +155,28 @@ def dish(cx, cy, cz, radius, depth, seg=18):
     return tris
 
 
+def cyl(cx, cy, cz, radius, height, seg=14, cap=True):
+    """+Z 축 원통. 관측기 차광통(baffle)·붐 마디에 쓴다."""
+    tris = []
+    z0, z1 = cz - height / 2.0, cz + height / 2.0
+    for i in range(seg):
+        a0 = 2.0 * math.pi * i / seg
+        a1 = 2.0 * math.pi * (i + 1) / seg
+        c0, s0 = math.cos(a0), math.sin(a0)
+        c1, s1 = math.cos(a1), math.sin(a1)
+        p00 = (cx + radius * c0, cy + radius * s0, z0)
+        p01 = (cx + radius * c0, cy + radius * s0, z1)
+        p11 = (cx + radius * c1, cy + radius * s1, z1)
+        p10 = (cx + radius * c1, cy + radius * s1, z0)
+        n = ((c0 + c1) / 2.0, (s0 + s1) / 2.0, 0.0)
+        tris.append(((p00, p01, p11), n))
+        tris.append(((p00, p11, p10), n))
+        if cap:
+            tris.append((((cx, cy, z1), p01, p11), (0.0, 0.0, 1.0)))
+            tris.append((((cx, cy, z0), p10, p00), (0.0, 0.0, -1.0)))
+    return tris
+
+
 #  ── 천리안 1호 조립 (단위 = 미터, 실제 치수에 가깝게) ──────────────
 #     +Z = 지구를 향하는 면(안테나 쪽) / +X = 태양전지판이 뻗는 쪽
 #  ⚠️ 색 배합 = 실제 정지궤도 위성의 전형: **금색 단열재(MLI) 본체 + 짙은 남색 태양전지판 +
@@ -153,19 +188,59 @@ WHITE  = (0.92, 0.92, 0.95)
 DARK   = (0.22, 0.22, 0.26)
 
 PARTS = []
-PARTS.append(("body", GOLD, box(0.0, 0.0, 0.0, 2.4, 2.2, 3.0)))          # 본체 — 금색 단열재
-PARTS.append(("body_belt", DARK, box(0.0, 0.0, 0.0, 2.5, 2.3, 0.35)))    # 허리 띠(디테일)
-PARTS.append(("boom", SILVER, box(1.9, 0.0, 0.0, 1.4, 0.25, 0.25)))      # 태양전지판 붐
-PARTS.append(("panel", NAVY, box(5.1, 0.0, 0.0, 5.0, 2.3, 0.10)))        # 전지판(한쪽만!)
-PARTS.append(("panel_frame", SILVER, box(5.1, 0.0, 0.0, 5.1, 2.42, 0.05)))   # 테두리
-PARTS.append(("panel_hinge", SILVER, box(5.1, 0.0, 0.0, 0.12, 2.44, 0.16)))  # 가운데 이음매
-PARTS.append(("dish", WHITE, dish(0.0, 0.35, 2.30, 1.05, 0.50)))         # 통신 안테나
-PARTS.append(("dish_arm", SILVER, box(0.0, 0.35, 1.75, 0.14, 0.14, 0.8)))
-PARTS.append(("dish2", WHITE, dish(0.85, -0.55, 1.95, 0.42, 0.22)))      # 작은 보조 안테나
-PARTS.append(("horn", DARK, box(0.0, -0.75, 1.85, 0.7, 0.7, 0.8)))       # 관측 센서(GOCI 쪽)
-PARTS.append(("horn_lens", WHITE, box(0.0, -0.75, 2.28, 0.42, 0.42, 0.08)))  # 렌즈면
-PARTS.append(("mast", SILVER, box(0.0, 0.0, -2.2, 0.16, 0.16, 1.4)))
-PARTS.append(("nozzle", DARK, dish(0.0, 0.0, -2.95, 0.30, 0.45)))        # 추력기 노즐
+
+# ── 본체 ────────────────────────────────────────────────────────────
+#    유로스타 E3000 계열 상자형 본체. 금색 다층단열재(MLI)로 덮여 있다.
+PARTS.append(("body", GOLD, box(0.0, 0.0, 0.0, 2.4, 2.2, 2.9)))
+PARTS.append(("body_belt", DARK, box(0.0, 0.0, 0.0, 2.5, 2.3, 0.30)))     # 허리 띠
+PARTS.append(("deck", DARK, box(0.0, 0.0, 1.55, 2.5, 2.3, 0.22)))         # 지구 지향면(관측기 데크)
+
+# ── 태양전지판 — 한쪽 날개만 (실물의 특징) ───────────────────────────
+#    ⚠️ 실제 천리안 1호는 **태양전지판이 한쪽에만** 있다. 3장짜리 한 날개.
+PARTS.append(("sa_yoke", SILVER, box(1.65, 0.0, 0.0, 0.9, 0.22, 0.22)))   # 요크(붐)
+PARTS.append(("sa_p1", NAVY, box(2.90, 0.0, 0.0, 1.6, 2.2, 0.07)))
+PARTS.append(("sa_p1_frame", SILVER, box(2.90, 0.0, 0.0, 1.66, 2.30, 0.03)))
+PARTS.append(("sa_p2", NAVY, box(4.70, 0.0, 0.0, 1.8, 2.2, 0.07)))
+PARTS.append(("sa_p2_frame", SILVER, box(4.70, 0.0, 0.0, 1.86, 2.30, 0.03)))
+PARTS.append(("sa_hinge", SILVER, box(3.78, 0.0, 0.0, 0.10, 2.32, 0.14)))  # 마디 이음매
+# 전지 셀 격자 — 가로 줄 세 개(가까이서 보면 '판때기'가 아니라 전지판으로 읽힌다)
+for _yy in (-0.62, 0.0, 0.62):
+    PARTS.append(("sa_grid", SILVER, box(3.80, _yy, 0.05, 3.6, 0.04, 0.02)))
+
+# ── 솔라세일 — ⚠️ 실물에서 제일 눈에 띄는데 우리가 빠뜨렸던 것 ────────
+#    날개가 한쪽에만 있으면 태양광압이 위성을 계속 비틀어 놓는다.
+#    그래서 **반대편에 긴 붐을 뻗고 끝에 반사판(솔라세일)** 을 달아 그 토크를 상쇄한다.
+#    천리안 1호 사진에서 '왜 한쪽엔 날개, 반대쪽엔 막대기 하나?' 하게 만드는 바로 그 부품이다.
+PARTS.append(("sail_boom", SILVER, box(-2.10, 0.0, 0.0, 1.8, 0.13, 0.13)))
+PARTS.append(("sail_boom2", DARK, box(-2.95, 0.0, 0.0, 0.16, 0.20, 0.20)))   # 끝단 이음매
+PARTS.append(("sail", SILVER, box(-3.20, 0.0, 0.0, 0.06, 1.00, 1.00)))       # 반사판
+PARTS.append(("sail_frame", DARK, box(-3.20, 0.0, 0.0, 0.09, 1.08, 1.08)))
+
+# ── 통신 안테나 ─────────────────────────────────────────────────────
+#    Ka 대역 주반사판(큰 접시) + 보조 반사판 + S 대역 혼. 실물은 접시가 하나가 아니다.
+PARTS.append(("ka_arm", SILVER, box(0.55, 0.75, 1.85, 0.13, 0.13, 0.70)))
+PARTS.append(("ka_dish", WHITE, dish(0.55, 0.75, 2.28, 0.95, 0.44)))      # Ka 주반사판
+PARTS.append(("ka_feed", DARK, box(0.55, 0.75, 1.98, 0.16, 0.16, 0.30)))  # 급전부
+PARTS.append(("sub_arm", SILVER, box(-0.85, 0.70, 1.80, 0.10, 0.10, 0.55)))
+PARTS.append(("sub_dish", WHITE, dish(-0.85, 0.70, 2.10, 0.40, 0.20)))    # 보조 반사판
+PARTS.append(("sband", SILVER, cyl(-0.95, -0.55, 1.95, 0.13, 0.55)))      # S 대역 혼
+PARTS.append(("sband_top", WHITE, cyl(-0.95, -0.55, 2.24, 0.18, 0.08)))
+
+# ── 관측기 두 대 — 이게 천리안 1호의 본업이다 ────────────────────────
+#    MI(기상영상기)와 GOCI(해양관측카메라)가 **지구 지향면에 나란히** 붙어 있고,
+#    각각 태양빛을 막는 원통형 차광통(baffle)을 쓰고 있다.
+PARTS.append(("mi_baffle", DARK, cyl(0.42, -0.62, 2.02, 0.30, 0.90)))     # 기상영상기
+PARTS.append(("mi_lens", WHITE, cyl(0.42, -0.62, 2.46, 0.24, 0.05)))
+PARTS.append(("mi_ring", SILVER, cyl(0.42, -0.62, 1.68, 0.34, 0.12)))
+PARTS.append(("goci_baffle", DARK, cyl(-0.42, -0.72, 1.96, 0.26, 0.80)))  # 해양관측카메라
+PARTS.append(("goci_lens", WHITE, cyl(-0.42, -0.72, 2.34, 0.21, 0.05)))
+PARTS.append(("goci_ring", SILVER, cyl(-0.42, -0.72, 1.66, 0.30, 0.12)))
+
+# ── 추진부 ──────────────────────────────────────────────────────────
+PARTS.append(("aft_ring", SILVER, box(0.0, 0.0, -1.52, 2.1, 1.9, 0.16)))
+PARTS.append(("apogee", DARK, dish(0.0, 0.0, -1.95, 0.34, 0.42)))         # 원지점 엔진
+for _sx, _sy in ((0.85, 0.72), (-0.85, 0.72), (0.85, -0.72), (-0.85, -0.72)):
+    PARTS.append(("thruster", DARK, cyl(_sx, _sy, -1.66, 0.09, 0.26)))    # 자세제어 추력기
 
 written = []
 
@@ -201,7 +276,9 @@ if RUN_WRITE:
 
     nt = sum(len(t) for _, _, t in PARTS)
     span = max(abs(v[0]) for _, _, ts in PARTS for tri, _ in ts for v in tri)
-    print("   삼각형 %d개, X 최대 %.2f m (태양전지판 끝)" % (nt, span))
+    xs = [v[0] for _, _, ts in PARTS for tri, _ in ts for v in tri]
+    print("   조각 %d개, 삼각형 %d개, 폭 %.2f m (솔라세일 끝 ~ 태양전지판 끝)"
+          % (len(PARTS), nt, max(xs) - min(xs)))
 
     # ⚠️⚠️ [2026-08-12 돔 실측] `ColorArray` 만으로는 **색이 안 나온다 — 전부 흰색**이다.
     #   조명이 켜져 있어 재질(Material)의 기본 흰색이 정점색을 이긴다.
