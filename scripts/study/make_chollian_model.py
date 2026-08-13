@@ -304,7 +304,12 @@ if RUN_WRITE:
                   '          ambientColor %.3f %.3f %.3f 1' % tuple(c * 0.35 for c in col),
                   '          diffuseColor %.3f %.3f %.3f 1' % col,
                   '          specularColor 0.10 0.10 0.10 1',
-                  '          emissionColor %.3f %.3f %.3f 1' % tuple(c * 0.12 for c in col),
+                  # ⚠️⚠️ [2026-08-13 돔 실측] 0.12 는 **너무 어두웠다.** 지구 밤면 쪽으로 가면
+                  #   위성이 태양광을 못 받아 **검은 배경에 검은 물체**가 돼 통째로 사라졌다
+                  #   (사용자 스샷: 지구가 초승달인데 위성이 안 보임).
+                  #   → 궤도 고리가 늘 보이는 이유가 emissionColor 다. 위성도 **0.55 로 올려 자체발광**시킨다.
+                  #   ⚠️ 이 값을 바꿨으면 생성기를 **다시 돌려야** 반영된다.
+                  '          emissionColor %.3f %.3f %.3f 1' % tuple(min(1.0, c * 0.55) for c in col),
                   '          shininess 16', '        }', '      }']
         return (['    Geometry {', '      DataVariance DYNAMIC',
                  '      useDisplayList TRUE', '      useVertexBufferObjects FALSE'] + st +

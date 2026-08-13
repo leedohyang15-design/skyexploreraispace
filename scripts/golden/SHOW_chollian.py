@@ -130,6 +130,18 @@
 #     `B_LEAVE` 24 → **8**(거의 궤도면 안). 위성 겉보기 19.2° → 27.2°, 지구 중심에서 19.7° → 38.7° 로
 #     **옆으로 19° 를 가로지른다.** 고리는 옆에서 보니 가는 선이 되지만 '밀려 나가는' 건 이 각도가 제일 또렷.
 #
+#  ══ v15 — "위성이 안 보인다"의 진짜 원인 = **조명** (2026-08-13 스샷으로 확정) ══
+#  스샷 HUD: `L 128°12'E · B 16°N · R 54,852 km` = Scene 3, **카메라는 제자리였다.**
+#  그런데 **지구가 초승달**이었다 = 밤면을 보고 있었고, 위성도 그늘에 들어가 **검은 배경에 검은 물체**.
+#  ⚠️ 원인: 이 장면이 **27시간**을 흘렸다. 동기 프레임에서 우리는 경도 128.2 에 고정인데
+#     태양 직하점은 시간당 15° 서쪽으로 간다 → 15:00 UTC 면 직하점이 45°W = **우리는 한밤**.
+#  ✅ **계산으로 못 박는다: 직하점 경도 = 180 − 15×UTC. 우리와 80° 안쪽이어야 낮.**
+#     → 시간 흐름을 **+5시간(03:30 → 08:30)** 으로 줄였다(76° = 늦은 오후, 아직 낮).
+#  ✅ **위성 모델을 자체발광으로** — `emissionColor` 0.12 → **0.55**(궤도 고리가 늘 보이는 이유가 이것).
+#     ⚠️ **`make_chollian_model.py` 를 다시 돌려야 반영된다.**
+#  ✅ **부품 설명 = 화살표(DomePointer) → 지시선(DrawableInsert)** — "돔포인터는 가독성이 없다".
+#     부품에서 바깥 이름표까지 선을 긋고 부품 쪽 끝에 짧은 눈금을 찍는다.
+#
 #  구성 (대본의 시간표를 따른다)
 #    Intro    광활한 우주와 하나의 결심          0:00–0:40
 #    Scene 1  쿠루 우주센터와 카운트다운          0:40–1:20
@@ -426,20 +438,22 @@ def label(text, ground=False):
 SLOT_TAG_GEO, SLOT_TAG_GRAVE = 7, 8      # ⚠️ 우주 전용 — setSize 를 영원히 안 부른다
 SLOT_PART = 9                            # ★ [v13] 위성 '부품 이름' 전용 슬롯
 
-# ★★ [2026-08-13 v14 지시] "자막을 그 **화살표 같은 걸로 가리키면서** 해야지"
-#   → `DomePointer`(검증된 돔 화살표)를 부품마다 찍고, 이름을 그 옆에 붙인다.
+# ★★ [2026-08-13 v14 지시] "자막을 화살표 같은 걸로 가리키면서" → "**돔포인터는 가독성이 없다.
+#    그냥 지시선으로 바꿔**" → **`DrawableInsert` 로 돔에 지시선을 긋는다**(검증된 클래스).
+#   부품 자리에서 바깥쪽 이름표까지 **선 하나**를 그어 뭘 가리키는지 분명히 한다.
 #   ⚠️ **돔 좌표 규약(실측)**: az = 180 − 나침반방위 · **h = 돔 Target 좌표**(하늘 고도 아님).
 #      Scene 2 는 카메라가 위성을 정면으로 보고 Target 30 이라 **위성 중심 ≈ (az 0, h 30)**.
 #      → 화면에서 어긋나면 **아래 두 값만** 옮기면 다섯 개가 통째로 따라간다.
-SHOW_POINTERS = True
+SHOW_LEADERS = True
 PART_AZ0, PART_H0 = 0.0, 30.0
-#   (이름, 중심에서의 az 오프셋, h 오프셋) — 모델에서 그 부품이 붙은 쪽에 맞춰 놓았다.
+#   (이름, 부품 az, 부품 h, 이름표 az, 이름표 h) — 전부 위성 중심에서의 오프셋.
+#   ⚠️ 이름표는 **부품보다 바깥**에 둔다. 선이 위성 위를 가로지르면 더 안 보인다.
 PARTS = (
-    ("태양전지판",          -13.0,  6.0),
-    ("솔라세일 — 균형추",    13.0,  6.0),
-    ("Ka 대역 주안테나",      0.0,  1.5),
-    ("기상 관측기 (MI)",     -5.5, -8.0),
-    ("해양 관측기 (GOCI)",    5.5, -8.0),
+    ("태양전지판",         -13.0,   6.0,  -32.0,  17.0),
+    ("솔라세일 — 균형추",   13.0,   6.0,   32.0,  17.0),
+    ("Ka 대역 주안테나",     0.0,   1.5,    0.0,  24.0),
+    ("기상 관측기 (MI)",    -5.5,  -8.0,  -28.0, -19.0),
+    ("해양 관측기 (GOCI)",   5.5,  -8.0,   28.0, -19.0),
 )
 _tags = {}
 
@@ -461,33 +475,42 @@ def side_tag(slot, text, height, color, az=0.0):
     t.setIntensity(0.0 if not text else 0.95, Anim(0.8))
 
 
-_ptr = [None]
+_drw = [None]
 
 
-def point_at(name, daz, dh):
-    """★ [v14] 부품을 **화살표로 가리키고** 이름을 그 옆에 띄운다.
-    이름만 덩그러니 띄우던 걸(v13) 화살표+이름으로 바꾼 것. name="" 이면 둘 다 끈다."""
+def point_at(name, daz, dh, laz, lh):
+    """★ [v14] 부품에 **지시선**을 긋고 그 끝에 이름을 붙인다.
+    ⚠️ 돔포인터(화살표)는 가독성이 없어서 버렸다(사용자 지적) — `DrawableInsert` 로 선을 긋는다.
+    name="" 이면 선과 이름을 함께 지운다."""
     if not SHOW_LABELS:
         return
-    az, h = PART_AZ0 + daz, PART_H0 + dh
-    if SHOW_POINTERS:
-        d = _ptr[0]
-        if d is None:
-            d = DomePointer(DomePointer.DomePointerName.DomePointer001)
-            for nm in ("Model3Bold", "Model3", "Model1Bold", "Model1"):
-                try:
-                    feat(d, "setPointerType", getattr(Body.PointerType, nm))
-                    break
-                except Exception:
-                    continue
-            feat(d, "setColor", Vec(0.55, 0.90, 1.0))
-            feat(d, "setApparentSize", 7.0)
-            _ptr[0] = d
-        if name:
-            feat(d, "setPosition", Vec(az, h, 0.0))
-        feat(d, "setPointerIntensity", 0.0 if not name else 1.0, Anim(0.5))
-    # 이름은 화살표 **바로 옆**(같은 돔 좌표에서 살짝 위)에 놓는다 — 떨어져 있으면 뭘 가리키는지 모른다.
-    side_tag(SLOT_PART, name, h + 4.0, Vec(0.70, 0.92, 1.0), az)
+    az_t, h_t = PART_AZ0 + daz, PART_H0 + dh          # 선이 가리키는 곳 = 부품
+    az_l, h_l = PART_AZ0 + laz, PART_H0 + lh          # 선이 끝나는 곳 = 이름표 자리
+    if SHOW_LEADERS:
+        try:
+            d = _drw[0]
+            if d is None:
+                d = DrawableInsert(DrawableInsert.DrawableInsertName.DrawableInsert2D001)
+                cam.addChild(d.id, Camera.CameraPort.FixedForeground)
+                d.setBrushType(DrawableInsert.BrushType.Pen)
+                d.setBrushSize(2.2)
+                d.setIntensity(1.0, Anim(0.0))
+                _drw[0] = d
+            d.clearAll(Anim(0.15))
+            if name:
+                d.beginDraw()
+                # 부품 → 이름표. 촘촘히 찍어야 끊기지 않는다(각 점이 한 획).
+                for i in range(41):
+                    t = i / 40.0
+                    d.setBrushPosition(Vec(az_t + (az_l - az_t) * t,
+                                           h_t + (h_l - h_t) * t, 0.0))
+                # 부품 쪽 끝에 짧은 가로 눈금 — 어느 점을 가리키는지 못 박는다
+                for i in range(9):
+                    d.setBrushPosition(Vec(az_t - 2.0 + i * 0.5, h_t, 0.0))
+                d.endDraw()
+        except Exception as e:
+            print("   x 지시선: %s" % e)
+    side_tag(SLOT_PART, name, h_l + 2.5, Vec(0.72, 0.93, 1.0), az_l)
 
 
 def fly(pos, seconds, port):
@@ -904,11 +927,11 @@ try:
     # ★★ [v14 지시] "자막을 그 **화살표 같은 걸로 가리키면서** 해야지"
     #   → 회전이 멈춘 위성에 화살표를 하나씩 대고, 이름을 그 옆에 띄운다.
     label("")                                  # 위성 이름표는 내리고 부품으로 넘어간다
-    point_at(PARTS[0][0], PARTS[0][1], PARTS[0][2])
+    point_at(*PARTS[0])
     say("한쪽에만 날개가 달렸다 — 태양전지판이다", 5.5)
-    point_at(PARTS[1][0], PARTS[1][1], PARTS[1][2])
+    point_at(*PARTS[1])
     say("반대편 막대 끝의 반사판이 그 힘을 받아 균형을 잡는다", 6.0)
-    point_at(PARTS[2][0], PARTS[2][1], PARTS[2][2])
+    point_at(*PARTS[2])
     say("가운데 접시는 안테나, 아래 두 개가 관측기다", 5.5)
 
     # ⚠️⚠️ [2026-08-13 지시] "천리안 눈앞에서 돌려놓고 **갑자기 왜 배경은 왜 돌리는 거야**"
@@ -918,11 +941,11 @@ try:
     #   → **이 장면에서는 시간을 아예 안 흘린다.** 구름은 세기 페이드인만으로 충분히 보인다
     #     (검증된 사실: '구름이 밀려온다'는 setCloudCoverage 가 아니라 setCloudsIntensity 0→1).
     feat(earth, "setCloudsIntensity", 1.0, Anim(8.0))
-    point_at(PARTS[3][0], PARTS[3][1], PARTS[3][2])
+    point_at(*PARTS[3])
     say("기상 관측기가 구름을 읽고", 5.0)
-    point_at(PARTS[4][0], PARTS[4][1], PARTS[4][2])
+    point_at(*PARTS[4])
     say("해양 관측기가 바다를 읽는다", 5.0)
-    point_at("", 0.0, 0.0)                     # 화살표·이름 내린다
+    point_at("", 0.0, 0.0, 0.0, 0.0)           # 지시선·이름 내린다
     say("태풍의 길목을 미리 알리고, 적조와 기름 유출을 감시했다", 6.5)
     say("가장 높은 곳에서 우리를 지켜보는 눈이었다", 5.5)
 except Exception as e:
@@ -956,7 +979,14 @@ try:
     # ⚠️⚠️ [지시] "천리안 도는 궤도 좀 줄여야겠다" → **1.1일치(≈1바퀴)로 줄였다.**
     #   전 판은 4/6 → 4/3 = **3일치를 거꾸로** 흘려 위성이 3바퀴를 역주행했다. 그래서
     #   뒤로 갈 때마다 지구에 가려 사라졌다. 지금은 **앞으로 1바퀴**만, 그것도 B62 라 안 가려진다.
-    dm.setDateTime(2011, 4, 2, 6, 30, 0, tz, Anim(48.0))
+    # ⚠️⚠️⚠️ [2026-08-13 돔 실측 — 위성이 사라진 진짜 이유] 전 판은 **27시간**을 흘렸다.
+    #   동기 프레임에서는 우리가 경도 128.2 에 고정이라, 시간을 흘리면 **태양 직하점이 지나가 버린다** —
+    #   15:00 UTC 즈음엔 직하점이 45°W 라 **우리는 완전한 밤면**이고, 지구는 초승달, 위성은 칠흑이었다
+    #   (사용자 스샷이 정확히 그 순간이다). 각도도 거리도 배율도 문제가 아니었다. **조명이었다.**
+    #   ✅ 계산으로 못 박는다: 직하점 경도 = 180 − 15×UTC시각. 우리(128.2)와 **80° 안쪽이어야 낮.**
+    #      03:30 → 0.7° (정오) · 08:30 → 76° (늦은 오후, 아직 낮) · 15:00 → 173° (한밤).
+    #   → **+5시간(03:30 → 08:30)만 흘린다.** 터미네이터가 눈에 띄게 밀려오되 밤으로는 안 넘어간다.
+    dm.setDateTime(2011, 4, 1, 8, 30, 0, tz, Anim(48.0))
     say("하지만 천리안 1호는 멈추지 않았다", 4.0)
     for _yr, _hold in (("2011", 3.2), ("2013", 3.2), ("2015", 3.2),
                        ("2017  설계 수명", 4.0), ("2019", 3.2), ("2021", 3.6)):
