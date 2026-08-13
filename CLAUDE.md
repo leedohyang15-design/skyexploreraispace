@@ -562,6 +562,17 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
   · ✅✅ **물체형은 바깥에서 보인다 (확정)** — 지구 궤도에 놓은 상자가 또렷. 아래 "블랙홀은 몰입형" 항목은 **그 모델 하나의 성질**이지 Insert3D 한계가 아니다(옛 판정은 0.05×4.85e7 을 포트 단위에 넣은 단위 실수도 겹쳤다).
   · ⚠️⚠️ **궤도 물체는 크기보다 '구도'** (사용자 실측): 검증된 궤도 조망 `Vec(L,35,12)` 에서는 정지궤도 위성이 **화면 밖**이었다. 사용자가 돌려 보니 **L 0 / B 90 / R 131,247km(=20.6 지구반지름)** 에서 보였다.
     → **북극 위 `Vec(0, 88, 20)` = GEO 링 전체가 한 화면.** 안 보이면 배율 올리기 전에 구도부터 의심할 것.
+  ✅✅✅ **[2026-08-13 확정] 물체를 '지구에서 바깥(하늘)으로' 세우는 자세 = `setOrientationHPR(Vec(경도, 90, 0))`**
+    (`scripts/study/probe_rocket_hpr.py`, 아리안 5 로켓으로 판별):
+    · 자작 모델의 **+Z 는 부모 프레임의 북극**을 향한다(고리 실측과 일치). 적도에서 반지름 방향으로
+      세우려면 **pitch 90 으로 눕히고 heading 을 그 물체가 놓인 경도와 같게** 준다.
+    · 후보 넷 중 **H = L 만 정답**. H = −L 은 제각각, H = L±90 은 접선 방향(원 둘레)으로 눕는다.
+    ⚠️⚠️ **판별 방법이 더 중요하다 — '하나를 옆에서 보고 각도를 재지 마라.'**
+      1차 판별은 로켓 하나를 옆에서 보여줬는데 **돔 어안 때문에 직선이 휘고**, 카메라가 대상 근처라
+      **정답인 자세가 오히려 끝면처럼 보여** 오독했다. 화면 각도로 잰 추정치도 흔들렸다.
+      ✅ **정답 = 같은 공식을 여러 위치(경도 8곳)에 동시에 걸고 극에서 내려다본다.**
+      맞으면 **바퀴살**, 틀리면 **바람개비/접선**. **눈금을 잴 필요 없이 모양이 갈린다.**
+      → 방향·자세를 가르는 프로브는 앞으로 **패턴으로 갈리게** 설계할 것.
   · **메서드 19종(dir 실측)**: setModelFilename · setParent · setPositionLBR · setPositionXYZ · setOrientationHPR · **setScale** · setIntensity · setIntensityIDV · setExposure · setShadowStrength · setPointSize/setPointSizeFactor/setPointExposure · setUniform · setAnimationName/setAnimationStartTime/setAnimationEvolution · setVideoState/setVideoSpeed.
     읽기: `loadingStatus`(Loaded/Loading/Error/LoadedPendingDependencies) · `modelRadius` · **`parentRadius`** · `scale` · `positionLBR` · `orientationHPR` · `modelFilename` · `instrospectionOutput`(철자) · `modifyUniform` · `rotateMatrix`/`translateMatrix`/`scaleMatrix`.
   · **유저 폴더에 모델 파일 1,282개**(우주선 .osg/.ive 151개): `Metaspace\cassini\cassini.osg` · `ISS2019\...\ISS_2019_IVX_4.3_01.osg` · `Metaspace\...\ISS_2020_Full_Lite_HD_v1.ive` · 허블/아폴로/새턴V/셔틀/바이킹(.3DS 다수). ⚠️ **천리안·COMS 계열은 0개** — 만들어야 한다.
