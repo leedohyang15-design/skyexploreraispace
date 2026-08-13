@@ -13,8 +13,10 @@
 #         (0,90,0 은 옆으로 섬 / 90,0,0 도 누움 — 같은 평면). **닫힌 원**으로 렌더되고,
 #         **천리안이 그 고리 위에 정확히 얹힌다**(축척도 검증). 옆에서 보면 '선'이 된다.
 #    ⚠️ **v9 에서 아직 돔에서 못 본 것**: Intro 하강(R 26→3.4) · Scene 1 이륙 고도 R=1.6 ·
-#       Scene 3 돔 시계 HUD(우주 프레임에서의 distance 미검증) · Outro 도시 불빛 + 지상 복귀 ·
+#       **아리안 5 로켓과 그 자세(ROCKET_HPR)** · Outro 도시 불빛 + 마지막 타블로 + 지상 복귀 ·
 #       그리고 **디테일을 넣은 새 모델**(35조각 — 솔라세일·관측기 두 대·안테나 3종).
+#    ✅ **[2026-08-13 원인 확정] '위성 분신술'·'옛 나선 궤도선'은 앞 실행 잔여였다** —
+#       `reset(1)` 이 Insert3D·OrbitalPlace 슬롯을 안 비운다. `clear_leftovers()` 로 해결.
 # ─────────────────────────────────────────────────────────────
 
 # ══════════════════════════════════════════════════════════════════════════
@@ -57,9 +59,12 @@
 #     (기상 임무는 2018년 2A, 해양은 2020년 2B 로 이관.) 대본이 맞고 내가 틀렸다.
 #     → 스크립트·대본·패키지 문서의 연수와 날짜를 전부 11년/2021년 4월로 고쳤다.
 #
-#  ⚠️ **대본대로 못 하는 것 하나 — 로켓**: 발사대와 화염은 이 빌드에서 못 그린다
-#     (지상 3D 자산이 없다). Scene 1 은 **로켓에 올라탄 시점의 상승**으로 대체했다.
-#     실제로 로켓을 보여주려면 고리처럼 모델을 하나 더 구우면 된다(가능하다).
+#  ✅ **로켓을 만들었다 (2026-08-13)** — `scripts/study/make_ariane5.py`.
+#     아리안 5 ECA: 주황 EPC 중앙단 + 흰 고체부스터 2기 + 페어링, 높이 53m·폭 11.9m.
+#     Scene 1 에서 **우리 옆에서 같이 솟아오르고**, 정지궤도에 닿으면 분리돼 사라진다.
+#     남은 미지수는 자세(`ROCKET_HPR`) 하나 — 생성기 ③ 단계가 A~E 로 세워 준다.
+#  ⚠️ **발사대(런치 패드)는 안 만들었다**: Scene 1 은 고도 3,800km 에서 시작한다.
+#     지상 구조물은 그 높이에서 점도 안 된다. 지표(R≈1.0) 구도는 이 엔진에서 미검증이다.
 #
 #  구성 (대본의 시간표를 따른다)
 #    Intro    광활한 우주와 하나의 결심          0:00–0:40
@@ -98,7 +103,8 @@ SHOW_RINGS = True
 #   ⚠️ 예전에 "궤도 렌더됨"으로 적어 둔 기록은 궤도 5개가 겹쳐 있어 나선인 걸 못 알아본 것이다.
 #   → **궤도선을 직접 구운 3D 모델로 바꿨다**(scripts/study/make_orbit_ring.py).
 #     계산으로 그린 원이라 **전파기가 없다 = 나선이 될 수가 없다.** ✅ 돔에서 확인됨.
-#   ⚠️ 쇼를 돌리기 전에 **make_orbit_ring.py 를 한 번 돌려** 유저 폴더에 고리 파일을 만들어 둘 것.
+#   ⚠️ 쇼를 돌리기 전에 **생성기 세 개를 한 번씩** 돌려 유저 폴더에 파일을 만들어 둘 것:
+#      make_chollian_model.py(위성) · make_orbit_ring.py(궤도선) · make_ariane5.py(로켓)
 RING_GOLD, RING_GRAY = "ring_gold.osg", "ring_gray.osg"
 RING_HPR = Vec(0.0, 0.0, 0.0)   # ✅ **확정** (2026-08-13 probe_ring_model.py, 사용자 스샷)
 #   (0,0,0) = 적도면에 눕는다 ✅ / (0,90,0) = 옆으로 선다 ✗ / (90,0,0) = 누움(같은 평면) ✅
@@ -127,16 +133,20 @@ R_DEEP = 26.0                 # 지구가 먼 점. 은하수가 돔을 채운다
 R_INTRO_END = 3.4             # 한반도 상공 탑뷰(각지름 약 35°)
 
 # ★ Scene 1 — 쿠루에서 정지궤도까지
-# ⚠️⚠️ **로켓 모델 자리 — 파일명만 넣으면 붙는다.**
-#   지금은 None 이라 로켓 없이 '올라타서 올라가는' 상승만 나온다.
-#   유저 폴더에서 후보를 찾으려면 `scripts/study/scan_rocket_models.py` 를 돌릴 것
-#   (그 폴더에 모델이 1,282개 있고 우주선 계열만 151개다 — 이미 있을 가능성이 높다).
-#   경로를 넣으면 Scene 1 에서 **로켓이 우리 옆에서 같이 솟아오른다.**
-ROCKET_MODEL = None           # 예: "Metaspace/ariane5/ariane5.osg"
-ROCKET_SLOT = 8
-ROCKET_SCALE = 6.0e5          # 로켓 길이 ~50m 기준. 화면에서 너무 크면 3e5, 작으면 1e6
-ROCKET_LON_OFF = -9.0         # 카메라 경도에서 이만큼 옆에 둔다(정면이면 화면을 다 덮는다)
+# ★★ 아리안 5 로켓 — 직접 구웠다(scripts/study/make_ariane5.py).
+#    ⚠️ 쇼를 돌리기 전에 그 생성기를 한 번 돌려 `ariane5.osg` 를 만들어 둘 것.
+#    실물 치수: 높이 53m · 부스터 포함 폭 11.9m · 주황 EPC + 흰 부스터 2기 + 페어링.
+ROCKET_MODEL = "ariane5.osg"
+ROCKET_SLOT = 9
+ROCKET_SCALE = 1.8e5          # 모델 반지름 28.9m × 1.8e5 ≈ 5,200km (천리안 5,270km 와 비슷)
 KOURU_LON = -52.8             # 프랑스령 기아나 쿠루 발사장 경도
+ROCKET_LON_OFF = -9.0         # 카메라 경도에서 이만큼 옆에 둔다(정면이면 화면을 다 덮는다)
+ROCKET_LON = KOURU_LON + ROCKET_LON_OFF
+# ⚠️⚠️ **로켓을 하늘로 세우는 자세.** 모델은 +Z 로 서 있는데 고리 실측에서 **모델 +Z = 북극**이었다.
+#   적도에서 바깥(하늘)을 향하려면 눕혀야 한다. 후보를 `make_ariane5.py` 의 ③ 단계가 A~E 로 세워 준다.
+#   → **거기서 곧게 선 글자를 보고 이 한 줄만 맞추면 된다.**
+#      A Vec(0,0,0) / B Vec(0,90,0) / C Vec(ROCKET_LON,90,0) / D Vec(-ROCKET_LON,90,0) / E Vec(90,90,0)
+ROCKET_HPR = Vec(ROCKET_LON, 90.0, 0.0)     # 일단 C 로 두었다
 R_LAUNCH = 1.6                # 이륙 고도(≈3,800km). 지구가 발밑을 채운다
 #   ⚠️ 1순위 조정 손잡이. 지표가 뭉개지거나 화면이 비면 1.9~2.2 로 올릴 것
 
@@ -530,10 +540,9 @@ try:
         hide(rocket)
         feat(rocket, "setShadowStrength", 0.0, Anim(0.0))
         feat(rocket, "setScale", ROCKET_SCALE, Anim(0.0))
-        feat(rocket, "setOrientationHPR", Vec(0.0, 0.0, 0.0), Anim(0.0))
+        feat(rocket, "setOrientationHPR", ROCKET_HPR, Anim(0.0))
         feat(rocket, "setParent", sp if sp is not None else ip)
-        feat(rocket, "setPositionLBR",
-             Vec(KOURU_LON + ROCKET_LON_OFF, 0.0, R_LAUNCH), Anim(0.0))
+        feat(rocket, "setPositionLBR", Vec(ROCKET_LON, 0.0, R_LAUNCH), Anim(0.0))
     txt = sub_space()
     txt.setText("2010년 6월 27일")
     _dark()
@@ -547,9 +556,8 @@ try:
 
     if sp is not None:
         fly(Vec(KOURU_LON, 0.0, GEO_R), 22.0, sp)    # ★ 로켓을 따라 고속 상승
-    if rocket:                                        # 로켓도 같이 솟아오른다
-        feat(rocket, "setPositionLBR",
-             Vec(KOURU_LON + ROCKET_LON_OFF, 0.0, GEO_R), Anim(22.0))
+    if rocket:                                        # ★ 로켓도 같이 솟아오른다
+        feat(rocket, "setPositionLBR", Vec(ROCKET_LON, 0.0, GEO_R), Anim(22.0))
     say("그 정상에 천리안 1호가 실려 있다", 5.5)
     say("올라간다", 4.5)
     say("3,000km … 10,000km … 20,000km", 6.0)
