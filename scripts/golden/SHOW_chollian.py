@@ -84,6 +84,12 @@ SLOT_SPACE = 5                # 우주 전용. **영원히 setSize 를 부르지
 #   길이·타이밍은 그대로 유지된다(자막이 없어도 같은 박자로 흘러간다).
 SHOW_TEXT = False
 
+# ★ 궤도선 스위치. ⚠️ 궤도선이 **아직 나선으로 벌어진다**(세 번 고쳤고 세 번 실패).
+#   원인 판별은 scripts/study/probe_orbit_spiral.py 로 따로 한다.
+#   → **보기 싫으면 이 한 줄만 False.** 궤도선이 없어도 막5 의 이탈은 그대로 보인다
+#     (위성이 지구에서 멀어지는 것으로 읽힌다). 길이·타이밍도 안 바뀐다.
+SHOW_RINGS = True
+
 EARTH_R_M = 6378137.0
 GEO_R = 42164000.0 / EARTH_R_M          # 6.611 지구반지름 = 정지궤도
 # 무덤궤도 — ⚠️ 실제는 정지궤도 300km 위(0.7% 차이 = 화면에서 안 보인다).
@@ -268,6 +274,8 @@ def ring(slot, mm, color, thick=3.0):
     ⚠️ 한 바퀴 도는 동안 반지름이 눈에 띄게 변하려면 감쇠항(bstar)이 커야 한다.
        금색(1일 주기)·회색(2일 주기)이 **둘 다 비슷하게 1.2바퀴쯤 벌어진** 스샷이
        그 증거다(고정 '시간'이 아니라 고정 '바퀴수'를 그리는데도 안 닫힘)."""
+    if not SHOW_RINGS:
+        return _NoText()            # 모든 호출을 삼키는 빈 껍데기
     o = OrbitalPlace(OrbitalPlace.OrbitalPlaceName(slot))
     feat(o, "setParent", ip)
     feat(o, "setMeanMotion", mm, Anim(0.0))
