@@ -107,8 +107,10 @@ RING_SLOT_GOLD, RING_SLOT_GRAY = 41, 42
 SLOT_SAT, SLOT_2A, SLOT_2B = 5, 6, 7    # Insert3D 슬롯 — 위성 세 대
 
 # ★ 돔 시계 — Scene 3 의 '수명 7년 타임랩스'. 시간가속을 걸면 바늘이 실제로 돈다(검증됨).
-#   ⚠️ 우주 프레임에서의 setDistance 값은 미검증이다. 시계가 안 보이면 이 스위치를 False 로.
-SHOW_CLOCK = True
+#   ⚠️⚠️ **기본 끔** — 돔에서 두 번 다 이상하게 나왔다("시계 또 지랄이네").
+#   지상 장면에서만 검증된 HUD 라 우주 프레임에서는 자리·크기가 안 맞는 것으로 보인다.
+#   살려 보고 싶으면 True 로 하고 `clock_hud()` 의 setDistance 를 1.0 ↔ 20 으로 A/B 할 것.
+SHOW_CLOCK = False
 
 EARTH_R_M = 6378137.0
 GEO_R = 42164000.0 / EARTH_R_M          # 6.611 지구반지름 = 정지궤도
@@ -125,6 +127,15 @@ R_DEEP = 26.0                 # 지구가 먼 점. 은하수가 돔을 채운다
 R_INTRO_END = 3.4             # 한반도 상공 탑뷰(각지름 약 35°)
 
 # ★ Scene 1 — 쿠루에서 정지궤도까지
+# ⚠️⚠️ **로켓 모델 자리 — 파일명만 넣으면 붙는다.**
+#   지금은 None 이라 로켓 없이 '올라타서 올라가는' 상승만 나온다.
+#   유저 폴더에서 후보를 찾으려면 `scripts/study/scan_rocket_models.py` 를 돌릴 것
+#   (그 폴더에 모델이 1,282개 있고 우주선 계열만 151개다 — 이미 있을 가능성이 높다).
+#   경로를 넣으면 Scene 1 에서 **로켓이 우리 옆에서 같이 솟아오른다.**
+ROCKET_MODEL = None           # 예: "Metaspace/ariane5/ariane5.osg"
+ROCKET_SLOT = 8
+ROCKET_SCALE = 6.0e5          # 로켓 길이 ~50m 기준. 화면에서 너무 크면 3e5, 작으면 1e6
+ROCKET_LON_OFF = -9.0         # 카메라 경도에서 이만큼 옆에 둔다(정면이면 화면을 다 덮는다)
 KOURU_LON = -52.8             # 프랑스령 기아나 쿠루 발사장 경도
 R_LAUNCH = 1.6                # 이륙 고도(≈3,800km). 지구가 발밑을 채운다
 #   ⚠️ 1순위 조정 손잡이. 지표가 뭉개지거나 화면이 비면 1.9~2.2 로 올릴 것
@@ -141,8 +152,13 @@ B_TOGETHER, R_TOGETHER = 40.0, 9.0
 R_BACK = 13.0                 # 궤도 두 개가 다 들어오는 거리
 R_OUT = 20.0                  # 줌아웃 도착점 — 지구가 멀어진다
 
-# ★ Outro — 도시 불빛 → 지상
-B_CITY, R_CITY = 28.0, 4.2    # 한반도 밤 쪽을 내려다보는 자리
+# ★ Outro — 도시 불빛 → 세 위성 → 지상
+B_CITY, R_CITY = 28.0, 3.4    # 한반도 밤 쪽을 내려다보는 자리(지구 각지름 ~35°, 불빛이 보인다)
+#   ⚠️⚠️ 여기서는 **위성이 안 보이는 게 맞다** — 정지궤도(6.611)보다 안쪽이라 카메라 뒤에 있다.
+#      (전 판은 이 자리에서 위성을 보여주려 했다. 기하학적으로 불가능했다.)
+B_FINAL, R_FINAL_A, R_FINAL_B = 45.0, 14.0, 10.2
+#   ★ 마지막 타블로 — 오블리크로 궤도면을 비스듬히 보고 **14 → 10.2 로 줌인**한다.
+SCALE_FINAL = 2.2             # ⚠️ "마지막에 위성들 너무 작아" — 이 장면에서만 크게 키운다
 R_LAND = 2.0                  # 지상 전환 직전까지 내려온다
 
 SCALE_SAT = 1.0e6             # 반지름 5,270km — 처음에 고른 값(v4 의 5e5 는 "너무 작다")
@@ -260,12 +276,53 @@ def load_model(slot, model=None):
     return ins
 
 
+def hide(ins, times=3):
+    """⚠️ **끈 게 안 꺼지는 일이 있다** — 모델이 로드를 마치며 밝기를 되돌리는 것으로 보인다.
+    (돔 실측: 켜지면 안 되는 장면에서 궤도선·위성이 보였다.)
+    → 한 번 끄고 끝내지 말고 **프레임을 사이에 두고 몇 번 다시 누른다.**"""
+    for _ in range(times):
+        feat(ins, "setIntensity", 0.0, Anim(0.0))
+        sleep(0.15)
+
+
+def clear_leftovers():
+    """⚠️⚠️⚠️ **앞 실행이 남긴 개체를 전부 끈다. 돔에서 두 가지가 이걸로 깨졌다.**
+
+      ① **'분신술'** — 위성이 둘로 보였다. 앞 쇼가 켜 둔 2A·2B(Insert3D 슬롯)가 살아 있었다.
+      ② **'궤도선이 옛날 것'** — 나선 호가 다시 나왔다. v9 코드에는 `OrbitalPlace` 가
+         **한 줄도 없다** — 새로 만들어질 수가 없다. 즉 화면의 그 호는 전부
+         **앞 판(v8)이 켜 두고 간 `OrbitalPlace`** 였다.
+
+    ⚠️ 원인은 하나다: **`SceneGraph().reset(1)` 은 Insert3D·OrbitalPlace 슬롯을 안 비운다.**
+       씬을 초기화해도 이 개체들은 제 슬롯에 그대로 남아 다음 실행 화면에 끼어든다.
+    → 쇼 첫머리에서 **우리가 쓰는 슬롯 범위를 싹 꺼 놓고** 시작한다. 이건 매번 해야 한다."""
+    n = m = 0
+    for i in list(range(0, 12)) + list(range(38, 50)):
+        try:
+            Insert3D(Insert3D.Insert3DName(i)).setIntensity(0.0, Anim(0.0))
+            n += 1
+        except Exception:
+            pass
+    for i in range(0, 10):
+        try:
+            o = OrbitalPlace(OrbitalPlace.OrbitalPlaceName(i))
+            o.setOrbitIntensity(0.0, Anim(0.0))     # ★ 옛 나선 궤도선을 끈다
+            try:
+                o.setIntensity(0.0, Anim(0.0))
+            except Exception:
+                pass
+            m += 1
+        except Exception:
+            pass
+    print("   앞 실행 잔여 정리 — Insert3D %d개 · OrbitalPlace %d개" % (n, m))
+
+
 def place_sat(slot, lon, scale=SCALE_SAT):
     """★ 정지궤도 위성 하나 — **동기 프레임의 경도**에 놓는다.
     이 프레임의 경도 = 지구 경도라서 그 자리에 붙고, 지구가 돌면 같이 돈다.
     손으로 밀 필요가 없다(v4 의 '급발진'은 손으로 밀면서 시간가속까지 걸어서 났다)."""
     ins = load_model(slot)
-    feat(ins, "setIntensity", 0.0, Anim(0.0))
+    hide(ins)
     feat(ins, "setShadowStrength", 0.0, Anim(0.0))
     feat(ins, "setScale", scale, Anim(0.0))
     feat(ins, "setOrientationHPR", Vec(140.0, 20.0, 0.0), Anim(0.0))
@@ -284,7 +341,7 @@ def ring(slot, model, radius_m):
     if not SHOW_RINGS:
         return _NoText()
     ins = load_model(slot, model)
-    feat(ins, "setIntensity", 0.0, Anim(0.0))
+    hide(ins)
     feat(ins, "setShadowStrength", 0.0, Anim(0.0))   # 그림자로 반쪽이 어두워지지 않게
     feat(ins, "setScale", radius_m, Anim(0.0))
     feat(ins, "setOrientationHPR", RING_HPR, Anim(0.0))
@@ -399,6 +456,8 @@ try:
     _dark()
     SceneGraph().reset(1)
     _dark(1.5)
+    clear_leftovers()        # ★ 앞 실행 잔여 정리 — 분신술·옛 나선 궤도선의 원인. reset 은 안 해 준다
+    _dark()
     enter_space()
 
     dm.stop()
@@ -416,6 +475,8 @@ try:
     feat(sat, "setIntensity", 0.0, Anim(0.0))
     r_geo = ring(RING_SLOT_GOLD, RING_GOLD, GEO_R * EARTH_R_M)     # 시계 멈춘 지금 만든다
     r_grave = ring(RING_SLOT_GRAY, RING_GRAY, GRAVE_R * EARTH_R_M)
+    hide(r_geo)              # ⚠️ 궤도선은 **Scene 4 에서만** 켠다. 여기서 확실히 눌러 둔다
+    hide(r_grave)
     _dark()
 
     if sp is not None:
@@ -450,6 +511,8 @@ try:
     txt.setIntensity(0.0, Anim(0.6))
     sleep(0.8)
     feat(earth, "setCloudsIntensity", 0.35, Anim(0.0))
+    hide(r_geo, 1)                      # ⚠️ 돔에서 Scene 2 에 궤도선이 보였다 — 장면마다 다시 누른다
+    hide(r_grave, 1)
     dm.stop()
     sleep(0.2)
     dm.setDateTime(2010, 6, 26, 21, 41, 0, tz, Anim(0.0))   # 실제 발사 시각(UTC)
@@ -457,22 +520,43 @@ try:
     sleep(0.4)
     if sp is not None:
         stand(Vec(KOURU_LON, 0.0, R_LAUNCH), sp)     # 쿠루 상공, 발밑이 지구
+
+    # ★ 로켓 — ROCKET_MODEL 이 있을 때만. 우리 옆에서 같이 솟아오른다.
+    #   ⚠️ 위성과 똑같은 방식이다(동기 프레임 경도에 놓고 R 을 애니메이션).
+    #      카메라와 같은 경도에 두면 모델이 화면을 다 덮으므로 9° 옆에 둔다.
+    rocket = None
+    if ROCKET_MODEL:
+        rocket = load_model(ROCKET_SLOT, ROCKET_MODEL)
+        hide(rocket)
+        feat(rocket, "setShadowStrength", 0.0, Anim(0.0))
+        feat(rocket, "setScale", ROCKET_SCALE, Anim(0.0))
+        feat(rocket, "setOrientationHPR", Vec(0.0, 0.0, 0.0), Anim(0.0))
+        feat(rocket, "setParent", sp if sp is not None else ip)
+        feat(rocket, "setPositionLBR",
+             Vec(KOURU_LON + ROCKET_LON_OFF, 0.0, R_LAUNCH), Anim(0.0))
     txt = sub_space()
     txt.setText("2010년 6월 27일")
     _dark()
 
     uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
     sleep(2.5)
+    if rocket:
+        feat(rocket, "setIntensity", 1.0, Anim(1.5))
     say("2010년 6월 27일, 쿠루 우주센터", 5.0)
     say("아리안 5호가 화염을 뿜으며 하늘을 가른다", 5.5)
 
     if sp is not None:
         fly(Vec(KOURU_LON, 0.0, GEO_R), 22.0, sp)    # ★ 로켓을 따라 고속 상승
+    if rocket:                                        # 로켓도 같이 솟아오른다
+        feat(rocket, "setPositionLBR",
+             Vec(KOURU_LON + ROCKET_LON_OFF, 0.0, GEO_R), Anim(22.0))
     say("그 정상에 천리안 1호가 실려 있다", 5.5)
     say("올라간다", 4.5)
     say("3,000km … 10,000km … 20,000km", 6.0)
     say("지구 상공 3만 6천 킬로미터", 6.0)
     say("정지궤도를 향한 도약이다", 5.0)
+    if rocket:
+        hide(rocket, 1)          # 도착하면 로켓은 분리돼 사라진다
 except Exception as e:
     print("Scene 1 오류:", e)
 
@@ -487,6 +571,8 @@ try:
     dm.stop()
     sleep(0.2)
     dm.setDateTime(2011, 4, 1, 3, 30, 0, tz, Anim(0.0))    # 정규 서비스 시작 무렵, 한반도 낮
+    hide(r_geo, 1)                      # ★ 이 장면에 궤도선이 보이면 안 된다(돔 실측으로 걸렸다)
+    hide(r_grave, 1)
     _dark()
     if sp is not None:
         stand(Vec(KOREA_LON, 0.0, R_WATCH_A), sp)   # 위성이 카메라와 지구 사이
@@ -527,6 +613,8 @@ try:
     txt.setIntensity(0.0, Anim(0.5))
     sleep(0.6)
     stand(Vec(0.0, B_TOGETHER, R_TOGETHER), ip)
+    hide(r_geo, 1)
+    hide(r_grave, 1)
     shadows(True)                       # 낮밤 — 이 막은 그림자가 주제라 운영 표준의 예외
     _dark()
     clk = clock_hud()                   # ★ 수명을 세는 시계
@@ -602,15 +690,19 @@ try:
 except Exception as e:
     print("Scene 4 오류:", e)
 
-# ══ Outro : 유산과 기억 (4:20–5:00) ════════════════════════════
+# ══ Outro : 유산과 기억 (4:11–5:01) ════════════════════════════
 # 대본: "폐기궤도에 잠든 천리안 아래로 2A·2B, 그리고 대한민국 도시의 불빛.
 #        우주에서 지상으로 천천히 내려와 관객의 시선과 맞닿는 착륙 연출."
+# ⚠️⚠️ **세 비트로 나눈다** — 도시 불빛과 세 위성은 **같은 자리에서 못 본다**(기하학적으로).
+#    도시 불빛은 지구에 바짝 붙어야 보이고(R 3.4), 위성은 정지궤도 바깥에서 봐야 보인다(R 10+).
 try:
+    # ── ① 도시 불빛 (지구 가까이) ──────────────────────────────
     _dark()
     txt.setIntensity(0.0, Anim(0.5))
     sleep(0.6)
     shadows(True)                                    # ★ 밤면 = 도시 불빛
-    stand(Vec(KOREA_LON, B_CITY, R_CITY), sp)        # 한반도 밤 쪽을 내려다본다
+    hide(sat, 1)                                     # 이 자리에선 어차피 카메라 뒤다
+    stand(Vec(KOREA_LON, B_CITY, R_CITY), sp)
     dm.stop()
     sleep(0.2)
     dm.setDateTime(2026, 8, 12, 13, 0, 0, tz, Anim(0.0))   # 한반도 밤(22시 KST)
@@ -621,16 +713,36 @@ try:
 
     uni.setGlobalIntensity(1.0, Anim.cubic(2.5))
     sleep(2.5)
-    say("천리안 1호가 열어 준 길을 따라", 5.5)
-    say("더 나은 위성들이 그 자리를 이어받고 있다", 5.5)
     say("저 아래 불빛 하나하나가 우리가 사는 곳이다", 6.0)
+    say("천리안 1호가 열어 준 길을 따라", 5.5)
 
-    # ★ 지상으로 내려온다 — 보이는 하강 뒤에 암전으로 지상 시점 전환
-    if sp is not None:
-        fly(Vec(KOREA_LON, B_CITY, R_LAND), 12.0, sp)
-    say("우리 우주 역사의 첫 장을 연 이름", 6.0)
-    say("천리안 1호", 5.0)
+    # ── ② 세 위성 타블로 — ⚠️ "너무 작아"를 고친 자리 ────────────
+    #    오블리크(B45)로 궤도면을 비스듬히 보고, **크게 키운 뒤 줌인**한다.
+    _dark()
+    txt.setIntensity(0.0, Anim(0.5))
+    sleep(0.6)
+    shadows(False)
+    stand(Vec(0.0, B_FINAL, R_FINAL_A), ip)
+    feat(sat, "setScale", SCALE_SAT * SCALE_FINAL, Anim(0.0))       # ★ 크게
+    feat(sat, "setPositionLBR", Vec(KOREA_LON, 0.0, GRAVE_R), Anim(0.0))
+    feat(sat, "setIntensity", 0.32, Anim(0.0))                      # 불은 꺼진 채로
+    for _s in (s2a, s2b):
+        feat(_s, "setScale", SCALE_SAT * 0.8 * SCALE_FINAL, Anim(0.0))
+        feat(_s, "setIntensity", 1.0, Anim(0.0))
+    feat(r_geo, "setIntensity", 1.0, Anim(0.0))
+    feat(r_grave, "setIntensity", 0.9, Anim(0.0))
+    txt = sub_space()
+    txt.setText("자리는 비지 않았다")
+    _dark()
+    uni.setGlobalIntensity(1.0, Anim.cubic(2.0))
+    sleep(2.0)
 
+    fly(Vec(0.0, B_FINAL, R_FINAL_B), 12.0, ip)      # ★ 줌인 — 위성들이 커진다
+    say("더 나은 위성들이 그 자리를 이어받고 있다", 6.0)
+    say("바깥 회색 원에 천리안 1호가, 안쪽 금색 원에 2A 와 2B 가 있다", 6.5)
+    say("우리 우주 역사의 첫 장을 연 이름 — 천리안 1호", 6.0)
+
+    # ── ③ 지상으로 ────────────────────────────────────────────
     _dark()
     txt.setIntensity(0.0, Anim(0.5))
     sleep(0.8)

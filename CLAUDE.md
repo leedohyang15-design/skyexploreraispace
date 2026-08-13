@@ -1080,6 +1080,22 @@ t.setSize(0.052); t.setColor(Vec(1, 1, 0.55)); t.setIntensity(1.0, Anim(1.0))
 - ⚠️ 관측지가 바뀌면 하늘(별 배치·지평선)이 그 위치 기준으로 바뀜 → 시각(UTC)은 별도로 맞출 것.
 
 ## SceneGraph — `SceneGraph()`
+
+- ⚠️⚠️⚠️ **[2026-08-13 돔 실측] `reset(1)` 은 `Insert3D`·`OrbitalPlace` 슬롯을 안 비운다 — 앞 실행이 화면에 끼어든다.**
+  천리안 쇼에서 두 가지가 이걸로 깨졌다: ① **위성이 둘로 보였다**(앞 쇼가 켜 둔 2A·2B 가 살아 있었다)
+  ② **버린 지 오래인 옛 나선 궤도선이 다시 나왔다**(현재 코드엔 `OrbitalPlace` 가 **한 줄도 없는데**).
+  → **쇼 첫머리에서 쓰는 슬롯 범위를 싹 꺼 놓고 시작할 것.** 이건 매 실행 해야 한다:
+  ```python
+  for i in range(0, 12) + range(38, 50):          # Insert3D
+      Insert3D(Insert3D.Insert3DName(i)).setIntensity(0.0, Anim(0.0))
+  for i in range(0, 10):                           # OrbitalPlace
+      OrbitalPlace(OrbitalPlace.OrbitalPlaceName(i)).setOrbitIntensity(0.0, Anim(0.0))
+  ```
+  ⚠️ **교훈: '내 코드에 그 줄이 없는데 화면에 보인다' → 앞 실행 잔여를 의심할 것.**
+  나는 이걸 내 코드 버그로 착각해 한참 헤맸다.
+- ⚠️ **끈 게 안 꺼지는 일이 있다** — `Insert3D` 는 모델 로드가 끝나며 밝기를 되돌리는 것으로 보인다.
+  → 숨길 때는 **프레임을 사이에 두고 두세 번 다시 누른다**(`setIntensity(0)` → `sleep(0.15)` → 반복).
+
 - `reset(reinitId=1)` — 전체 리셋 / `lockManipulator(duration)` — 조작 잠금
 
 ## Anim — `Anim(duration)`
