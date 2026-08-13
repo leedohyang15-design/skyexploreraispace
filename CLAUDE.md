@@ -228,6 +228,18 @@ camera.addChild(myText.id, Camera.CameraPort.FixedForeground)
 - `setIntensity(intensity, Anim)`, `setOrbitIntensity(intensity, Anim)`
 - `portId(PlanetPort)` — **PlanetPort 실측(9종)**: Ecliptic/Equatorial/EquatorialJ2000/**EquatorialSynchronous**/Galactic/NoonEcliptic/NoonEquatorial/OrbitalMeanEquinox/InvalidPlanetPort
 
+- ⭐⭐ **[연출 패턴] '정지궤도 위성의 1인칭' = 동기 프레임(EquatorialSynchronous)에 카메라를 세운다 (2026-08-13, SHOW_chollian v7)**:
+  사용자가 "너무 관조하는 느낌"이라 하면 **카메라를 대상에 태우는 것**이 답이고, 정지궤도 위성은 그게 프레임 하나로 된다.
+  · **동기 프레임의 L = 지구 경도**다. `cam.setPositionLBR(Vec(128.2, 0, 6.611), Anim, sp)` = **천리안이 실제로 앉아 있는 자리**
+    (6.611 = 42,164km / 지구반지름). 여기 서면 **지구가 안 도는 게 정상** — 그게 정지궤도 위성이 보는 그림이다.
+    ⚠️ 이걸 '지구가 안 돈다'고 버그로 착각해 관성 프레임으로 되돌리면 1인칭이 깨진다(반대로 3인칭 설명 장면엔 관성이 필수).
+  · **1인칭 구간에서는 그 위성 모델을 꺼라**(`setIntensity(0)`) — 우리가 그것이므로 화면에 보이면 안 된다.
+  · **여정도 이 프레임에서 그린다**: 상승 = R 1.6 → 6.611 애니 / **동쪽 표류 = L 애니**(발사장 경도 → 배정 경도).
+    ⚠️ **L 을 한 번에 180° 주지 마라** — 도는 방향이 모호하다. **60° 남짓씩 끊어** 경유점으로 못 박을 것.
+  · ⚠️⚠️ **표류하며 '낮'을 유지하려면 시각을 거꾸로 흘려야 한다 (계산으로 확정)**: 태양 직하점 경도는
+    시간이 **앞으로** 갈 때 **서쪽으로**(경도 감소) 간다(−15°/h). 동쪽으로 가는 우리와 **반대**라, 앞으로 흘리면
+    표류 중간에 지구 반대편(한밤)을 지난다. → **Δ경도 / 15 시간만큼 과거로** `setDateTime` 하면 태양이 나란히 따라온다.
+    (실측 검산: 181° 동진 ↔ 12h 역행. 15:30 UTC 쿠루 정오 → 03:30 UTC 한반도 정오. 양 끝과 중간 모두 정오.)
 - ✅✅✅ **행성을 '객체로' 자전시키기 = 관성 프레임 + setRotationSpeedScale (2026-07-14 사용자 확인, earth_rotation_sim.py / solar_system_tour.py 화성)**:
   ⚠️⚠️ **GoTo/FadeTo 도킹 프레임은 'EquatorialSync(동기)' = 카메라가 행성 자전을 따라 같이 돎** →
   **행성은 멈춰 보이고 배경 하늘·별이 도는 것처럼** 보임(실측 확정, "지구는 그대로 별만 돈다").
